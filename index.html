@@ -440,17 +440,116 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ===== SUPABASE =====
+
+const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
+
+const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
+
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 // ══ DATA STORE ═══════════════════════════════════════════════════
 let DB = {
   customers: [],       // {id,first,last,addr,zip,phone,email,sched,day,price,mowTime,size,gate,notes,active}
   jobHistory: [],      // {id,custId,date,actualMin,estMin,paid,paidMethod,beforePhotos,afterPhotos,extraPhotos,notes}
   settings: {mapsKey:'',homeBase:'',startTime:'07:00',hours:8}
 };
+async function saveDB(){
 
-function saveDB(){try{localStorage.setItem('ros_db',JSON.stringify(DB));}catch(e){}}
-function loadDB(){try{const d=localStorage.getItem('ros_db');if(d){const p=JSON.parse(d);DB=Object.assign({customers:[],jobHistory:[],settings:{mapsKey:'',homeBase:'',startTime:'07:00',hours:8}},p);}}catch(e){}}
+  try{
+    localStorage.setItem('ros_db',JSON.stringify(DB));
+  }catch(e){}
 
+  try{
+
+    for(const customer of DB.customers){
+
+      await supabase
+        .from('customers')
+        .upsert({
+          id: customer.id,
+          first: customer.first,
+          last: customer.last,
+          addr: customer.addr,
+          zip: customer.zip,
+          phone: customer.phone,
+          email: customer.email,
+          sched: customer.sched,
+          day: customer.day,
+          price: customer.price,
+          mowtime: customer.mowTime,
+          size: customer.size,
+          gate: customer.gate,
+          notes: customer.notes
+        });
+
+    }
+
+  }catch(err){
+    console.log('Supabase save error', err);
+  }
+}
+
+async function loadDB(){
+
+  try{
+
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*');
+
+    if(data){
+
+      DB.customers = data.map(c => ({
+        id: c.id,
+        first: c.first,
+        last: c.last,
+        addr: c.addr,
+        zip: c.zip,
+        phone: c.phone,
+        email: c.email,
+        sched: c.sched,
+        day: c.day,
+        price: c.price,
+        mowTime: c.mowtime,
+        size: c.size,
+        gate: c.gate,
+        notes: c.notes
+      }));
+
+    }
+
+  }catch(err){
+    console.log('Supabase load error', err);
+  }
+
+  try{
+
+    const d=localStorage.getItem('ros_db');
+
+    if(d && DB.customers.length===0){
+
+      const p=JSON.parse(d);
+
+      DB=Object.assign({
+        customers:[],
+        jobHistory:[],
+        settings:{
+          mapsKey:'',
+          homeBase:'',
+          startTime:'07:00',
+          hours:8
+        }
+      },p);
+
+    }
+
+  }catch(e){}
+}
 // ══ NAVIGATION ════════════════════════════════════════════════════
 const TABS=['dash','plan','track','customers','reports'];
 function goTab(t){
