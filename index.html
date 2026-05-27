@@ -10,7 +10,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{--green:#2d5a27;--gl:#4a8f3f;--gp:#e8f5e3;--amb:#c8860a;--ambp:#fef6e4;--red:#c0392b;--rp:#fdecea;--blue:#1565c0;--bp:#e3f0ff;--ink:#1a1a1a;--ink2:#444;--ink3:#777;--s:#fff;--s2:#f7f8f5;--s3:#eef0ea;--bd:#dde0d8;--r:10px;--rl:14px}
 body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-height:100vh;padding-bottom:70px}
- 
+
 /* ── Nav ── */
 .nav{position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--bd);display:flex;z-index:50;max-width:600px;margin:0 auto}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.5rem .25rem .6rem;gap:3px;cursor:pointer;border:none;background:none;color:var(--ink3);font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:.02em;transition:color .15s}
@@ -18,18 +18,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .nav-btn i{font-size:22px}
 .nav-indicator{width:4px;height:4px;border-radius:50%;background:var(--green);margin:0 auto;opacity:0}
 .nav-btn.active .nav-indicator{opacity:1}
- 
+
 /* ── Page ── */
 .page{display:none;max-width:600px;margin:0 auto;padding:1rem 1rem 1.5rem}
 .page.active{display:block}
 .page-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
 .page-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;color:var(--green);line-height:1}
 .page-sub{font-size:12px;color:var(--ink3);margin-top:2px}
- 
+
 /* ── Cards ── */
 .card{background:var(--s);border:1px solid var(--bd);border-radius:var(--rl);padding:1rem 1.125rem;margin-bottom:.875rem;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .card-title{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.08em;color:var(--ink3);margin-bottom:.875rem}
- 
+
 /* ── Buttons ── */
 .btn{height:40px;padding:0 16px;border-radius:var(--r);border:1px solid var(--bd);background:var(--s);color:var(--ink);font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;-webkit-appearance:none}
 .btn:active{transform:scale(.97)}
@@ -40,7 +40,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .btn-ghost{background:transparent;border-color:transparent;color:var(--ink3)}
 .bsm{height:32px;padding:0 12px;font-size:12px}
 .bxsm{height:26px;padding:0 8px;font-size:11px}
- 
+
 /* ── Forms ── */
 .f{display:flex;flex-direction:column;gap:4px;flex:1;min-width:100px}
 .f label{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em}
@@ -48,7 +48,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .f textarea{height:auto;padding:.625rem 10px;resize:none}
 .f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--gl);background:#fff}
 .fr{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.75rem}
- 
+
 /* ── Tags ── */
 .tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;display:inline-block;text-transform:uppercase;letter-spacing:.04em}
 .tag-green{background:var(--gp);color:var(--green)}
@@ -56,7 +56,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .tag-red{background:var(--rp);color:var(--red)}
 .tag-blue{background:var(--bp);color:var(--blue)}
 .tag-gray{background:var(--s3);color:var(--ink3)}
- 
+
 /* ── Dashboard ── */
 .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
 .dash-card{background:var(--s);border:1px solid var(--bd);border-radius:var(--rl);padding:1rem;text-align:center}
@@ -71,7 +71,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .wd-name{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--ink3)}
 .wd-num{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--ink);line-height:1}
 .wd-dot{font-size:8px;color:var(--green);min-height:10px}
- 
+
 /* ── Customer cards ── */
 .cust-card{background:var(--s);border:1px solid var(--bd);border-radius:var(--rl);margin-bottom:.75rem;overflow:hidden}
 .cust-hdr{display:flex;align-items:center;gap:12px;padding:.875rem 1rem;cursor:pointer}
@@ -84,7 +84,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:.625rem;margin-bottom:.875rem}
 .detail-item .dl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:2px}
 .detail-item .dv{font-size:14px;font-weight:500}
- 
+
 /* ── Schedule ── */
 .sched-row{display:flex;align-items:center;gap:10px;padding:.75rem 0;border-bottom:1px solid var(--s3)}
 .sched-row:last-child{border-bottom:none}
@@ -97,7 +97,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .sched-timelbl{font-size:10px;color:var(--ink3);text-transform:uppercase}
 .drive-row{display:flex;align-items:center;gap:6px;padding:.2rem 0 .2rem 14px;font-size:11px;color:var(--ink3)}
 .drive-line{width:1px;height:14px;background:var(--bd);margin-left:14px}
- 
+
 /* ── Job tracker ── */
 .job-card{background:var(--s);border:1.5px solid var(--bd);border-radius:var(--rl);margin-bottom:.875rem;overflow:hidden;transition:border-color .2s,box-shadow .2s}
 .job-card.active{border-color:var(--green);box-shadow:0 0 0 3px rgba(45,90,39,.1)}
@@ -135,7 +135,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .notes-area{width:100%;border-radius:var(--r);border:1px solid var(--bd);background:var(--s2);color:var(--ink);padding:.625rem 10px;font-size:14px;font-family:'DM Sans',sans-serif;resize:none;min-height:72px}
 .notes-area:focus{outline:none;border-color:var(--gl);background:#fff}
 .est-info{font-size:12px;color:var(--ink3);display:flex;gap:12px;flex-wrap:wrap;padding:.4rem 0;margin-bottom:.625rem}
- 
+
 /* ── Photo viewer ── */
 .pviewer{display:none;position:fixed;inset:0;background:#000;z-index:300;flex-direction:column;align-items:center;justify-content:center;padding:1rem}
 .pviewer.open{display:flex}
@@ -143,14 +143,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .pv-close{position:absolute;top:1rem;right:1rem;width:40px;height:40px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:22px}
 .pv-lbl{color:rgba(255,255,255,.6);font-size:12px;margin-top:.5rem}
 .pv-btns{display:flex;gap:8px;margin-top:.875rem;flex-wrap:wrap;justify-content:center}
- 
+
 /* ── Modal ── */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:flex-end;justify-content:center}
 .modal-bg.open{display:flex}
 .modal{background:var(--s);border-radius:20px 20px 0 0;padding:1.5rem;width:100%;max-width:600px;max-height:90vh;overflow-y:auto}
 .modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--green);margin-bottom:1rem;letter-spacing:.04em}
 .modal-close{position:absolute;top:1rem;right:1rem}
- 
+
 /* ── Misc ── */
 .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.15);border-top-color:var(--green);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -172,10 +172,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .pill-tabs{display:flex;gap:6px;margin-bottom:1rem;overflow-x:auto;padding-bottom:2px}
 .pill-tab{height:32px;padding:0 14px;border-radius:99px;border:1px solid var(--bd);background:var(--s);color:var(--ink3);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif}
 .pill-tab.active{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* ── Weather widget ── */
+.weather-card{background:linear-gradient(135deg,var(--green) 0%,#4a8f3f 100%);border:none;border-radius:var(--rl);padding:1rem 1.125rem;margin-bottom:.875rem;color:#fff;box-shadow:0 2px 8px rgba(45,90,39,.25)}
+.weather-top{display:flex;align-items:center;justify-content:space-between}
+.weather-temp{font-family:'Bebas Neue',sans-serif;font-size:52px;line-height:1;color:#fff}
+.weather-icon{font-size:44px;opacity:.9}
+.weather-desc{font-size:13px;font-weight:600;opacity:.85;margin-top:2px;text-transform:capitalize}
+.weather-loc{font-size:11px;opacity:.6;margin-top:1px}
+.weather-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:.875rem;padding-top:.875rem;border-top:1px solid rgba(255,255,255,.2)}
+.weather-stat .wsl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.6;margin-bottom:2px}
+.weather-stat .wsv{font-size:13px;font-weight:700}
+.weather-loading{font-size:13px;opacity:.7;padding:.5rem 0;text-align:center}
+
+/* ── Coord badge ── */
+.coord-warn{display:inline-flex;align-items:center;gap:4px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:1px 7px;font-size:10px;font-weight:700;color:#856404;margin-left:6px;vertical-align:middle}
+
+/* ── Sort select ── */
+.sort-select{height:28px;border-radius:99px;border:1px solid var(--bd);background:var(--s);font-size:11px;font-weight:600;padding:0 10px;font-family:'DM Sans',sans-serif;color:var(--ink3);cursor:pointer;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:22px}
 </style>
 </head>
 <body>
- 
+
 <!-- ══ DASHBOARD ══════════════════════════════════════════════════ -->
 <div class="page active" id="pg-dash">
   <div style="max-width:600px;margin:0 auto;padding:1rem 1rem 0">
@@ -190,6 +208,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     </div>
   </div>
   <div class="page" style="display:block;padding-top:0">
+    <!-- Weather widget -->
+    <div class="weather-card" id="weather-card">
+      <div class="weather-loading"><span class="spin" style="border-top-color:#fff;border-color:rgba(255,255,255,.3)"></span> Loading weather...</div>
+    </div>
+
     <div class="dash-grid" id="dash-metrics"></div>
     <div class="card">
       <div class="card-title">This week</div>
@@ -211,7 +234,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     </div>
   </div>
 </div>
- 
+
 <!-- ══ ROUTE PLANNER ═══════════════════════════════════════════════ -->
 <div class="page" id="pg-plan">
   <div class="page-hdr">
@@ -259,7 +282,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     <div id="plan-jobs-list"></div>
   </div>
 </div>
- 
+
 <!-- ══ FIELD TRACKER ═══════════════════════════════════════════════ -->
 <div class="page" id="pg-track">
   <div class="page-hdr">
@@ -280,7 +303,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     <button class="btn btng" style="width:100%" onclick="exportDaySummary()"><i class="ti ti-package-export"></i> Export Day Summary + Photos</button>
   </div>
 </div>
- 
+
 <!-- ══ CUSTOMERS ═══════════════════════════════════════════════════ -->
 <div class="page" id="pg-customers">
   <div class="page-hdr">
@@ -291,16 +314,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     </div>
   </div>
   <input type="text" class="search-box" id="cust-search" placeholder="Search customers..." oninput="renderCustomers()">
-  <div class="pill-tabs">
-    <button class="pill-tab active" onclick="setCustFilter('all',this)">All</button>
-    <button class="pill-tab" onclick="setCustFilter('active',this)">Active</button>
-    <button class="pill-tab" onclick="setCustFilter('weekly',this)">Weekly</button>
-    <button class="pill-tab" onclick="setCustFilter('biweekly',this)">Biweekly</button>
-    <button class="pill-tab" onclick="setCustFilter('inactive',this)">Inactive</button>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">
+    <div class="pill-tabs" style="margin:0;flex:1">
+      <button class="pill-tab active" onclick="setCustFilter('all',this)">All</button>
+      <button class="pill-tab" onclick="setCustFilter('active',this)">Active</button>
+      <button class="pill-tab" onclick="setCustFilter('weekly',this)">Weekly</button>
+      <button class="pill-tab" onclick="setCustFilter('biweekly',this)">Biweekly</button>
+      <button class="pill-tab" onclick="setCustFilter('inactive',this)">Inactive</button>
+    </div>
+    <select class="sort-select" id="cust-sort" onchange="renderCustomers()">
+      <option value="recent">Recent</option>
+      <option value="az">A–Z</option>
+      <option value="day">By day</option>
+      <option value="zip">By zip</option>
+    </select>
   </div>
   <div id="cust-list"></div>
 </div>
- 
+
 <!-- ══ REPORTS ═════════════════════════════════════════════════════ -->
 <div class="page" id="pg-reports">
   <div class="page-hdr">
@@ -312,7 +343,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     </select>
   </div>
   <div id="report-content"></div>
- 
+
+  <!-- Deduplicate -->
+  <div class="card" style="margin-top:.5rem">
+    <div class="card-title">Deduplicate customers</div>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">Scans for duplicate contacts (matched by phone number or full name) and merges them into a single record, keeping the most complete data. Also removes duplicates from Supabase. Shows you exactly what changed before saving.</p>
+    <button class="btn btng" onclick="runDedup()" style="width:100%"><i class="ti ti-git-merge"></i> Scan & deduplicate now</button>
+    <div id="dedup-result" style="display:none;margin-top:.875rem;border-radius:var(--r);padding:.875rem;font-size:13px;line-height:1.7"></div>
+  </div>
+
   <!-- Backup & Restore -->
   <div class="card" style="margin-top:.5rem">
     <div class="card-title">Data backup & restore</div>
@@ -329,7 +368,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     <div id="restore-msg" style="display:none;margin-top:.75rem;border-radius:var(--r);padding:.75rem;font-size:13px"></div>
   </div>
 </div>
- 
+
 <!-- ══ NAV ═════════════════════════════════════════════════════════ -->
 <nav class="nav" style="left:50%;transform:translateX(-50%);max-width:600px">
   <button class="nav-btn active" onclick="goTab('dash')" id="nav-dash"><i class="ti ti-home"></i><span>Home</span><div class="nav-indicator"></div></button>
@@ -338,7 +377,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <button class="nav-btn" onclick="goTab('customers')" id="nav-customers"><i class="ti ti-users"></i><span>Clients</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="goTab('reports')" id="nav-reports"><i class="ti ti-chart-bar"></i><span>Reports</span><div class="nav-indicator"></div></button>
 </nav>
- 
+
 <!-- ══ MODALS ══════════════════════════════════════════════════════ -->
 <!-- Customer modal -->
 <div class="modal-bg" id="cust-modal" onclick="handleModalBg(event,'cust-modal')">
@@ -367,7 +406,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   </div>
 </div>
 </div>
- 
+
 <!-- Import modal -->
 <div class="modal-bg" id="import-modal" onclick="handleModalBg(event,'import-modal')">
 <div class="modal">
@@ -402,7 +441,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <div style="margin-top:.875rem"><button class="btn" onclick="closeModal('import-modal')" style="width:100%">Close</button></div>
 </div>
 </div>
- 
+
 <!-- Load route modal -->
 <div class="modal-bg" id="load-modal" onclick="handleModalBg(event,'load-modal')">
 <div class="modal">
@@ -416,7 +455,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   </div>
 </div>
 </div>
- 
+
 <!-- Report modal -->
 <div class="modal-bg" id="report-modal" onclick="handleModalBg(event,'report-modal')">
 <div class="modal" style="max-height:80vh;overflow-y:auto">
@@ -425,7 +464,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <button class="btn" onclick="closeModal('report-modal')" style="width:100%;margin-top:1rem">Close</button>
 </div>
 </div>
- 
+
 <!-- Photo viewer -->
 <div class="pviewer" id="pviewer">
   <div class="pv-close" onclick="closePV()"><i class="ti ti-x"></i></div>
@@ -437,7 +476,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     <button class="btn" style="width:auto;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="closePV()">Close</button>
   </div>
 </div>
- 
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -446,11 +485,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
- 
+
 function isUuid(value){
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''));
 }
- 
+
 function makeUuid(){
   if(window.crypto && window.crypto.randomUUID){
     return window.crypto.randomUUID();
@@ -460,21 +499,21 @@ function makeUuid(){
     return v.toString(16);
   });
 }
- 
+
 // ══ DATA STORE ═══════════════════════════════════════════════════
 let DB = {
   customers: [],
   jobHistory: [],
   settings: {mapsKey:'',homeBase:'',startTime:'07:00',hours:8}
 };
- 
+
 async function saveDB(){
   try{
     localStorage.setItem('ros_db',JSON.stringify(DB));
   }catch(e){
     console.log('Local save error',e);
   }
- 
+
   try{
     for(const customer of DB.customers){
       if(!isUuid(customer.id)){
@@ -504,7 +543,7 @@ async function saveDB(){
     console.log('Supabase sync error',err);
   }
 }
- 
+
 async function loadDB(){
   try{
     const d=localStorage.getItem('ros_db');
@@ -515,7 +554,7 @@ async function loadDB(){
   }catch(e){
     console.log('Local load error',e);
   }
- 
+
   try{
     const {data,error}=await supabaseClient
       .from('customers')
@@ -545,7 +584,7 @@ async function loadDB(){
     console.log('Supabase load error',err);
   }
 }
- 
+
 // ══ NAVIGATION ════════════════════════════════════════════════════
 const TABS=['dash','plan','track','customers','reports'];
 function goTab(t){
@@ -557,7 +596,7 @@ function goTab(t){
   if(t==='customers')renderCustomers();
   if(t==='reports'){renderReports();updateBackupStats();}
 }
- 
+
 // ══ HELPERS ═══════════════════════════════════════════════════════
 function uid(){return makeUuid();}
 function pad(n){return n<10?'0'+n:String(n);}
@@ -571,11 +610,12 @@ function custAddr(c){return c.addr+(c.zip?', '+c.zip:'');}
 function initials(c){return ((c.first||'')[0]||'')+(( c.last||'')[0]||'').toUpperCase();}
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const DAYS_FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
- 
+
 // ══ DASHBOARD ════════════════════════════════════════════════════
 let selectedDayOffset=0;
 function renderDash(){
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  fetchWeather();
   const active=DB.customers.filter(c=>c.sched!=='inactive');
   const todayJobs=getDayJobs(0);
   const monthRevenue=getMonthRevenue();
@@ -589,19 +629,19 @@ function renderDash(){
   renderDayJobs();
   renderUnpaid();
 }
- 
+
 function getWeekJobs(weekOffset){
   const today=new Date();today.setHours(0,0,0,0);
   const monday=new Date(today);monday.setDate(today.getDate()-(today.getDay()||7)+1+weekOffset*7);
   const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);
   return DB.customers.filter(c=>isDueInRange(c,monday,sunday));
 }
- 
+
 function getDayJobs(dayOffset){
   const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+dayOffset);
   return DB.customers.filter(c=>isDueOnDate(c,d));
 }
- 
+
 function isDueOnDate(c,date){
   if(c.sched==='inactive'||c.sched==='onetime')return false;
   const dow=parseInt(c.day||0);
@@ -617,14 +657,14 @@ function isDueOnDate(c,date){
   }
   return false;
 }
- 
+
 function isDueInRange(c,start,end){
   if(c.sched==='inactive')return false;
   let d=new Date(start);
   while(d<=end){if(isDueOnDate(c,d))return true;d.setDate(d.getDate()+1);}
   return false;
 }
- 
+
 function renderWeekStrip(){
   const today=new Date();today.setHours(0,0,0,0);
   const startOfWeek=new Date(today);
@@ -645,13 +685,13 @@ function renderWeekStrip(){
   }
   document.getElementById('week-strip').innerHTML=html;
 }
- 
+
 function selectDay(off){
   selectedDayOffset=off;
   renderWeekStrip();
   renderDayJobs();
 }
- 
+
 function renderDayJobs(){
   const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+selectedDayOffset);
   const jobs=getDayJobs(selectedDayOffset);
@@ -677,7 +717,7 @@ function renderDayJobs(){
   });
   document.getElementById('day-jobs-list').innerHTML=h;
 }
- 
+
 function renderUnpaid(){
   const unpaid=DB.jobHistory.filter(j=>!j.paid).slice(0,5);
   document.getElementById('unpaid-card').style.display=unpaid.length?'':'none';
@@ -693,21 +733,67 @@ function renderUnpaid(){
     </div>`;
   }).join('');
 }
- 
+
 function markPaid(id){
   const j=DB.jobHistory.find(x=>x.id===id);
   if(j){j.paid=true;j.paidMethod='cash';saveDB();renderDash();}
 }
- 
+
 function getMonthRevenue(){
   const now=new Date();
   const m=now.getMonth(),y=now.getFullYear();
   return DB.jobHistory.filter(j=>j.paid&&new Date(j.date).getMonth()===m&&new Date(j.date).getFullYear()===y).reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);return a+parseFloat(c&&c.price||0);},0);
 }
- 
+
+// ══ WEATHER ══════════════════════════════════════════════════════
+// Sapulpa, OK coordinates — free Open-Meteo API, no key needed
+const WEATHER_LAT=36.0034, WEATHER_LON=-96.1128;
+const WMO_ICON={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'};
+const WMO_DESC={0:'Clear sky',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',48:'Foggy',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',80:'Showers',81:'Heavy showers',82:'Violent showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
+
+async function fetchWeather(){
+  const card=document.getElementById('weather-card');
+  if(!card)return;
+  try{
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_LAT}&longitude=${WEATHER_LON}&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,relative_humidity_2m,precipitation_probability&temperature_unit=fahrenheit&windspeed_unit=mph&timezone=America/Chicago`;
+    const res=await fetch(url);
+    const data=await res.json();
+    const c=data.current;
+    const code=c.weathercode;
+    const icon=WMO_ICON[code]||'🌡️';
+    const desc=WMO_DESC[code]||'Unknown';
+    const temp=Math.round(c.temperature_2m);
+    const feels=Math.round(c.apparent_temperature);
+    const wind=Math.round(c.windspeed_10m);
+    const humid=c.relative_humidity_2m;
+    const rain=c.precipitation_probability??0;
+    // Rain chance drives a work advisory
+    let advisory='';
+    if(rain>=70)advisory=`<div style="margin-top:.75rem;background:rgba(0,0,0,.2);border-radius:8px;padding:.5rem .75rem;font-size:12px;font-weight:600">⚠️ ${rain}% chance of rain — consider rescheduling</div>`;
+    else if(rain>=40)advisory=`<div style="margin-top:.75rem;background:rgba(0,0,0,.15);border-radius:8px;padding:.5rem .75rem;font-size:12px;font-weight:600">🌂 ${rain}% chance of rain today</div>`;
+    card.innerHTML=`
+      <div class="weather-top">
+        <div>
+          <div class="weather-temp">${temp}°</div>
+          <div class="weather-desc">${desc}</div>
+          <div class="weather-loc">Sapulpa, OK · Feels like ${feels}°</div>
+        </div>
+        <div class="weather-icon">${icon}</div>
+      </div>
+      <div class="weather-grid">
+        <div class="weather-stat"><div class="wsl">Rain</div><div class="wsv">${rain}%</div></div>
+        <div class="weather-stat"><div class="wsl">Wind</div><div class="wsv">${wind} mph</div></div>
+        <div class="weather-stat"><div class="wsl">Humidity</div><div class="wsv">${humid}%</div></div>
+      </div>
+      ${advisory}`;
+  }catch(e){
+    card.innerHTML=`<div class="weather-loading">Weather unavailable</div>`;
+  }
+}
+
 // ══ ROUTE PLANNER ════════════════════════════════════════════════
 let planJobs=[], planDT={}, mapsLoaded=false, planMap, planDR, planApiKey='';
- 
+
 function buildTodayRoute(){
   goTab('plan');
   const custs=getDayJobs(0);
@@ -716,7 +802,7 @@ function buildTodayRoute(){
   planDT={};
   if(mapsLoaded)fetchPlanDT();else renderPlan();
 }
- 
+
 function initMaps(){
   const key=document.getElementById('maps-key').value.trim();
   if(!key){document.getElementById('maps-status').innerHTML='<span style="color:var(--red)">Enter a key</span>';return;}
@@ -742,7 +828,7 @@ function initMaps(){
   };
   document.head.appendChild(s);
 }
- 
+
 async function fetchPlanDT(){
   if(!mapsLoaded||!planJobs.length){renderPlan();return;}
   document.getElementById('plan-loading').style.display='';
@@ -756,7 +842,7 @@ async function fetchPlanDT(){
     renderPlan();updatePlanMap();
   }catch(e){document.getElementById('plan-loading').innerHTML='<span style="color:var(--red)">Drive time failed: '+e+'</span>';renderPlan();}
 }
- 
+
 function renderPlan(){
   const crew=1;
   const home=document.getElementById('plan-home').value.trim();
@@ -804,10 +890,10 @@ function renderPlan(){
       <button class="btn bxsm btnr" onclick="removePlanJob(${i})"><i class="ti ti-trash"></i></button>
     </div>`).join('');
 }
- 
+
 function removePlanJob(i){planJobs.splice(i,1);planDT={};if(mapsLoaded&&planJobs.length)fetchPlanDT();else renderPlan();}
 function clearPlan(){if(confirm('Clear all stops?')){planJobs=[];planDT={};renderPlan();}}
- 
+
 function optimizePlan(){
   if(!mapsLoaded||planJobs.length<2)return;
   const home=document.getElementById('plan-home').value.trim();
@@ -826,21 +912,21 @@ function optimizePlan(){
   planJobs=[...pri,...ord.filter(j=>!pri.includes(j))];
   planDT={};fetchPlanDT();
 }
- 
+
 function updatePlanMap(){
   if(!mapsLoaded||planJobs.length<2)return;
   const home=document.getElementById('plan-home').value.trim();
   const wp=planJobs.slice(1,planJobs.length-1).map(j=>({location:j.addr,stopover:true}));
   new google.maps.DirectionsService().route({origin:home||planJobs[0].addr,destination:planJobs[planJobs.length-1].addr,waypoints:wp,optimizeWaypoints:false,travelMode:google.maps.TravelMode.DRIVING},(r,s)=>{if(s==='OK')planDR.setDirections(r);});
 }
- 
+
 function openMapsDir(){
   const home=document.getElementById('plan-home').value.trim();
   const addrs=(home?[home]:[]).concat(planJobs.map(j=>j.addr));
   if(addrs.length<2){alert('Need at least 2 stops.');return;}
   window.open('https://www.google.com/maps/dir/'+addrs.map(a=>encodeURIComponent(a)).join('/'),'_blank');
 }
- 
+
 function sendToTracker(){
   const home=document.getElementById('plan-home').value.trim();
   const st=document.getElementById('plan-start').value||'07:00';
@@ -861,12 +947,12 @@ function sendToTracker(){
   goTab('track');
   loadTrackerRoute(payload);
 }
- 
+
 function printRoute(){window.print();}
- 
+
 // ══ FIELD TRACKER ════════════════════════════════════════════════
 let trackerRoute=null, trackerStates={}, pvJob=null, pvType=null, pvIdx=0;
- 
+
 // FIX: Persist tracker states (including photos) to localStorage so data survives reloads
 function saveTrackerStates(){
   try{
@@ -894,7 +980,7 @@ function saveTrackerStates(){
     console.log('saveTrackerStates error',e);
   }
 }
- 
+
 function loadTrackerStates(){
   try{
     const raw=localStorage.getItem('ros_tracker_states');
@@ -922,7 +1008,7 @@ function loadTrackerStates(){
     trackerStates={};
   }
 }
- 
+
 function getTS(i){
   if(!trackerStates[i])trackerStates[i]={status:'pending',startMs:null,elapsed:0,interval:null,beforePhotos:[],afterPhotos:[],extraPhotos:[],notes:'',actualMin:0,expanded:false};
   return trackerStates[i];
@@ -930,7 +1016,7 @@ function getTS(i){
 function getElap(i){const s=getTS(i);return s.elapsed+(s.startMs?Math.floor((Date.now()-s.startMs)/1000):0);}
 function hasBefore(i){return getTS(i).beforePhotos.length>0;}
 function hasAfter(i){return getTS(i).afterPhotos.length>0;}
- 
+
 function tryAutoLoadTracker(){
   try{
     const d=localStorage.getItem('ros_track_route');
@@ -945,7 +1031,7 @@ function tryAutoLoadTracker(){
     }
   }catch(e){}
 }
- 
+
 function loadTrackerRoute(data){
   trackerRoute=data;
   document.getElementById('track-empty').style.display='none';
@@ -953,13 +1039,13 @@ function loadTrackerRoute(data){
   document.getElementById('track-sub').textContent=data.jobs.length+' stops · '+new Date(data.date).toLocaleDateString();
   renderTracker();
 }
- 
+
 function renderTracker(){
   if(!trackerRoute)return;
   document.getElementById('track-jobs').innerHTML=trackerRoute.jobs.map((j,i)=>buildJobCard(j,i)).join('');
   trackerRoute.jobs.forEach((_,i)=>{if(getTS(i).status==='active')startTick(i);});
 }
- 
+
 function buildJobCard(j,i){
   const s=getTS(i);
   const el=getElap(i);
@@ -967,11 +1053,11 @@ function buildJobCard(j,i){
   const scls={pending:'js-p',active:'js-a',done:'js-d'};
   const ccls=s.status==='active'?'active':s.status==='done'?'done':(s.expanded?'exp':'');
   const tcls=s.status==='active'?'':s.status==='done'?'fin':'paused';
- 
+
   const beforeGrid=s.beforePhotos.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'before',${pi})">`).join('');
   const afterGrid=s.afterPhotos.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'after',${pi})">`).join('');
   const extraGrid=s.extraPhotos.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'extra',${pi})">`).join('');
- 
+
   return `<div class="job-card ${ccls}" id="jcard-${i}">
   <div class="job-hdr" onclick="toggleJCard(${i})">
     <div class="job-num2" id="jnum-${i}">${s.status==='done'?'<i class="ti ti-check" style="font-size:15px"></i>':(i+1)}</div>
@@ -984,7 +1070,7 @@ function buildJobCard(j,i){
       <span><i class="ti ti-flag" style="font-size:11px"></i> Arrive ${fmtClock(j.arr)}</span>
       ${j.notes?`<span><i class="ti ti-note" style="font-size:11px"></i> ${j.notes}</span>`:''}
     </div>
- 
+
     <!-- Before photos -->
     <div class="photo-section">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
@@ -995,7 +1081,7 @@ function buildJobCard(j,i){
       <button class="photo-add-btn" onclick="document.getElementById('bcam-${i}').click()"><i class="ti ti-camera"></i> Take before photo</button>
       <input type="file" id="bcam-${i}" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(${i},'before',this)">
     </div>
- 
+
     <!-- Timer + start -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-top:1px solid var(--s3);border-bottom:1px solid var(--s3);margin-bottom:.875rem">
       <div class="timer-big ${tcls}" id="jtimer-${i}">${fmtTimer(el)}</div>
@@ -1004,13 +1090,13 @@ function buildJobCard(j,i){
         ${s.status==='done'?`<span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--green);letter-spacing:.04em">DONE ✓</span>`:''}
       </div>
     </div>
- 
+
     ${s.status==='pending'?`
       ${!hasBefore(i)?`<div class="req-warn"><i class="ti ti-camera"></i><div><strong>Take a before photo</strong> to start the job.</div></div>`:''}
       <button class="btn btng" style="width:100%;margin-bottom:.875rem" onclick="startJob(${i})" ${!hasBefore(i)?'disabled style="width:100%;margin-bottom:.875rem;opacity:.45;cursor:not-allowed"':''}>
         <i class="ti ti-player-play"></i> Start Job
       </button>`:''}
- 
+
     ${s.status==='active'||s.status==='done'?`
     <div class="photo-section">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
@@ -1021,13 +1107,13 @@ function buildJobCard(j,i){
       <button class="photo-add-btn" onclick="document.getElementById('acam-${i}').click()"><i class="ti ti-camera-check"></i> Take after photo</button>
       <input type="file" id="acam-${i}" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(${i},'after',this)">
     </div>`:''}
- 
+
     ${s.status==='active'?`
       ${!hasAfter(i)?`<div class="req-warn"><i class="ti ti-camera-check"></i><div><strong>Take an after photo</strong> to complete the job.</div></div>`:''}
       <button class="btn btng" style="width:100%;margin-bottom:.875rem" onclick="finishJob(${i})" ${!hasAfter(i)?'disabled style="width:100%;margin-bottom:.875rem;opacity:.45;cursor:not-allowed"':''}>
         <i class="ti ti-flag-check"></i> Mark Complete
       </button>`:''}
- 
+
     ${s.status==='done'?`
       <div class="sum-grid">
         <div class="sum-box"><div class="sum-v">${fmtMins(s.actualMin)}</div><div class="sum-l">Actual</div></div>
@@ -1037,23 +1123,23 @@ function buildJobCard(j,i){
         ${!getJobRecord(j.id)?`<button class="btn btng bsm" style="flex:1" onclick="markJobPaid('${j.id}','${i}')"><i class="ti ti-cash"></i> Mark Paid (Cash)</button>`:`<div class="tag tag-green" style="padding:6px 12px">✓ Paid</div>`}
         <button class="btn bsm" onclick="textCustomer('${j.id}')"><i class="ti ti-message"></i> Text summary</button>
       </div>`:''}
- 
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.875rem">
       <button class="btn" style="font-size:12px" onclick="document.getElementById('ecam-${i}').click()"><i class="ti ti-camera-plus"></i> Extra photo</button>
       <button class="btn" style="font-size:12px" onclick="navTo('${j.addr.replace(/'/g,"\\'")}')"><i class="ti ti-navigation"></i> Navigate</button>
       <input type="file" id="ecam-${i}" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(${i},'extra',this)">
     </div>
- 
+
     ${s.extraPhotos.length>0?`<div class="photo-section"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">Extra photos (${s.extraPhotos.length})</div><div class="photo-grid">${extraGrid}</div></div>`:''}
- 
+
     <div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.4rem">Field notes</div>
     <textarea class="notes-area" id="jnotes-${i}" placeholder="Gate confirmed, issues found..." oninput="getTS(${i}).notes=this.value;saveTrackerStates()">${s.notes}</textarea></div>
   </div>
 </div>`;
 }
- 
+
 function getJobRecord(custId){return DB.jobHistory.find(j=>j.custId===custId&&j.date===todayStr());}
- 
+
 function rerenderJCard(i){
   const card=document.getElementById('jcard-'+i);
   if(!card||!trackerRoute)return;
@@ -1062,7 +1148,7 @@ function rerenderJCard(i){
   card.replaceWith(tmp.firstElementChild);
   if(getTS(i).status==='active')startTick(i);
 }
- 
+
 function startTick(i){
   const s=getTS(i);
   if(s.interval)return;
@@ -1074,7 +1160,7 @@ function startTick(i){
   },1000);
 }
 function stopTick(i){const s=getTS(i);clearInterval(s.interval);s.interval=null;}
- 
+
 function startJob(i){
   if(!hasBefore(i)){alert('Take a before photo first.');return;}
   const s=getTS(i);s.status='active';s.startMs=Date.now();s.expanded=true;
@@ -1103,21 +1189,21 @@ function finishJob(i){
   saveTrackerStates();
   rerenderJCard(i);
 }
- 
+
 function markJobPaid(custId,i){
   const rec=getJobRecord(custId);
   if(rec){rec.paid=true;rec.paidMethod='cash';saveDB();}
   else{DB.jobHistory.push({id:uid(),custId,date:todayStr(),actualMin:0,estMin:0,paid:true,paidMethod:'cash',beforePhotos:[],afterPhotos:[],extraPhotos:[],notes:''});saveDB();}
   rerenderJCard(parseInt(i));
 }
- 
+
 function textCustomer(custId){
   const c=DB.customers.find(x=>x.id===custId);
   if(!c||!c.phone){alert('No phone number for this customer.');return;}
   const msg='Hi '+c.first+'! Your lawn service is complete for today. Thanks for your business! — Richardson Outdoor Solutions';
   window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));
 }
- 
+
 function toggleJCard(i){
   const s=getTS(i);if(s.status!=='pending')return;
   s.expanded=!s.expanded;
@@ -1125,7 +1211,7 @@ function toggleJCard(i){
   if(s.expanded)card.classList.add('exp');else card.classList.remove('exp');
 }
 function navTo(addr){window.open('https://maps.google.com/?q='+encodeURIComponent(addr),'_blank');}
- 
+
 function addPhoto(i,type,input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
@@ -1140,7 +1226,7 @@ function addPhoto(i,type,input){
   };
   reader.readAsDataURL(file);
 }
- 
+
 // Photo viewer
 function openPV(i,type,idx){
   pvJob=i;pvType=type;pvIdx=idx;
@@ -1167,7 +1253,7 @@ function delPhoto(){
   saveTrackerStates();
   closePV();rerenderJCard(pvJob);
 }
- 
+
 async function exportDaySummary(){
   if(!trackerRoute){alert('No route loaded.');return;}
   const dateStr=new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -1207,7 +1293,7 @@ ${s.extraPhotos.length?`<div class="section"><div class="stitle">📸 Extra phot
   try{const blob=await zip.generateAsync({type:'blob'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ROS-Day-'+todayStr()+'.zip';a.click();}
   catch(e){alert('Export failed: '+e);}
 }
- 
+
 // Load modal
 function openLoadModal(){document.getElementById('load-error').style.display='none';document.getElementById('load-modal').classList.add('open');}
 function loadRouteFromCode(){
@@ -1221,19 +1307,20 @@ function loadRouteFromCode(){
   loadTrackerRoute(p);closeModal('load-modal');
   document.getElementById('load-code').value='';
 }
- 
+
 // ══ CUSTOMERS ════════════════════════════════════════════════════
 let custFilter='all', custEditId=null;
- 
+
 function setCustFilter(f,btn){
   custFilter=f;
   document.querySelectorAll('.pill-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderCustomers();
 }
- 
+
 function renderCustomers(){
   const q=(document.getElementById('cust-search').value||'').toLowerCase();
+  const sortVal=(document.getElementById('cust-sort')||{}).value||'recent';
   let list=DB.customers.filter(c=>{
     if(q&&!custFullName(c).toLowerCase().includes(q)&&!c.addr.toLowerCase().includes(q))return false;
     if(custFilter==='active')return c.sched!=='inactive';
@@ -1242,6 +1329,11 @@ function renderCustomers(){
     if(custFilter==='inactive')return c.sched==='inactive';
     return true;
   });
+  // Sort
+  if(sortVal==='az'){list=[...list].sort((a,b)=>custFullName(a).localeCompare(custFullName(b)));}
+  else if(sortVal==='day'){list=[...list].sort((a,b)=>parseInt(a.day||0)-parseInt(b.day||0));}
+  else if(sortVal==='zip'){list=[...list].sort((a,b)=>(a.zip||'').localeCompare(b.zip||''));}
+  // default 'recent' = insertion order (as loaded from DB)
   document.getElementById('cust-count-lbl').textContent=list.length+' customer'+(list.length!==1?'s':'');
   if(!list.length){
     document.getElementById('cust-list').innerHTML=`<div class="empty-state"><i class="ti ti-users"></i><p>No customers yet</p><small>Import from HubSpot or add manually</small></div>`;
@@ -1252,11 +1344,13 @@ function renderCustomers(){
   document.getElementById('cust-list').innerHTML=list.map(c=>{
     const jobs=DB.jobHistory.filter(j=>j.custId===c.id);
     const lastJob=jobs.length?jobs.sort((a,b)=>b.date.localeCompare(a.date))[0]:null;
+    const isCoord=/^-?\d{1,3}\.\d+,\s*-?\d{1,3}\.\d+/.test(c.addr||'');
+    const coordBadge=isCoord?`<span class="coord-warn"><i class="ti ti-map-pin" style="font-size:9px"></i> Fix address</span>`:'';
     return `<div class="cust-card" id="cc-${c.id}">
       <div class="cust-hdr" onclick="toggleCust('${c.id}')">
         <div class="cust-avatar">${initials(c)}</div>
         <div class="cust-info">
-          <div class="cust-name">${custFullName(c)}</div>
+          <div class="cust-name">${custFullName(c)}${coordBadge}</div>
           <div class="cust-meta">${custAddr(c)}${c.price?' · $'+parseFloat(c.price).toFixed(0):''}</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
@@ -1285,12 +1379,12 @@ function renderCustomers(){
     </div>`;
   }).join('');
 }
- 
+
 function toggleCust(id){
   const card=document.getElementById('cc-'+id);
   if(card)card.classList.toggle('open');
 }
- 
+
 function openCustModal(id){
   custEditId=id||null;
   const title=id?'Edit Customer':'Add Customer';
@@ -1307,7 +1401,7 @@ function openCustModal(id){
   document.getElementById('cf-size').value=c?c.size||'md':'md';
   document.getElementById('cust-modal').classList.add('open');
 }
- 
+
 function saveCust(){
   const id=document.getElementById('cust-edit-id').value||uid();
   const c={
@@ -1331,13 +1425,13 @@ function saveCust(){
   if(idx>=0)DB.customers[idx]=c;else DB.customers.push(c);
   saveDB();closeModal('cust-modal');renderCustomers();
 }
- 
+
 function deleteCust(id){
   if(!confirm('Delete this customer? Their job history will be kept.'))return;
   DB.customers=DB.customers.filter(c=>c.id!==id);
   saveDB();renderCustomers();
 }
- 
+
 // ══ IMPORT ════════════════════════════════════════════════════════
 let importRows=[];
 function openImportModal(){document.getElementById('import-modal').classList.add('open');}
@@ -1377,7 +1471,7 @@ function handleImportFile(file){
 function togAllImport(v){document.querySelectorAll('.imp-cb').forEach(cb=>cb.checked=v);}
 function selAllImport(){document.getElementById('imp-all-cb').checked=true;togAllImport(true);}
 function deselAllImport(){document.getElementById('imp-all-cb').checked=false;togAllImport(false);}
- 
+
 // FIX: Rewrote doImport() — fixed mismatched braces, removed redundant if(!existing),
 // moved added++ inside else block, closed forEach properly, alert is now outside forEach.
 // Also added name+address fallback for duplicate detection when no phone number.
@@ -1418,7 +1512,115 @@ function doImport(){
   renderCustomers();
   alert(`Imported: ${added} new, ${updated} updated.`);
 }
- 
+
+// ══ DEDUPLICATE ═══════════════════════════════════════════════════
+async function runDedup(){
+  const resultEl=document.getElementById('dedup-result');
+  resultEl.style.display='';
+  resultEl.style.background='var(--s2)';
+  resultEl.style.border='1px solid var(--bd)';
+  resultEl.style.color='var(--ink2)';
+  resultEl.innerHTML='<span class="spin"></span> Scanning for duplicates...';
+
+  const normPhone=s=>(s||'').replace(/\D/g,'');
+  const normName=c=>custFullName(c).trim().toLowerCase();
+
+  // Build groups of duplicates
+  const seen=new Map(); // key -> first customer index
+  const mergeOps=[]; // {keep, discard}
+
+  DB.customers.forEach((c,i)=>{
+    // Keys to try: phone first, then name
+    const phoneKey=normPhone(c.phone);
+    const nameKey=normName(c);
+    let masterKey=null;
+    if(phoneKey&&phoneKey.length>=7){
+      if(seen.has('ph:'+phoneKey)){masterKey='ph:'+phoneKey;}
+      else{seen.set('ph:'+phoneKey,i);}
+    }
+    if(!masterKey&&nameKey){
+      if(seen.has('nm:'+nameKey)){masterKey='nm:'+nameKey;}
+      else{if(!phoneKey||phoneKey.length<7)seen.set('nm:'+nameKey,i);}
+    }
+    if(masterKey!==null){
+      const masterIdx=seen.get(masterKey);
+      mergeOps.push({keepIdx:masterIdx,discardIdx:i});
+    }
+  });
+
+  if(!mergeOps.length){
+    resultEl.innerHTML='<span style="color:var(--green);font-weight:600">✓ No duplicates found!</span> All '+DB.customers.length+' customers look unique.';
+    return;
+  }
+
+  // Show preview first
+  let preview='<div style="font-weight:600;margin-bottom:.625rem;color:var(--ink)">Found '+mergeOps.length+' duplicate'+(mergeOps.length>1?'s':'')+' to merge:</div>';
+  mergeOps.forEach(op=>{
+    const keep=DB.customers[op.keepIdx];
+    const discard=DB.customers[op.discardIdx];
+    preview+=`<div style="background:var(--s);border:1px solid var(--bd);border-radius:8px;padding:.625rem .875rem;margin-bottom:.5rem;font-size:12px">
+      <div style="color:var(--green);font-weight:700">KEEP: ${custFullName(keep)} · ${custAddr(keep)||'no address'} · ${keep.phone||'no phone'}</div>
+      <div style="color:var(--red);font-weight:700;margin-top:2px">REMOVE: ${custFullName(discard)} · ${custAddr(discard)||'no address'} · ${discard.phone||'no phone'}</div>
+      <div style="color:var(--ink3);margin-top:3px">Merges: addr, phone, email from the more complete record</div>
+    </div>`;
+  });
+  preview+=`<div style="display:flex;gap:8px;margin-top:.75rem">
+    <button class="btn btng bsm" style="flex:1" onclick="confirmDedup()"><i class="ti ti-check"></i> Merge & delete duplicates</button>
+    <button class="btn bsm btnr" onclick="document.getElementById('dedup-result').style.display='none'">Cancel</button>
+  </div>`;
+  resultEl.innerHTML=preview;
+  // Store ops for confirmDedup
+  window._pendingDedupOps=mergeOps;
+}
+
+async function confirmDedup(){
+  const resultEl=document.getElementById('dedup-result');
+  const ops=window._pendingDedupOps||[];
+  if(!ops.length)return;
+  resultEl.innerHTML='<span class="spin"></span> Merging and syncing...';
+
+  // Collect IDs to delete
+  const toDeleteIds=new Set();
+  ops.forEach(op=>{
+    const keep=DB.customers[op.keepIdx];
+    const discard=DB.customers[op.discardIdx];
+    if(!keep||!discard)return;
+    // Merge: fill in blanks on keep record from discard
+    if(!keep.addr&&discard.addr)keep.addr=discard.addr;
+    if(!keep.zip&&discard.zip)keep.zip=discard.zip;
+    if(!keep.phone&&discard.phone)keep.phone=discard.phone;
+    if(!keep.email&&discard.email)keep.email=discard.email;
+    if(!keep.price&&discard.price)keep.price=discard.price;
+    if(!keep.gate&&discard.gate)keep.gate=discard.gate;
+    if(!keep.notes&&discard.notes)keep.notes=discard.notes;
+    // Repoint job history from discard -> keep
+    DB.jobHistory.forEach(j=>{if(j.custId===discard.id)j.custId=keep.id;});
+    toDeleteIds.add(discard.id);
+  });
+
+  // Remove discarded customers locally
+  DB.customers=DB.customers.filter(c=>!toDeleteIds.has(c.id));
+  await saveDB();
+
+  // Delete from Supabase
+  let supaErrors=0;
+  for(const id of toDeleteIds){
+    try{
+      const {error}=await supabaseClient.from('customers').delete().eq('id',id);
+      if(error)supaErrors++;
+    }catch(e){supaErrors++;}
+  }
+
+  renderCustomers();
+  renderDash();
+  const msg=`✓ Merged ${ops.length} duplicate${ops.length>1?'s':''} — ${toDeleteIds.size} record${toDeleteIds.size>1?'s':''} removed.`+(supaErrors>0?` (${supaErrors} Supabase delete error${supaErrors>1?'s':''})`:'');
+  resultEl.style.background='var(--gp)';
+  resultEl.style.border='1px solid var(--gl)';
+  resultEl.style.color='var(--green)';
+  resultEl.innerHTML='<strong>'+msg+'</strong>';
+  window._pendingDedupOps=[];
+}
+
 // ══ REPORTS ═══════════════════════════════════════════════════════
 function renderReports(){
   const period=document.getElementById('report-period').value;
@@ -1453,16 +1655,16 @@ function renderReports(){
       }).join('')||'<div style="color:var(--ink3);font-size:13px;text-align:center;padding:1rem">No data yet</div>'}
     </div>`;
 }
- 
+
 function openReportModal(){
   document.getElementById('report-modal-content').innerHTML=document.getElementById('report-content').innerHTML||'<p style="color:var(--ink3)">No data yet.</p>';
   document.getElementById('report-modal').classList.add('open');
 }
- 
+
 // ══ MODAL UTILS ═══════════════════════════════════════════════════
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function handleModalBg(e,id){if(e.target===document.getElementById(id))closeModal(id);}
- 
+
 // ══ BACKUP & RESTORE ═════════════════════════════════════════════
 function updateBackupStats(){
   const el=document.getElementById('backup-stats');
@@ -1477,7 +1679,7 @@ function updateBackupStats(){
     lbl.style.color='var(--red)';
   }
 }
- 
+
 function backupData(){
   const payload={
     version:2,
@@ -1493,7 +1695,7 @@ function backupData(){
   updateBackupStats();
   showRestoreMsg('Backup downloaded! Save it to Google Drive or your files.','var(--gp)','var(--green)');
 }
- 
+
 function restoreData(input){
   const file=input.files[0];
   if(!file)return;
@@ -1523,7 +1725,7 @@ function restoreData(input){
   };
   reader.readAsText(file);
 }
- 
+
 function showRestoreMsg(msg,bg,color){
   const el=document.getElementById('restore-msg');
   if(!el)return;
@@ -1534,16 +1736,16 @@ function showRestoreMsg(msg,bg,color){
   el.style.border='1px solid '+color;
   setTimeout(()=>{el.style.display='none';},5000);
 }
- 
+
 // ══ INIT ══════════════════════════════════════════════════════════
 (async function initApp(){
   await loadDB();
- 
+
   if(DB.settings.homeBase)document.getElementById('plan-home').value=DB.settings.homeBase;
   if(DB.settings.startTime)document.getElementById('plan-start').value=DB.settings.startTime;
   if(DB.settings.hours)document.getElementById('plan-hours').value=DB.settings.hours;
   if(DB.settings.mapsKey)document.getElementById('maps-key').value=DB.settings.mapsKey;
- 
+
   // FIX: also wire up maps-key to persist when changed
   ['plan-home','plan-start','plan-hours','maps-key'].forEach(id=>{
     document.getElementById(id).addEventListener('change',()=>{
@@ -1554,23 +1756,13 @@ function showRestoreMsg(msg,bg,color){
       saveDB();
     });
   });
- 
+
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   tryAutoLoadTracker();
   renderDash();
   renderCustomers();
   renderReports();
   updateBackupStats();
- 
-  const lastBackup=localStorage.getItem('ros_last_backup');
-  if(DB.customers.length>0&&(!lastBackup||Date.now()-new Date(lastBackup).getTime()>7*24*60*60*1000)){
-    setTimeout(()=>{
-      const banner=document.createElement('div');
-      banner.style.cssText='position:fixed;top:0;left:0;right:0;background:#856404;color:#fff;font-size:13px;font-weight:600;padding:.75rem 1rem;z-index:999;display:flex;align-items:center;justify-content:space-between;gap:8px;max-width:600px;margin:0 auto';
-      banner.innerHTML='<span><i class="ti ti-database-export" style="margin-right:6px"></i>Time to back up your data!</span><div style="display:flex;gap:8px"><button onclick="goTab(\'reports\');this.closest(\'div[style]\').remove()" style="background:rgba(255,255,255,.25);border:none;color:#fff;font-size:12px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer">Back up</button><button onclick="this.closest(\'div[style]\').remove()" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:18px;cursor:pointer;line-height:1">×</button></div>';
-      document.body.prepend(banner);
-    },2000);
-  }
 })();
 </script>
 </body>
