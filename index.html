@@ -1311,9 +1311,10 @@ function doImport(){
       existing.phone=r.phone||existing.phone;existing.email=r.email||existing.email;
       updated++;
     } else {
+      if(!existing){
       DB.customers.push({id:uid(),first:r.fn,last:r.ln,addr:r.rawAddr,zip:r.zip,phone:r.phone,email:r.email,sched:'weekly',day:'1',price:'',mowTime:45,size:'md',gate:'',notes:''});
-      added++;
-    }
+      }
+        added++;
   });
   saveDB();closeModal('import-modal');renderCustomers();
   alert(`Imported: ${added} new, ${updated} updated.`);
