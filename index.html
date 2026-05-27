@@ -10,7 +10,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{--green:#2d5a27;--gl:#4a8f3f;--gp:#e8f5e3;--amb:#c8860a;--ambp:#fef6e4;--red:#c0392b;--rp:#fdecea;--blue:#1565c0;--bp:#e3f0ff;--ink:#1a1a1a;--ink2:#444;--ink3:#777;--s:#fff;--s2:#f7f8f5;--s3:#eef0ea;--bd:#dde0d8;--r:10px;--rl:14px}
 body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-height:100vh;padding-bottom:70px}
-
+ 
 /* ── Nav ── */
 .nav{position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--bd);display:flex;z-index:50;max-width:600px;margin:0 auto}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.5rem .25rem .6rem;gap:3px;cursor:pointer;border:none;background:none;color:var(--ink3);font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:.02em;transition:color .15s}
@@ -18,18 +18,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .nav-btn i{font-size:22px}
 .nav-indicator{width:4px;height:4px;border-radius:50%;background:var(--green);margin:0 auto;opacity:0}
 .nav-btn.active .nav-indicator{opacity:1}
-
+ 
 /* ── Page ── */
 .page{display:none;max-width:600px;margin:0 auto;padding:1rem 1rem 1.5rem}
 .page.active{display:block}
 .page-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
 .page-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;color:var(--green);line-height:1}
 .page-sub{font-size:12px;color:var(--ink3);margin-top:2px}
-
+ 
 /* ── Cards ── */
 .card{background:var(--s);border:1px solid var(--bd);border-radius:var(--rl);padding:1rem 1.125rem;margin-bottom:.875rem;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .card-title{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.08em;color:var(--ink3);margin-bottom:.875rem}
-
+ 
 /* ── Buttons ── */
 .btn{height:40px;padding:0 16px;border-radius:var(--r);border:1px solid var(--bd);background:var(--s);color:var(--ink);font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;-webkit-appearance:none}
 .btn:active{transform:scale(.97)}
@@ -40,7 +40,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .btn-ghost{background:transparent;border-color:transparent;color:var(--ink3)}
 .bsm{height:32px;padding:0 12px;font-size:12px}
 .bxsm{height:26px;padding:0 8px;font-size:11px}
-
+ 
 /* ── Forms ── */
 .f{display:flex;flex-direction:column;gap:4px;flex:1;min-width:100px}
 .f label{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em}
@@ -48,7 +48,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .f textarea{height:auto;padding:.625rem 10px;resize:none}
 .f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--gl);background:#fff}
 .fr{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.75rem}
-
+ 
 /* ── Tags ── */
 .tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;display:inline-block;text-transform:uppercase;letter-spacing:.04em}
 .tag-green{background:var(--gp);color:var(--green)}
@@ -56,7 +56,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .tag-red{background:var(--rp);color:var(--red)}
 .tag-blue{background:var(--bp);color:var(--blue)}
 .tag-gray{background:var(--s3);color:var(--ink3)}
-
+ 
 /* ── Dashboard ── */
 .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
 .dash-card{background:var(--s);border:1px solid var(--bd);border-radius:var(--rl);padding:1rem;text-align:center}
@@ -71,7 +71,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .wd-name{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--ink3)}
 .wd-num{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--ink);line-height:1}
 .wd-dot{font-size:8px;color:var(--green);min-height:10px}
-
+ 
 /* ── Customer cards ── */
 .cust-card{background:var(--s);border:1px solid var(--bd);border-radius:var(--rl);margin-bottom:.75rem;overflow:hidden}
 .cust-hdr{display:flex;align-items:center;gap:12px;padding:.875rem 1rem;cursor:pointer}
@@ -84,7 +84,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:.625rem;margin-bottom:.875rem}
 .detail-item .dl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:2px}
 .detail-item .dv{font-size:14px;font-weight:500}
-
+ 
 /* ── Schedule ── */
 .sched-row{display:flex;align-items:center;gap:10px;padding:.75rem 0;border-bottom:1px solid var(--s3)}
 .sched-row:last-child{border-bottom:none}
@@ -97,7 +97,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .sched-timelbl{font-size:10px;color:var(--ink3);text-transform:uppercase}
 .drive-row{display:flex;align-items:center;gap:6px;padding:.2rem 0 .2rem 14px;font-size:11px;color:var(--ink3)}
 .drive-line{width:1px;height:14px;background:var(--bd);margin-left:14px}
-
+ 
 /* ── Job tracker ── */
 .job-card{background:var(--s);border:1.5px solid var(--bd);border-radius:var(--rl);margin-bottom:.875rem;overflow:hidden;transition:border-color .2s,box-shadow .2s}
 .job-card.active{border-color:var(--green);box-shadow:0 0 0 3px rgba(45,90,39,.1)}
@@ -135,7 +135,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .notes-area{width:100%;border-radius:var(--r);border:1px solid var(--bd);background:var(--s2);color:var(--ink);padding:.625rem 10px;font-size:14px;font-family:'DM Sans',sans-serif;resize:none;min-height:72px}
 .notes-area:focus{outline:none;border-color:var(--gl);background:#fff}
 .est-info{font-size:12px;color:var(--ink3);display:flex;gap:12px;flex-wrap:wrap;padding:.4rem 0;margin-bottom:.625rem}
-
+ 
 /* ── Photo viewer ── */
 .pviewer{display:none;position:fixed;inset:0;background:#000;z-index:300;flex-direction:column;align-items:center;justify-content:center;padding:1rem}
 .pviewer.open{display:flex}
@@ -143,14 +143,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .pv-close{position:absolute;top:1rem;right:1rem;width:40px;height:40px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:22px}
 .pv-lbl{color:rgba(255,255,255,.6);font-size:12px;margin-top:.5rem}
 .pv-btns{display:flex;gap:8px;margin-top:.875rem;flex-wrap:wrap;justify-content:center}
-
+ 
 /* ── Modal ── */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:flex-end;justify-content:center}
 .modal-bg.open{display:flex}
 .modal{background:var(--s);border-radius:20px 20px 0 0;padding:1.5rem;width:100%;max-width:600px;max-height:90vh;overflow-y:auto}
 .modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--green);margin-bottom:1rem;letter-spacing:.04em}
 .modal-close{position:absolute;top:1rem;right:1rem}
-
+ 
 /* ── Misc ── */
 .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.15);border-top-color:var(--green);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -175,7 +175,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 </style>
 </head>
 <body>
-
+ 
 <!-- ══ DASHBOARD ══════════════════════════════════════════════════ -->
 <div class="page active" id="pg-dash">
   <div style="max-width:600px;margin:0 auto;padding:1rem 1rem 0">
@@ -211,7 +211,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     </div>
   </div>
 </div>
-
+ 
 <!-- ══ ROUTE PLANNER ═══════════════════════════════════════════════ -->
 <div class="page" id="pg-plan">
   <div class="page-hdr">
@@ -259,7 +259,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     <div id="plan-jobs-list"></div>
   </div>
 </div>
-
+ 
 <!-- ══ FIELD TRACKER ═══════════════════════════════════════════════ -->
 <div class="page" id="pg-track">
   <div class="page-hdr">
@@ -280,7 +280,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     <button class="btn btng" style="width:100%" onclick="exportDaySummary()"><i class="ti ti-package-export"></i> Export Day Summary + Photos</button>
   </div>
 </div>
-
+ 
 <!-- ══ CUSTOMERS ═══════════════════════════════════════════════════ -->
 <div class="page" id="pg-customers">
   <div class="page-hdr">
@@ -300,7 +300,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   </div>
   <div id="cust-list"></div>
 </div>
-
+ 
 <!-- ══ REPORTS ═════════════════════════════════════════════════════ -->
 <div class="page" id="pg-reports">
   <div class="page-hdr">
@@ -312,7 +312,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     </select>
   </div>
   <div id="report-content"></div>
-
+ 
   <!-- Backup & Restore -->
   <div class="card" style="margin-top:.5rem">
     <div class="card-title">Data backup & restore</div>
@@ -329,7 +329,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     <div id="restore-msg" style="display:none;margin-top:.75rem;border-radius:var(--r);padding:.75rem;font-size:13px"></div>
   </div>
 </div>
-
+ 
 <!-- ══ NAV ═════════════════════════════════════════════════════════ -->
 <nav class="nav" style="left:50%;transform:translateX(-50%);max-width:600px">
   <button class="nav-btn active" onclick="goTab('dash')" id="nav-dash"><i class="ti ti-home"></i><span>Home</span><div class="nav-indicator"></div></button>
@@ -338,7 +338,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <button class="nav-btn" onclick="goTab('customers')" id="nav-customers"><i class="ti ti-users"></i><span>Clients</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="goTab('reports')" id="nav-reports"><i class="ti ti-chart-bar"></i><span>Reports</span><div class="nav-indicator"></div></button>
 </nav>
-
+ 
 <!-- ══ MODALS ══════════════════════════════════════════════════════ -->
 <!-- Customer modal -->
 <div class="modal-bg" id="cust-modal" onclick="handleModalBg(event,'cust-modal')">
@@ -367,7 +367,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   </div>
 </div>
 </div>
-
+ 
 <!-- Import modal -->
 <div class="modal-bg" id="import-modal" onclick="handleModalBg(event,'import-modal')">
 <div class="modal">
@@ -402,7 +402,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <div style="margin-top:.875rem"><button class="btn" onclick="closeModal('import-modal')" style="width:100%">Close</button></div>
 </div>
 </div>
-
+ 
 <!-- Load route modal -->
 <div class="modal-bg" id="load-modal" onclick="handleModalBg(event,'load-modal')">
 <div class="modal">
@@ -416,7 +416,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   </div>
 </div>
 </div>
-
+ 
 <!-- Report modal -->
 <div class="modal-bg" id="report-modal" onclick="handleModalBg(event,'report-modal')">
 <div class="modal" style="max-height:80vh;overflow-y:auto">
@@ -425,7 +425,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <button class="btn" onclick="closeModal('report-modal')" style="width:100%;margin-top:1rem">Close</button>
 </div>
 </div>
-
+ 
 <!-- Photo viewer -->
 <div class="pviewer" id="pviewer">
   <div class="pv-close" onclick="closePV()"><i class="ti ti-x"></i></div>
@@ -437,7 +437,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     <button class="btn" style="width:auto;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="closePV()">Close</button>
   </div>
 </div>
-
+ 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -446,11 +446,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+ 
 function isUuid(value){
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''));
 }
-
+ 
 function makeUuid(){
   if(window.crypto && window.crypto.randomUUID){
     return window.crypto.randomUUID();
@@ -460,28 +460,26 @@ function makeUuid(){
     return v.toString(16);
   });
 }
-
+ 
 // ══ DATA STORE ═══════════════════════════════════════════════════
 let DB = {
-  customers: [],       // {id,first,last,addr,zip,phone,email,sched,day,price,mowTime,size,gate,notes,active}
-  jobHistory: [],      // {id,custId,date,actualMin,estMin,paid,paidMethod,beforePhotos,afterPhotos,extraPhotos,notes}
+  customers: [],
+  jobHistory: [],
   settings: {mapsKey:'',homeBase:'',startTime:'07:00',hours:8}
 };
-
+ 
 async function saveDB(){
   try{
     localStorage.setItem('ros_db',JSON.stringify(DB));
   }catch(e){
     console.log('Local save error',e);
   }
-
-  // Sync customers to Supabase. Job history/photos still stay local for now.
+ 
   try{
     for(const customer of DB.customers){
       if(!isUuid(customer.id)){
         customer.id=makeUuid();
       }
-
       const {error}=await supabaseClient
         .from('customers')
         .upsert({
@@ -500,18 +498,14 @@ async function saveDB(){
           gate: customer.gate||'',
           notes: customer.notes||''
         });
-
-      if(error){
-        console.log('Supabase save error',error);
-      }
+      if(error){ console.log('Supabase save error',error); }
     }
   }catch(err){
     console.log('Supabase sync error',err);
   }
 }
-
+ 
 async function loadDB(){
-  // First load local data so the app works even if Supabase is unavailable.
   try{
     const d=localStorage.getItem('ros_db');
     if(d){
@@ -521,19 +515,13 @@ async function loadDB(){
   }catch(e){
     console.log('Local load error',e);
   }
-
-  // Then load cloud customer records.
+ 
   try{
     const {data,error}=await supabaseClient
       .from('customers')
       .select('*')
       .order('created_at',{ascending:true});
-
-    if(error){
-      console.log('Supabase load error',error);
-      return;
-    }
-
+    if(error){ console.log('Supabase load error',error); return; }
     if(data && data.length){
       DB.customers=data.map(c=>({
         id:c.id,
@@ -557,7 +545,7 @@ async function loadDB(){
     console.log('Supabase load error',err);
   }
 }
-
+ 
 // ══ NAVIGATION ════════════════════════════════════════════════════
 const TABS=['dash','plan','track','customers','reports'];
 function goTab(t){
@@ -569,7 +557,7 @@ function goTab(t){
   if(t==='customers')renderCustomers();
   if(t==='reports'){renderReports();updateBackupStats();}
 }
-
+ 
 // ══ HELPERS ═══════════════════════════════════════════════════════
 function uid(){return makeUuid();}
 function pad(n){return n<10?'0'+n:String(n);}
@@ -583,13 +571,12 @@ function custAddr(c){return c.addr+(c.zip?', '+c.zip:'');}
 function initials(c){return ((c.first||'')[0]||'')+(( c.last||'')[0]||'').toUpperCase();}
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const DAYS_FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-
+ 
 // ══ DASHBOARD ════════════════════════════════════════════════════
 let selectedDayOffset=0;
 function renderDash(){
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const active=DB.customers.filter(c=>c.sched!=='inactive');
-  const thisWeekJobs=getWeekJobs(0);
   const todayJobs=getDayJobs(0);
   const monthRevenue=getMonthRevenue();
   const unpaid=DB.jobHistory.filter(j=>!j.paid);
@@ -602,45 +589,44 @@ function renderDash(){
   renderDayJobs();
   renderUnpaid();
 }
-
+ 
 function getWeekJobs(weekOffset){
   const today=new Date();today.setHours(0,0,0,0);
   const monday=new Date(today);monday.setDate(today.getDate()-(today.getDay()||7)+1+weekOffset*7);
   const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);
   return DB.customers.filter(c=>isDueInRange(c,monday,sunday));
 }
-
+ 
 function getDayJobs(dayOffset){
   const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+dayOffset);
   return DB.customers.filter(c=>isDueOnDate(c,d));
 }
-
+ 
 function isDueOnDate(c,date){
   if(c.sched==='inactive'||c.sched==='onetime')return false;
   const dow=parseInt(c.day||0);
-  // JS getDay(): 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
   if(date.getDay()!==dow)return false;
   if(c.sched==='weekly')return true;
   if(c.sched==='biweekly'){
-    // Fixed reference: Jan 5 2026 (a Monday) for stable biweekly calc
-    const ref=new Date(2026,0,5);
-    const diffMs=date.getTime()-ref.getTime();
+    // FIX: Use a stable rolling anchor based on ISO week number
+    // Week 1 of 2024 (Jan 1 2024) as epoch — gives consistent even/odd week grouping
+    const epoch=new Date(2024,0,1);
+    const diffMs=date.getTime()-epoch.getTime();
     const diffWeeks=Math.floor(diffMs/(7*86400000));
     return diffWeeks%2===0;
   }
   return false;
 }
-
+ 
 function isDueInRange(c,start,end){
   if(c.sched==='inactive')return false;
   let d=new Date(start);
   while(d<=end){if(isDueOnDate(c,d))return true;d.setDate(d.getDate()+1);}
   return false;
 }
-
+ 
 function renderWeekStrip(){
   const today=new Date();today.setHours(0,0,0,0);
-  // Start week on Sunday (getDay()==0)
   const startOfWeek=new Date(today);
   startOfWeek.setDate(today.getDate()-today.getDay());
   let html='';
@@ -659,13 +645,13 @@ function renderWeekStrip(){
   }
   document.getElementById('week-strip').innerHTML=html;
 }
-
+ 
 function selectDay(off){
   selectedDayOffset=off;
   renderWeekStrip();
   renderDayJobs();
 }
-
+ 
 function renderDayJobs(){
   const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+selectedDayOffset);
   const jobs=getDayJobs(selectedDayOffset);
@@ -691,7 +677,7 @@ function renderDayJobs(){
   });
   document.getElementById('day-jobs-list').innerHTML=h;
 }
-
+ 
 function renderUnpaid(){
   const unpaid=DB.jobHistory.filter(j=>!j.paid).slice(0,5);
   document.getElementById('unpaid-card').style.display=unpaid.length?'':'none';
@@ -707,21 +693,21 @@ function renderUnpaid(){
     </div>`;
   }).join('');
 }
-
+ 
 function markPaid(id){
   const j=DB.jobHistory.find(x=>x.id===id);
   if(j){j.paid=true;j.paidMethod='cash';saveDB();renderDash();}
 }
-
+ 
 function getMonthRevenue(){
   const now=new Date();
   const m=now.getMonth(),y=now.getFullYear();
   return DB.jobHistory.filter(j=>j.paid&&new Date(j.date).getMonth()===m&&new Date(j.date).getFullYear()===y).reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);return a+parseFloat(c&&c.price||0);},0);
 }
-
+ 
 // ══ ROUTE PLANNER ════════════════════════════════════════════════
 let planJobs=[], planDT={}, mapsLoaded=false, planMap, planDR, planApiKey='';
-
+ 
 function buildTodayRoute(){
   goTab('plan');
   const custs=getDayJobs(0);
@@ -730,11 +716,14 @@ function buildTodayRoute(){
   planDT={};
   if(mapsLoaded)fetchPlanDT();else renderPlan();
 }
-
+ 
 function initMaps(){
   const key=document.getElementById('maps-key').value.trim();
   if(!key){document.getElementById('maps-status').innerHTML='<span style="color:var(--red)">Enter a key</span>';return;}
-  planApiKey=key;DB.settings.mapsKey=key;saveDB();
+  planApiKey=key;
+  // FIX: also persist the maps key when it's used to connect
+  DB.settings.mapsKey=key;
+  saveDB();
   document.getElementById('maps-status').innerHTML='<span class="spin"></span> Connecting...';
   const s=document.createElement('script');
   s.src='https://maps.googleapis.com/maps/api/js?key='+key+'&libraries=places&callback=onMapsReady';
@@ -753,7 +742,7 @@ function initMaps(){
   };
   document.head.appendChild(s);
 }
-
+ 
 async function fetchPlanDT(){
   if(!mapsLoaded||!planJobs.length){renderPlan();return;}
   document.getElementById('plan-loading').style.display='';
@@ -767,7 +756,7 @@ async function fetchPlanDT(){
     renderPlan();updatePlanMap();
   }catch(e){document.getElementById('plan-loading').innerHTML='<span style="color:var(--red)">Drive time failed: '+e+'</span>';renderPlan();}
 }
-
+ 
 function renderPlan(){
   const crew=1;
   const home=document.getElementById('plan-home').value.trim();
@@ -781,7 +770,7 @@ function renderPlan(){
     if(j.priority||bud>=tot){tm+=mm;td+=(dm||0);bud-=tot;sch.push({...j,dm,mm,arr:cur+(dm||0),done:cur+(dm||0)+mm});cur+=tot;prev=ci;}
     else ov.push({...j,dm,mm});
   });
-  const tt=tm+td,pct=am>0?Math.round(tt/am*100):0,rem=am-tt;
+  const tt=tm+td,pct=am>0?Math.round(tt/am*100):0;
   document.getElementById('plan-route-card').style.display=planJobs.length?'':'none';
   document.getElementById('plan-jobs-card').style.display=planJobs.length?'':'none';
   document.getElementById('plan-metrics-wrap').style.display=planJobs.length?'':'none';
@@ -815,10 +804,10 @@ function renderPlan(){
       <button class="btn bxsm btnr" onclick="removePlanJob(${i})"><i class="ti ti-trash"></i></button>
     </div>`).join('');
 }
-
+ 
 function removePlanJob(i){planJobs.splice(i,1);planDT={};if(mapsLoaded&&planJobs.length)fetchPlanDT();else renderPlan();}
 function clearPlan(){if(confirm('Clear all stops?')){planJobs=[];planDT={};renderPlan();}}
-
+ 
 function optimizePlan(){
   if(!mapsLoaded||planJobs.length<2)return;
   const home=document.getElementById('plan-home').value.trim();
@@ -837,24 +826,23 @@ function optimizePlan(){
   planJobs=[...pri,...ord.filter(j=>!pri.includes(j))];
   planDT={};fetchPlanDT();
 }
-
+ 
 function updatePlanMap(){
   if(!mapsLoaded||planJobs.length<2)return;
   const home=document.getElementById('plan-home').value.trim();
   const wp=planJobs.slice(1,planJobs.length-1).map(j=>({location:j.addr,stopover:true}));
   new google.maps.DirectionsService().route({origin:home||planJobs[0].addr,destination:planJobs[planJobs.length-1].addr,waypoints:wp,optimizeWaypoints:false,travelMode:google.maps.TravelMode.DRIVING},(r,s)=>{if(s==='OK')planDR.setDirections(r);});
 }
-
+ 
 function openMapsDir(){
   const home=document.getElementById('plan-home').value.trim();
   const addrs=(home?[home]:[]).concat(planJobs.map(j=>j.addr));
   if(addrs.length<2){alert('Need at least 2 stops.');return;}
   window.open('https://www.google.com/maps/dir/'+addrs.map(a=>encodeURIComponent(a)).join('/'),'_blank');
 }
-
+ 
 function sendToTracker(){
   const home=document.getElementById('plan-home').value.trim();
-  const hours=parseFloat(document.getElementById('plan-hours').value)||8;
   const st=document.getElementById('plan-start').value||'07:00';
   const parts=st.split(':');let cur=parseInt(parts[0])*60+parseInt(parts[1]);
   const off=home?1:0;let prev=0;
@@ -867,16 +855,74 @@ function sendToTracker(){
   const payload={date:new Date().toISOString(),jobs:sch};
   localStorage.setItem('ros_track_route',JSON.stringify(payload));
   trackerRoute=payload;
+  // FIX: clear tracker states when a new route is loaded from planner
   trackerStates={};
+  saveTrackerStates();
   goTab('track');
   loadTrackerRoute(payload);
 }
-
+ 
 function printRoute(){window.print();}
-
+ 
 // ══ FIELD TRACKER ════════════════════════════════════════════════
 let trackerRoute=null, trackerStates={}, pvJob=null, pvType=null, pvIdx=0;
-
+ 
+// FIX: Persist tracker states (including photos) to localStorage so data survives reloads
+function saveTrackerStates(){
+  try{
+    // Timers need special handling: save elapsed + whether active (but not the interval id)
+    const toSave={};
+    Object.keys(trackerStates).forEach(i=>{
+      const s=trackerStates[i];
+      toSave[i]={
+        status: s.status,
+        // If currently running, capture current elapsed up to now
+        elapsed: s.elapsed+(s.startMs?Math.floor((Date.now()-s.startMs)/1000):0),
+        // Mark whether it was actively running at save time (so we can resume ticking on reload)
+        wasActive: s.status==='active',
+        startMs: s.status==='active'?Date.now():null,
+        beforePhotos: s.beforePhotos,
+        afterPhotos: s.afterPhotos,
+        extraPhotos: s.extraPhotos,
+        notes: s.notes,
+        actualMin: s.actualMin,
+        expanded: s.expanded
+      };
+    });
+    localStorage.setItem('ros_tracker_states',JSON.stringify(toSave));
+  }catch(e){
+    console.log('saveTrackerStates error',e);
+  }
+}
+ 
+function loadTrackerStates(){
+  try{
+    const raw=localStorage.getItem('ros_tracker_states');
+    if(!raw)return;
+    const saved=JSON.parse(raw);
+    trackerStates={};
+    Object.keys(saved).forEach(i=>{
+      const s=saved[i];
+      trackerStates[i]={
+        status: s.status,
+        elapsed: s.elapsed||0,
+        // If it was active when saved, resume the timer from now
+        startMs: s.wasActive?Date.now():null,
+        interval: null,
+        beforePhotos: s.beforePhotos||[],
+        afterPhotos: s.afterPhotos||[],
+        extraPhotos: s.extraPhotos||[],
+        notes: s.notes||'',
+        actualMin: s.actualMin||0,
+        expanded: s.expanded||false
+      };
+    });
+  }catch(e){
+    console.log('loadTrackerStates error',e);
+    trackerStates={};
+  }
+}
+ 
 function getTS(i){
   if(!trackerStates[i])trackerStates[i]={status:'pending',startMs:null,elapsed:0,interval:null,beforePhotos:[],afterPhotos:[],extraPhotos:[],notes:'',actualMin:0,expanded:false};
   return trackerStates[i];
@@ -884,11 +930,22 @@ function getTS(i){
 function getElap(i){const s=getTS(i);return s.elapsed+(s.startMs?Math.floor((Date.now()-s.startMs)/1000):0);}
 function hasBefore(i){return getTS(i).beforePhotos.length>0;}
 function hasAfter(i){return getTS(i).afterPhotos.length>0;}
-
+ 
 function tryAutoLoadTracker(){
-  try{const d=localStorage.getItem('ros_track_route');if(d){const p=JSON.parse(d);if(p&&p.jobs&&p.jobs.length){loadTrackerRoute(p);return;}}}catch(e){}
+  try{
+    const d=localStorage.getItem('ros_track_route');
+    if(d){
+      const p=JSON.parse(d);
+      if(p&&p.jobs&&p.jobs.length){
+        // FIX: load saved tracker states before rendering
+        loadTrackerStates();
+        loadTrackerRoute(p);
+        return;
+      }
+    }
+  }catch(e){}
 }
-
+ 
 function loadTrackerRoute(data){
   trackerRoute=data;
   document.getElementById('track-empty').style.display='none';
@@ -896,13 +953,13 @@ function loadTrackerRoute(data){
   document.getElementById('track-sub').textContent=data.jobs.length+' stops · '+new Date(data.date).toLocaleDateString();
   renderTracker();
 }
-
+ 
 function renderTracker(){
   if(!trackerRoute)return;
   document.getElementById('track-jobs').innerHTML=trackerRoute.jobs.map((j,i)=>buildJobCard(j,i)).join('');
   trackerRoute.jobs.forEach((_,i)=>{if(getTS(i).status==='active')startTick(i);});
 }
-
+ 
 function buildJobCard(j,i){
   const s=getTS(i);
   const el=getElap(i);
@@ -910,11 +967,11 @@ function buildJobCard(j,i){
   const scls={pending:'js-p',active:'js-a',done:'js-d'};
   const ccls=s.status==='active'?'active':s.status==='done'?'done':(s.expanded?'exp':'');
   const tcls=s.status==='active'?'':s.status==='done'?'fin':'paused';
-
+ 
   const beforeGrid=s.beforePhotos.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'before',${pi})">`).join('');
   const afterGrid=s.afterPhotos.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'after',${pi})">`).join('');
   const extraGrid=s.extraPhotos.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'extra',${pi})">`).join('');
-
+ 
   return `<div class="job-card ${ccls}" id="jcard-${i}">
   <div class="job-hdr" onclick="toggleJCard(${i})">
     <div class="job-num2" id="jnum-${i}">${s.status==='done'?'<i class="ti ti-check" style="font-size:15px"></i>':(i+1)}</div>
@@ -927,7 +984,7 @@ function buildJobCard(j,i){
       <span><i class="ti ti-flag" style="font-size:11px"></i> Arrive ${fmtClock(j.arr)}</span>
       ${j.notes?`<span><i class="ti ti-note" style="font-size:11px"></i> ${j.notes}</span>`:''}
     </div>
-
+ 
     <!-- Before photos -->
     <div class="photo-section">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
@@ -938,7 +995,7 @@ function buildJobCard(j,i){
       <button class="photo-add-btn" onclick="document.getElementById('bcam-${i}').click()"><i class="ti ti-camera"></i> Take before photo</button>
       <input type="file" id="bcam-${i}" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(${i},'before',this)">
     </div>
-
+ 
     <!-- Timer + start -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-top:1px solid var(--s3);border-bottom:1px solid var(--s3);margin-bottom:.875rem">
       <div class="timer-big ${tcls}" id="jtimer-${i}">${fmtTimer(el)}</div>
@@ -947,13 +1004,13 @@ function buildJobCard(j,i){
         ${s.status==='done'?`<span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--green);letter-spacing:.04em">DONE ✓</span>`:''}
       </div>
     </div>
-
+ 
     ${s.status==='pending'?`
       ${!hasBefore(i)?`<div class="req-warn"><i class="ti ti-camera"></i><div><strong>Take a before photo</strong> to start the job.</div></div>`:''}
       <button class="btn btng" style="width:100%;margin-bottom:.875rem" onclick="startJob(${i})" ${!hasBefore(i)?'disabled style="width:100%;margin-bottom:.875rem;opacity:.45;cursor:not-allowed"':''}>
         <i class="ti ti-player-play"></i> Start Job
       </button>`:''}
-
+ 
     ${s.status==='active'||s.status==='done'?`
     <div class="photo-section">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
@@ -964,13 +1021,13 @@ function buildJobCard(j,i){
       <button class="photo-add-btn" onclick="document.getElementById('acam-${i}').click()"><i class="ti ti-camera-check"></i> Take after photo</button>
       <input type="file" id="acam-${i}" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(${i},'after',this)">
     </div>`:''}
-
+ 
     ${s.status==='active'?`
       ${!hasAfter(i)?`<div class="req-warn"><i class="ti ti-camera-check"></i><div><strong>Take an after photo</strong> to complete the job.</div></div>`:''}
       <button class="btn btng" style="width:100%;margin-bottom:.875rem" onclick="finishJob(${i})" ${!hasAfter(i)?'disabled style="width:100%;margin-bottom:.875rem;opacity:.45;cursor:not-allowed"':''}>
         <i class="ti ti-flag-check"></i> Mark Complete
       </button>`:''}
-
+ 
     ${s.status==='done'?`
       <div class="sum-grid">
         <div class="sum-box"><div class="sum-v">${fmtMins(s.actualMin)}</div><div class="sum-l">Actual</div></div>
@@ -980,23 +1037,23 @@ function buildJobCard(j,i){
         ${!getJobRecord(j.id)?`<button class="btn btng bsm" style="flex:1" onclick="markJobPaid('${j.id}','${i}')"><i class="ti ti-cash"></i> Mark Paid (Cash)</button>`:`<div class="tag tag-green" style="padding:6px 12px">✓ Paid</div>`}
         <button class="btn bsm" onclick="textCustomer('${j.id}')"><i class="ti ti-message"></i> Text summary</button>
       </div>`:''}
-
+ 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.875rem">
       <button class="btn" style="font-size:12px" onclick="document.getElementById('ecam-${i}').click()"><i class="ti ti-camera-plus"></i> Extra photo</button>
       <button class="btn" style="font-size:12px" onclick="navTo('${j.addr.replace(/'/g,"\\'")}')"><i class="ti ti-navigation"></i> Navigate</button>
       <input type="file" id="ecam-${i}" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(${i},'extra',this)">
     </div>
-
+ 
     ${s.extraPhotos.length>0?`<div class="photo-section"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">Extra photos (${s.extraPhotos.length})</div><div class="photo-grid">${extraGrid}</div></div>`:''}
-
+ 
     <div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.4rem">Field notes</div>
-    <textarea class="notes-area" id="jnotes-${i}" placeholder="Gate confirmed, issues found..." oninput="getTS(${i}).notes=this.value">${s.notes}</textarea></div>
+    <textarea class="notes-area" id="jnotes-${i}" placeholder="Gate confirmed, issues found..." oninput="getTS(${i}).notes=this.value;saveTrackerStates()">${s.notes}</textarea></div>
   </div>
 </div>`;
 }
-
+ 
 function getJobRecord(custId){return DB.jobHistory.find(j=>j.custId===custId&&j.date===todayStr());}
-
+ 
 function rerenderJCard(i){
   const card=document.getElementById('jcard-'+i);
   if(!card||!trackerRoute)return;
@@ -1005,46 +1062,62 @@ function rerenderJCard(i){
   card.replaceWith(tmp.firstElementChild);
   if(getTS(i).status==='active')startTick(i);
 }
-
-function startTick(i){const s=getTS(i);if(s.interval)return;s.interval=setInterval(()=>{const el=document.getElementById('jtimer-'+i);if(el)el.textContent=fmtTimer(getElap(i));},1000);}
+ 
+function startTick(i){
+  const s=getTS(i);
+  if(s.interval)return;
+  s.interval=setInterval(()=>{
+    const el=document.getElementById('jtimer-'+i);
+    if(el)el.textContent=fmtTimer(getElap(i));
+    // FIX: periodically persist tracker state so timer survives accidental reload
+    saveTrackerStates();
+  },1000);
+}
 function stopTick(i){const s=getTS(i);clearInterval(s.interval);s.interval=null;}
-
+ 
 function startJob(i){
   if(!hasBefore(i)){alert('Take a before photo first.');return;}
   const s=getTS(i);s.status='active';s.startMs=Date.now();s.expanded=true;
+  saveTrackerStates();
   rerenderJCard(i);
 }
 function pauseJob(i){
-  const s=getTS(i);s.elapsed+=Math.floor((Date.now()-s.startMs)/1000);s.startMs=null;stopTick(i);s.status='pending';rerenderJCard(i);
+  const s=getTS(i);
+  s.elapsed+=Math.floor((Date.now()-s.startMs)/1000);
+  s.startMs=null;
+  stopTick(i);
+  s.status='pending';
+  saveTrackerStates();
+  rerenderJCard(i);
 }
 function finishJob(i){
   if(!hasAfter(i)){alert('Take an after photo first.');return;}
   const s=getTS(i);
   if(s.startMs){s.elapsed+=Math.floor((Date.now()-s.startMs)/1000);s.startMs=null;}
   stopTick(i);s.status='done';s.actualMin=Math.round(s.elapsed/60);
-  // Save to job history
   const j=trackerRoute.jobs[i];
   const existing=DB.jobHistory.findIndex(x=>x.custId===j.id&&x.date===todayStr());
   const rec={id:existing>=0?DB.jobHistory[existing].id:uid(),custId:j.id,date:todayStr(),actualMin:s.actualMin,estMin:j.estMin,paid:false,paidMethod:null,beforePhotos:s.beforePhotos,afterPhotos:s.afterPhotos,extraPhotos:s.extraPhotos,notes:s.notes};
   if(existing>=0)DB.jobHistory[existing]=rec;else DB.jobHistory.push(rec);
   saveDB();
+  saveTrackerStates();
   rerenderJCard(i);
 }
-
+ 
 function markJobPaid(custId,i){
   const rec=getJobRecord(custId);
   if(rec){rec.paid=true;rec.paidMethod='cash';saveDB();}
   else{DB.jobHistory.push({id:uid(),custId,date:todayStr(),actualMin:0,estMin:0,paid:true,paidMethod:'cash',beforePhotos:[],afterPhotos:[],extraPhotos:[],notes:''});saveDB();}
   rerenderJCard(parseInt(i));
 }
-
+ 
 function textCustomer(custId){
   const c=DB.customers.find(x=>x.id===custId);
   if(!c||!c.phone){alert('No phone number for this customer.');return;}
   const msg='Hi '+c.first+'! Your lawn service is complete for today. Thanks for your business! — Richardson Outdoor Solutions';
   window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));
 }
-
+ 
 function toggleJCard(i){
   const s=getTS(i);if(s.status!=='pending')return;
   s.expanded=!s.expanded;
@@ -1052,7 +1125,7 @@ function toggleJCard(i){
   if(s.expanded)card.classList.add('exp');else card.classList.remove('exp');
 }
 function navTo(addr){window.open('https://maps.google.com/?q='+encodeURIComponent(addr),'_blank');}
-
+ 
 function addPhoto(i,type,input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
@@ -1061,11 +1134,13 @@ function addPhoto(i,type,input){
     if(type==='before')s.beforePhotos.push(e.target.result);
     else if(type==='after')s.afterPhotos.push(e.target.result);
     else s.extraPhotos.push(e.target.result);
-    input.value='';rerenderJCard(i);
+    input.value='';
+    saveTrackerStates();
+    rerenderJCard(i);
   };
   reader.readAsDataURL(file);
 }
-
+ 
 // Photo viewer
 function openPV(i,type,idx){
   pvJob=i;pvType=type;pvIdx=idx;
@@ -1088,9 +1163,11 @@ function delPhoto(){
   if(pvJob===null)return;if(!confirm('Delete this photo?'))return;
   const s=getTS(pvJob);
   const arr=pvType==='before'?s.beforePhotos:pvType==='after'?s.afterPhotos:s.extraPhotos;
-  arr.splice(pvIdx,1);closePV();rerenderJCard(pvJob);
+  arr.splice(pvIdx,1);
+  saveTrackerStates();
+  closePV();rerenderJCard(pvJob);
 }
-
+ 
 async function exportDaySummary(){
   if(!trackerRoute){alert('No route loaded.');return;}
   const dateStr=new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -1130,7 +1207,7 @@ ${s.extraPhotos.length?`<div class="section"><div class="stitle">📸 Extra phot
   try{const blob=await zip.generateAsync({type:'blob'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ROS-Day-'+todayStr()+'.zip';a.click();}
   catch(e){alert('Export failed: '+e);}
 }
-
+ 
 // Load modal
 function openLoadModal(){document.getElementById('load-error').style.display='none';document.getElementById('load-modal').classList.add('open');}
 function loadRouteFromCode(){
@@ -1139,20 +1216,22 @@ function loadRouteFromCode(){
   if(!raw){errEl.textContent='Paste a route code first.';errEl.style.display='';return;}
   let p;try{p=JSON.parse(raw);}catch(e){errEl.textContent='Invalid code — copy it again from Route Planner.';errEl.style.display='';return;}
   if(!p.jobs||!p.jobs.length){errEl.textContent='Route has no jobs.';errEl.style.display='';return;}
-  trackerStates={};loadTrackerRoute(p);closeModal('load-modal');
+  trackerStates={};
+  saveTrackerStates();
+  loadTrackerRoute(p);closeModal('load-modal');
   document.getElementById('load-code').value='';
 }
-
+ 
 // ══ CUSTOMERS ════════════════════════════════════════════════════
 let custFilter='all', custEditId=null;
-
+ 
 function setCustFilter(f,btn){
   custFilter=f;
   document.querySelectorAll('.pill-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderCustomers();
 }
-
+ 
 function renderCustomers(){
   const q=(document.getElementById('cust-search').value||'').toLowerCase();
   let list=DB.customers.filter(c=>{
@@ -1206,12 +1285,12 @@ function renderCustomers(){
     </div>`;
   }).join('');
 }
-
+ 
 function toggleCust(id){
   const card=document.getElementById('cc-'+id);
   if(card)card.classList.toggle('open');
 }
-
+ 
 function openCustModal(id){
   custEditId=id||null;
   const title=id?'Edit Customer':'Add Customer';
@@ -1228,7 +1307,7 @@ function openCustModal(id){
   document.getElementById('cf-size').value=c?c.size||'md':'md';
   document.getElementById('cust-modal').classList.add('open');
 }
-
+ 
 function saveCust(){
   const id=document.getElementById('cust-edit-id').value||uid();
   const c={
@@ -1252,13 +1331,13 @@ function saveCust(){
   if(idx>=0)DB.customers[idx]=c;else DB.customers.push(c);
   saveDB();closeModal('cust-modal');renderCustomers();
 }
-
+ 
 function deleteCust(id){
   if(!confirm('Delete this customer? Their job history will be kept.'))return;
   DB.customers=DB.customers.filter(c=>c.id!==id);
   saveDB();renderCustomers();
 }
-
+ 
 // ══ IMPORT ════════════════════════════════════════════════════════
 let importRows=[];
 function openImportModal(){document.getElementById('import-modal').classList.add('open');}
@@ -1298,28 +1377,48 @@ function handleImportFile(file){
 function togAllImport(v){document.querySelectorAll('.imp-cb').forEach(cb=>cb.checked=v);}
 function selAllImport(){document.getElementById('imp-all-cb').checked=true;togAllImport(true);}
 function deselAllImport(){document.getElementById('imp-all-cb').checked=false;togAllImport(false);}
+ 
+// FIX: Rewrote doImport() — fixed mismatched braces, removed redundant if(!existing),
+// moved added++ inside else block, closed forEach properly, alert is now outside forEach.
+// Also added name+address fallback for duplicate detection when no phone number.
 function doImport(){
   const sel=[...document.querySelectorAll('.imp-cb:checked')].map(cb=>parseInt(cb.dataset.i));
   if(!sel.length){alert('Select at least one.');return;}
   let added=0,updated=0;
   sel.forEach(i=>{
-    const r=importRows.find(x=>x._i===i);if(!r)return;
-    const existing=DB.customers.find(c=>c.phone&&r.phone&&c.phone.replace(/\D/g,'')===r.phone.replace(/\D/g,''));
+    const r=importRows.find(x=>x._i===i);
+    if(!r)return;
+    // FIX: match on phone OR (first+last name combo) to catch duplicates without phones
+    const normPhone=s=>s.replace(/\D/g,'');
+    const existing=DB.customers.find(c=>{
+      if(r.phone&&c.phone&&normPhone(c.phone)===normPhone(r.phone))return true;
+      if(!r.phone||!c.phone){
+        // Fallback: match on full name (case-insensitive)
+        const rName=(r.fn+' '+r.ln).trim().toLowerCase();
+        const cName=custFullName(c).toLowerCase();
+        if(rName&&rName===cName)return true;
+      }
+      return false;
+    });
     if(existing){
-      existing.first=r.fn||existing.first;existing.last=r.ln||existing.last;
-      existing.addr=r.rawAddr||existing.addr;existing.zip=r.zip||existing.zip;
-      existing.phone=r.phone||existing.phone;existing.email=r.email||existing.email;
+      existing.first=r.fn||existing.first;
+      existing.last=r.ln||existing.last;
+      existing.addr=r.rawAddr||existing.addr;
+      existing.zip=r.zip||existing.zip;
+      existing.phone=r.phone||existing.phone;
+      existing.email=r.email||existing.email;
       updated++;
     } else {
-      if(!existing){
       DB.customers.push({id:uid(),first:r.fn,last:r.ln,addr:r.rawAddr,zip:r.zip,phone:r.phone,email:r.email,sched:'weekly',day:'1',price:'',mowTime:45,size:'md',gate:'',notes:''});
-      }
-        added++;
+      added++;
+    }
   });
-  saveDB();closeModal('import-modal');renderCustomers();
+  saveDB();
+  closeModal('import-modal');
+  renderCustomers();
   alert(`Imported: ${added} new, ${updated} updated.`);
 }
-
+ 
 // ══ REPORTS ═══════════════════════════════════════════════════════
 function renderReports(){
   const period=document.getElementById('report-period').value;
@@ -1332,7 +1431,6 @@ function renderReports(){
   const revenue=filtered.filter(j=>j.paid).reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);return a+parseFloat(c&&c.price||0);},0);
   const unpaidRevenue=filtered.filter(j=>!j.paid).reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);return a+parseFloat(c&&c.price||0);},0);
   const avgActual=filtered.filter(j=>j.actualMin>0).reduce((a,j,_,arr)=>a+j.actualMin/arr.length,0);
-  const activeCustomers=DB.customers.filter(c=>c.sched!=='inactive').length;
   document.getElementById('report-content').innerHTML=`
     <div class="dash-grid">
       <div class="dash-card"><div class="dash-val">${totalJobs}</div><div class="dash-lbl">Jobs completed</div></div>
@@ -1355,16 +1453,16 @@ function renderReports(){
       }).join('')||'<div style="color:var(--ink3);font-size:13px;text-align:center;padding:1rem">No data yet</div>'}
     </div>`;
 }
-
+ 
 function openReportModal(){
   document.getElementById('report-modal-content').innerHTML=document.getElementById('report-content').innerHTML||'<p style="color:var(--ink3)">No data yet.</p>';
   document.getElementById('report-modal').classList.add('open');
 }
-
+ 
 // ══ MODAL UTILS ═══════════════════════════════════════════════════
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function handleModalBg(e,id){if(e.target===document.getElementById(id))closeModal(id);}
-
+ 
 // ══ BACKUP & RESTORE ═════════════════════════════════════════════
 function updateBackupStats(){
   const el=document.getElementById('backup-stats');
@@ -1379,7 +1477,7 @@ function updateBackupStats(){
     lbl.style.color='var(--red)';
   }
 }
-
+ 
 function backupData(){
   const payload={
     version:2,
@@ -1395,7 +1493,7 @@ function backupData(){
   updateBackupStats();
   showRestoreMsg('Backup downloaded! Save it to Google Drive or your files.','var(--gp)','var(--green)');
 }
-
+ 
 function restoreData(input){
   const file=input.files[0];
   if(!file)return;
@@ -1412,7 +1510,6 @@ function restoreData(input){
       }
       DB=Object.assign({customers:[],jobHistory:[],settings:{mapsKey:'',homeBase:'',startTime:'07:00',hours:8}},payload.db);
       saveDB();
-      // Restore settings to UI
       if(DB.settings.homeBase)document.getElementById('plan-home').value=DB.settings.homeBase;
       if(DB.settings.startTime)document.getElementById('plan-start').value=DB.settings.startTime;
       if(DB.settings.hours)document.getElementById('plan-hours').value=DB.settings.hours;
@@ -1426,7 +1523,7 @@ function restoreData(input){
   };
   reader.readAsText(file);
 }
-
+ 
 function showRestoreMsg(msg,bg,color){
   const el=document.getElementById('restore-msg');
   if(!el)return;
@@ -1437,35 +1534,34 @@ function showRestoreMsg(msg,bg,color){
   el.style.border='1px solid '+color;
   setTimeout(()=>{el.style.display='none';},5000);
 }
-
+ 
 // ══ INIT ══════════════════════════════════════════════════════════
 (async function initApp(){
   await loadDB();
-
-  // Restore settings
+ 
   if(DB.settings.homeBase)document.getElementById('plan-home').value=DB.settings.homeBase;
   if(DB.settings.startTime)document.getElementById('plan-start').value=DB.settings.startTime;
   if(DB.settings.hours)document.getElementById('plan-hours').value=DB.settings.hours;
   if(DB.settings.mapsKey)document.getElementById('maps-key').value=DB.settings.mapsKey;
-
-  // Auto-save settings on change
-  ['plan-home','plan-start','plan-hours'].forEach(id=>{
+ 
+  // FIX: also wire up maps-key to persist when changed
+  ['plan-home','plan-start','plan-hours','maps-key'].forEach(id=>{
     document.getElementById(id).addEventListener('change',()=>{
       DB.settings.homeBase=document.getElementById('plan-home').value;
       DB.settings.startTime=document.getElementById('plan-start').value;
       DB.settings.hours=parseFloat(document.getElementById('plan-hours').value)||8;
+      DB.settings.mapsKey=document.getElementById('maps-key').value;
       saveDB();
     });
   });
-
+ 
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   tryAutoLoadTracker();
   renderDash();
   renderCustomers();
   renderReports();
   updateBackupStats();
-
-  // Remind to backup every 7 days
+ 
   const lastBackup=localStorage.getItem('ros_last_backup');
   if(DB.customers.length>0&&(!lastBackup||Date.now()-new Date(lastBackup).getTime()>7*24*60*60*1000)){
     setTimeout(()=>{
