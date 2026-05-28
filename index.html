@@ -537,6 +537,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <div class="fr">
     <div class="f"><label>HubSpot contact URL</label><input type="url" id="cf-hubspot" placeholder="https://app.hubspot.com/contacts/..."></div>
     <div class="f" style="flex:0 0 130px"><label>HubSpot contact ID</label><input type="text" id="cf-hubspot-id" placeholder="12345678"></div>
+    <div class="f" style="flex:0 0 150px"><label>Stripe customer ID</label><input type="text" id="cf-stripe-id" placeholder="cus_ABC123..."></div>
   </div>
   <div class="fr">
     <div class="f" style="flex:0 0 150px"><label>Payment method</label>
@@ -731,6 +732,7 @@ async function saveDB(){
           notes: customer.notes||'',
           hubspot_url: customer.hubspotUrl||'',
           hubspot_contact_id: customer.hubspotContactId||'',
+          stripe_customer_id: customer.stripeCustomerId||'',
           pay_method: customer.payMethod||'cash',
           pay_link: customer.payLink||'',
           service_type: customer.serviceType||'mow',
@@ -811,6 +813,7 @@ async function loadDB(){
         notes:c.notes||'',
         hubspotUrl:c.hubspot_url||'',
         hubspotContactId:c.hubspot_contact_id||'',
+        stripeCustomerId:c.stripe_customer_id||'',
         payMethod:c.pay_method||'cash',
         payLink:c.pay_link||'',
         serviceType:c.service_type||'mow',
@@ -1770,29 +1773,78 @@ function payByCard(custId,i,price){
   const c=DB.customers.find(x=>x.id===custId);
   const name=c?custFullName(c):'customer';
   const amount=parseFloat(price).toFixed(2);
-  const stripeLink=getBestPayLink(price)||'https://dashboard.stripe.com/payments';
-  // Build the confirmation UI inline
+  const hasStripeId=c&&c.stripeCustomerId&&c.stripeCustomerId.startsWith('cus_');
+  const link=c&&c.payLink?c.payLink:getBestPayLink(price);
+
   const card=document.getElementById('jcard-'+i);
   if(!card)return;
   const paySection=card.querySelector('.pay-box.pay-card');
   if(!paySection)return;
   const parent=paySection.closest('div[style*="margin-bottom"]');
   if(!parent)return;
-  parent.innerHTML=`
-    <div class="pay-confirm-card" style="background:var(--bp);border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
-      <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.875rem"><i class="ti ti-credit-card" style="font-size:16px"></i> Charge card — ${name}</div>
-      <div class="pay-amount">$${amount}</div>
-      <div class="pay-steps">
-        <div class="pay-step"><div class="pay-step-num">1</div><div>Open Stripe and go to <strong>Customers → ${name}</strong></div></div>
-        <div class="pay-step"><div class="pay-step-num">2</div><div>Tap <strong>Charge</strong> and enter <strong>$${amount}</strong></div></div>
-        <div class="pay-step"><div class="pay-step-num">3</div><div>Come back here and tap <strong>Confirm charged</strong></div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:.75rem">
-        <button class="btn btng" onclick="window.open('${stripeLink}','_blank')"><i class="ti ti-external-link"></i> Open Stripe</button>
-        <button class="btn btng" onclick="recordPayment('${custId}','${i}','card')"><i class="ti ti-check"></i> Confirm charged</button>
-      </div>
-      <button class="btn btn-ghost bsm" style="width:100%;margin-top:.5rem" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
-    </div>`;
+
+  if(hasStripeId){
+    // Charge card on file via Netlify backend
+    parent.innerHTML=`
+      <div class="pay-confirm-card" style="background:var(--bp);border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
+        <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.75rem"><i class="ti ti-credit-card"></i> Charge card on file — ${name}</div>
+        <div class="pay-amount">$${amount}</div>
+        <p style="font-size:13px;color:var(--ink3);text-align:center;margin:.75rem 0">Charges the card saved in Stripe for this customer.</p>
+        <button class="btn btng" style="width:100%;margin-bottom:.5rem" id="charge-btn-${i}" onclick="executeCardCharge('${custId}','${i}',${price})">
+          <i class="ti ti-credit-card"></i> Charge $${amount} now
+        </button>
+        <button class="btn btn-ghost bsm" style="width:100%" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
+      </div>`;
+  } else if(link){
+    // No Stripe ID — fall back to payment link
+    parent.innerHTML=`
+      <div class="pay-confirm-card" style="background:var(--bp);border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
+        <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.75rem"><i class="ti ti-credit-card"></i> Charge card — ${name}</div>
+        <div class="pay-amount">$${amount}</div>
+        <div style="background:#fff3cd;border-radius:8px;padding:.625rem;font-size:12px;color:#856404;margin-bottom:.875rem">No Stripe Customer ID set — using payment link instead. Add their Stripe ID in Edit customer to enable one-tap charging.</div>
+        <button class="btn btng" style="width:100%;margin-bottom:.5rem" onclick="window.open('${link}','_blank')"><i class="ti ti-external-link"></i> Open payment page — $${amount}</button>
+        <button class="btn btng" style="width:100%;margin-bottom:.5rem" onclick="recordPayment('${custId}','${i}','card')"><i class="ti ti-check"></i> Confirm charged</button>
+        <button class="btn btn-ghost bsm" style="width:100%" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
+      </div>`;
+  } else {
+    parent.innerHTML=`
+      <div class="pay-confirm-card" style="background:var(--bp);border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
+        <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.75rem"><i class="ti ti-credit-card"></i> Charge card — ${name}</div>
+        <div class="pay-amount">$${amount}</div>
+        <div style="background:var(--rp);border-radius:8px;padding:.625rem;font-size:12px;color:var(--red);margin-bottom:.875rem">No Stripe Customer ID or payment link set up. Edit this customer to add one.</div>
+        <button class="btn btng" style="width:100%;margin-bottom:.5rem" onclick="openCustModal('${custId}')"><i class="ti ti-edit"></i> Edit customer</button>
+        <button class="btn btn-ghost bsm" style="width:100%" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
+      </div>`;
+  }
+}
+
+async function executeCardCharge(custId,i,price){
+  const c=DB.customers.find(x=>x.id===custId);
+  const btn=document.getElementById('charge-btn-'+i);
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span> Charging...';}
+  try{
+    const res=await fetch('https://effervescent-pie-af6453.netlify.app/.netlify/functions/charge',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        stripeCustomerId:c.stripeCustomerId,
+        amount:parseFloat(price),
+        description:`Lawn service — ${custFullName(c)} — ${todayStr()}`,
+        customerName:custFullName(c)
+      })
+    });
+    const data=await res.json();
+    if(data.success){
+      recordPayment(custId,i,'card');
+    } else {
+      if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-credit-card"></i> Retry charge';}
+      alert('Charge failed: '+(data.error||'Unknown error')+'\n\nCheck that this customer has a card saved in Stripe.');
+    }
+  }catch(e){
+    if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-credit-card"></i> Retry charge';}
+    alert('Connection error. Check your internet and try again.');
+  }
+}
 }
 
 function payByInvoice(custId,i,price){
@@ -2273,6 +2325,7 @@ function openCustModal(id){
   });
   document.getElementById('cf-hubspot').value=c?c.hubspotUrl||'':'';
   document.getElementById('cf-hubspot-id').value=c?c.hubspotContactId||'':'';
+  document.getElementById('cf-stripe-id').value=c?c.stripeCustomerId||'':'';
   document.getElementById('cf-paymethod').value=c?c.payMethod||'cash':'cash';
   document.getElementById('cf-paylink').value=c?c.payLink||'':'';
   document.getElementById('cf-service').value=c?c.serviceType||'mow':'mow';
@@ -2311,6 +2364,7 @@ function saveCust(){
     notes:document.getElementById('cf-notes').value.trim(),
     hubspotUrl:document.getElementById('cf-hubspot').value.trim(),
     hubspotContactId:document.getElementById('cf-hubspot-id').value.trim(),
+    stripeCustomerId:document.getElementById('cf-stripe-id').value.trim(),
     payMethod:document.getElementById('cf-paymethod').value,
     payLink:document.getElementById('cf-paylink').value.trim(),
     serviceType:document.getElementById('cf-service').value,
