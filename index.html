@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Richardson Outdoor Solutions</title>
+<!-- PWA -->
+<meta name="application-name" content="ROS Field App">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ROS">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2d5a27">
+<meta name="description" content="Richardson Outdoor Solutions field management app">
+<!-- PWA icons — inline SVG as data URL so no separate files needed -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%232d5a27'/%3E%3Ctext x='90' y='125' font-size='100' text-anchor='middle' fill='white' font-family='Arial'%3E🌿%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232d5a27'/%3E%3Ctext x='16' y='24' font-size='20' text-anchor='middle' fill='white' font-family='Arial'%3E🌿%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22Richardson%20Outdoor%20Solutions%22%2C%22short_name%22%3A%22ROS%22%2C%22description%22%3A%22Field%20management%20app%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f7f8f5%22%2C%22theme_color%22%3A%22%232d5a27%22%2C%22orientation%22%3A%22portrait%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%2520viewBox%3D'0%25200%2520192%2520192'%253E%253Crect%2520width%3D'192'%2520height%3D'192'%2520rx%3D'40'%2520fill%3D'%25232d5a27'%2F%253E%253Ctext%2520x%3D'96'%2520y%3D'140'%2520font-size%3D'120'%2520text-anchor%3D'middle'%2520fill%3D'white'%253E%25F0%259F%258C%25BF%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <style>
@@ -2865,6 +2877,101 @@ function showRestoreMsg(msg,bg,color){
   loadStripeSettingsUI();
   loadHubSpotKeyUI();
 })();
+// ══ PWA SERVICE WORKER ═══════════════════════════════════════════
+// Inline service worker — caches the app shell for offline use
+const SW_CODE=`
+const CACHE='ros-v8';
+const SHELL=[location.pathname];
+self.addEventListener('install',e=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)));
+  self.skipWaiting();
+});
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  e.respondWith(caches.match(e.request).then(cached=>{
+    const fresh=fetch(e.request).then(r=>{
+      if(r&&r.status===200){const c=r.clone();caches.open(CACHE).then(cache=>cache.put(e.request,c));}
+      return r;
+    }).catch(()=>cached);
+    return cached||fresh;
+  }));
+});
+`;
+
+if('serviceWorker' in navigator){
+  const blob=new Blob([SW_CODE],{type:'application/javascript'});
+  const swUrl=URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl,{scope:'./'}).then(reg=>{
+    console.log('SW registered');
+  }).catch(e=>console.log('SW error',e));
+}
+
+// PWA install prompt
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  // Show install banner after 3 seconds if not already installed
+  setTimeout(()=>{
+    if(deferredInstallPrompt&&!window.matchMedia('(display-mode: standalone)').matches){
+      showInstallBanner();
+    }
+  },3000);
+});
+
+function showInstallBanner(){
+  if(document.getElementById('pwa-banner'))return;
+  const banner=document.createElement('div');
+  banner.id='pwa-banner';
+  banner.style.cssText='position:fixed;bottom:70px;left:50%;transform:translateX(-50%);width:calc(100% - 2rem);max-width:560px;background:var(--green);color:#fff;border-radius:var(--rl);padding:.875rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.25)';
+  banner.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:24px">🌿</span>
+      <div>
+        <div style="font-weight:700;font-size:14px">Install ROS App</div>
+        <div style="font-size:12px;opacity:.8">Add to home screen for fast access</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <button onclick="installPWA()" style="background:#fff;color:var(--green);border:none;border-radius:8px;padding:6px 14px;font-weight:700;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif">Install</button>
+      <button onclick="document.getElementById('pwa-banner').remove()" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-weight:700;font-size:13px;cursor:pointer">✕</button>
+    </div>`;
+  document.body.appendChild(banner);
+}
+
+async function installPWA(){
+  if(!deferredInstallPrompt)return;
+  deferredInstallPrompt.prompt();
+  const result=await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt=null;
+  const banner=document.getElementById('pwa-banner');
+  if(banner)banner.remove();
+}
+
+// iOS doesn't support beforeinstallprompt — show manual instructions instead
+window.addEventListener('load',()=>{
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+  if(isIOS&&!isStandalone&&!localStorage.getItem('ros_ios_hint')){
+    setTimeout(()=>{
+      const banner=document.createElement('div');
+      banner.style.cssText='position:fixed;bottom:70px;left:50%;transform:translateX(-50%);width:calc(100% - 2rem);max-width:560px;background:var(--green);color:#fff;border-radius:var(--rl);padding:.875rem 1rem;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.25)';
+      banner.innerHTML=`
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+          <div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px">🌿 Install ROS App</div>
+            <div style="font-size:12px;opacity:.9;line-height:1.5">Tap <strong>Share</strong> <span style="font-size:14px">⎙</span> then <strong>"Add to Home Screen"</strong> to install</div>
+          </div>
+          <button onclick="localStorage.setItem('ros_ios_hint','1');this.closest('div[style]').remove()" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0">✕</button>
+        </div>`;
+      document.body.appendChild(banner);
+    },3000);
+  }
+});
 </script>
 </body>
 </html>
