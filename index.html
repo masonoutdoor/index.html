@@ -1827,18 +1827,32 @@ function buildPaymentUI(j,i,s){
     return `<div class="pay-done-badge">
       <i class="ti ti-circle-check-filled" style="font-size:24px;color:var(--green);flex-shrink:0"></i>
       <div><div style="font-weight:700;font-size:14px;color:var(--green)">Payment recorded</div>
-      <div style="font-size:12px;color:var(--ink3)">${rec.paidMethod==='cash'?'Cash / Check':rec.paidMethod==='card'?'Charged via Stripe':rec.paidMethod==='invoice'?'Invoice sent':'Paid'} · $${price.toFixed(2)}</div></div>
+      <div style="font-size:12px;color:var(--ink3)">${rec.paidMethod==='cash'?'Cash / Check':rec.paidMethod==='card'?'Charged via Stripe':rec.paidMethod==='invoice'?'Invoice sent':'Paid'} · $${parseFloat(rec.chargedAmount||price).toFixed(2)}</div></div>
     </div>
     <button class="btn bsm" onclick="textCustomer('${j.id}')" style="margin-bottom:.875rem;width:100%"><i class="ti ti-message"></i> Text job summary</button>`;
   }
 
-  // Not yet paid — show 3 options
   const stripeNote=hasStripe?'':`<div style="font-size:11px;color:var(--amb);margin-top:4px">⚠ Set up Stripe links in Reports → Payment settings</div>`;
 
   return `<div style="margin-bottom:.875rem">
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.625rem">Collect payment — $${price.toFixed(2)}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem;flex-wrap:wrap;gap:8px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3)">Collect payment</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:12px;color:var(--ink3)">Amount:</span>
+        <div style="position:relative;display:inline-flex;align-items:center">
+          <span style="position:absolute;left:8px;font-size:14px;font-weight:700;color:var(--green)">$</span>
+          <input type="number" id="pay-amount-${i}" value="${price.toFixed(2)}" min="0" step="0.01"
+            style="width:90px;height:34px;border-radius:var(--r);border:2px solid var(--green);background:var(--s);color:var(--ink);padding:0 8px 0 20px;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;text-align:right"
+            oninput="updatePayAmount(${i})">
+        </div>
+        <button class="btn bxsm" onclick="resetPayAmount(${i},${price})" style="font-size:10px;color:var(--ink3)">Reset</button>
+      </div>
+    </div>
+    <div id="pay-extra-note-${i}" style="display:none;background:var(--ambp);border-radius:8px;padding:.5rem .75rem;font-size:12px;color:var(--amb);margin-bottom:.625rem">
+      <i class="ti ti-edit" style="font-size:11px"></i> Custom amount — base price is $${price.toFixed(2)}
+    </div>
 
-    <div class="pay-box pay-cash" onclick="payByCash('${j.id}','${i}',${price})">
+    <div class="pay-box pay-cash" onclick="payByCash('${j.id}','${i}',getPayAmount(${i}))">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="font-size:26px">💵</div>
         <div>
@@ -1849,24 +1863,24 @@ function buildPaymentUI(j,i,s){
       </div>
     </div>
 
-    <div class="pay-box pay-card" onclick="payByCard('${j.id}','${i}',${price})">
+    <div class="pay-box pay-card" onclick="payByCard('${j.id}','${i}',getPayAmount(${i}))">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="font-size:26px">💳</div>
         <div>
           <div class="pay-box-title">Charge card</div>
-          <div class="pay-box-sub">Open Stripe to charge $${price.toFixed(2)}</div>
+          <div class="pay-box-sub" id="pay-card-sub-${i}">Charge $${price.toFixed(2)} to card on file</div>
           ${stripeNote}
         </div>
         <i class="ti ti-chevron-right" style="margin-left:auto;color:var(--ink3)"></i>
       </div>
     </div>
 
-    <div class="pay-box pay-invoice" onclick="payByInvoice('${j.id}','${i}',${price})">
+    <div class="pay-box pay-invoice" onclick="payByInvoice('${j.id}','${i}',getPayAmount(${i}))">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="font-size:26px">📨</div>
         <div>
           <div class="pay-box-title">Send invoice</div>
-          <div class="pay-box-sub">Text them a Stripe payment link for $${price.toFixed(2)}</div>
+          <div class="pay-box-sub" id="pay-inv-sub-${i}">Text them a payment link for $${price.toFixed(2)}</div>
           ${stripeNote}
         </div>
         <i class="ti ti-chevron-right" style="margin-left:auto;color:var(--ink3)"></i>
@@ -1875,10 +1889,32 @@ function buildPaymentUI(j,i,s){
   </div>`;
 }
 
+function getPayAmount(i){
+  const el=document.getElementById('pay-amount-'+i);
+  return el?parseFloat(el.value)||0:0;
+}
+
+function updatePayAmount(i){
+  const el=document.getElementById('pay-amount-'+i);
+  if(!el)return;
+  const amt=parseFloat(el.value)||0;
+  const noteEl=document.getElementById('pay-extra-note-'+i);
+  const cardSub=document.getElementById('pay-card-sub-'+i);
+  const invSub=document.getElementById('pay-inv-sub-'+i);
+  if(noteEl)noteEl.style.display=amt>0?'':'none';
+  if(cardSub)cardSub.textContent=`Charge $${amt.toFixed(2)} to card on file`;
+  if(invSub)invSub.textContent=`Text them a payment link for $${amt.toFixed(2)}`;
+}
+
+function resetPayAmount(i,basePrice){
+  const el=document.getElementById('pay-amount-'+i);
+  if(el){el.value=parseFloat(basePrice).toFixed(2);updatePayAmount(i);}
+}
+
 function payByCash(custId,i,price){
   const c=DB.customers.find(x=>x.id===custId);
   if(!confirm(`Mark $${parseFloat(price).toFixed(2)} cash/check payment received from ${c?custFullName(c):'customer'}?`))return;
-  recordPayment(custId,i,'cash');
+  recordPayment(custId,i,'cash',price);
 }
 
 function payByCard(custId,i,price){
@@ -1947,7 +1983,8 @@ async function executeCardCharge(custId,i,price){
     });
     const data=await res.json();
     if(data.success){
-      recordPayment(custId,i,'card');
+      recordPayment(custId,i,'card',parseFloat(price));
+      alert(`✓ $${parseFloat(price).toFixed(2)} charged successfully!`);
     } else {
       if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-credit-card"></i> Retry charge';}
       alert('Charge failed: '+(data.error||'Unknown error')+'\n\nCheck that this customer has a card saved in Stripe.');
@@ -2025,19 +2062,19 @@ function sendInvoiceEmail(custId,i,price){
   setTimeout(()=>{recordPayment(custId,i,'invoice');},1500);
 }
 
-function recordPayment(custId,i,method){
+function recordPayment(custId,i,method,chargedAmount){
   const j=trackerRoute&&trackerRoute.jobs[parseInt(i)];
   const c=DB.customers.find(x=>x.id===custId);
-  const price=parseFloat(c&&c.price||0);
+  const price=chargedAmount||parseFloat(c&&c.price||0);
   const existing=DB.jobHistory.findIndex(x=>x.custId===custId&&x.date===todayStr());
   if(existing>=0){
     DB.jobHistory[existing].paid=method!=='invoice';
     DB.jobHistory[existing].paidMethod=method;
+    DB.jobHistory[existing].chargedAmount=price;
   } else {
-    DB.jobHistory.push({id:uid(),custId,date:todayStr(),actualMin:0,estMin:j?j.estMin:0,paid:method!=='invoice',paidMethod:method,beforePhotos:[],afterPhotos:[],extraPhotos:[],notes:''});
+    DB.jobHistory.push({id:uid(),custId,date:todayStr(),actualMin:0,estMin:j?j.estMin:0,paid:method!=='invoice',paidMethod:method,chargedAmount:price,beforePhotos:[],afterPhotos:[],extraPhotos:[],notes:''});
   }
   saveDB();
-  // Sync cash/check payment to HubSpot
   if(method==='cash'){
     syncPaymentToHubSpot(custId,price,'Cash/Check',todayStr());
   }
