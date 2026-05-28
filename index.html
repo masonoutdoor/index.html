@@ -1019,14 +1019,85 @@ function renderUnpaid(){
   if(!unpaid.length)return;
   document.getElementById('unpaid-list').innerHTML=unpaid.map(j=>{
     const c=DB.customers.find(x=>x.id===j.custId);
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--s3)">
-      <div><div style="font-weight:600;font-size:13px">${c?custFullName(c):j.custId}</div><div style="font-size:11px;color:var(--ink3)">${fmtDate(j.date)}</div></div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-weight:600;color:var(--red)">$${parseFloat(c&&c.price||0).toFixed(0)}</span>
-        <button class="btn bxsm btng" onclick="markPaid('${j.id}')">Mark paid</button>
+    const price=parseFloat(c&&c.price||0);
+    const hasStripeId=c&&c.stripeCustomerId&&c.stripeCustomerId.startsWith('cus_');
+    const link=c?(c.payLink||getBestPayLink(price)):'';
+    return `<div style="padding:.75rem 0;border-bottom:1px solid var(--s3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem">
+        <div>
+          <div style="font-weight:600;font-size:13px">${c?custFullName(c):j.custId}</div>
+          <div style="font-size:11px;color:var(--ink3)">${fmtDate(j.date)}</div>
+        </div>
+        <span style="font-weight:700;font-size:15px;color:var(--red)">$${price.toFixed(2)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:11px" onclick="markPaidDash('${j.id}','cash')">
+          <i class="ti ti-cash" style="font-size:11px"></i> Cash
+        </button>
+        <button class="btn bxsm" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0;font-size:11px" onclick="${hasStripeId?`chargeDash('${j.id}','${c.stripeCustomerId}',${price})`:`openPayLinkDash('${link}')`}">
+          <i class="ti ti-credit-card" style="font-size:11px"></i> Card
+        </button>
+        <button class="btn bxsm" style="background:var(--ambp);color:var(--amb);border-color:#f0d9a0;font-size:11px" onclick="invoiceDash('${j.id}','${j.custId}',${price})">
+          <i class="ti ti-send" style="font-size:11px"></i> Invoice
+        </button>
       </div>
     </div>`;
   }).join('');
+}
+
+function markPaidDash(jobId,method){
+  const j=DB.jobHistory.find(x=>x.id===jobId);
+  if(j){
+    j.paid=true;
+    j.paidMethod=method;
+    saveDB();
+    // Sync to HubSpot if cash
+    if(method==='cash'){
+      const c=DB.customers.find(x=>x.id===j.custId);
+      if(c)syncPaymentToHubSpot(j.custId,c.price||0,'Cash/Check',j.date);
+    }
+    renderDash();
+  }
+}
+
+async function chargeDash(jobId,stripeCustomerId,price){
+  const j=DB.jobHistory.find(x=>x.id===jobId);
+  const c=DB.customers.find(x=>x.id===j.custId);
+  if(!confirm(`Charge $${price.toFixed(2)} to ${c?custFullName(c):'customer'}'s card on file?`))return;
+  try{
+    const res=await fetch('https://effervescent-pie-af6453.netlify.app/.netlify/functions/charge',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({stripeCustomerId,amount:price,description:`Lawn service — ${c?custFullName(c):''} — ${j.date}`,customerName:c?custFullName(c):''})
+    });
+    const data=await res.json();
+    if(data.success){
+      markPaidDash(jobId,'card');
+      alert(`✓ $${price.toFixed(2)} charged successfully!`);
+    } else {
+      alert('Charge failed: '+(data.error||'Unknown error'));
+    }
+  }catch(e){
+    alert('Connection error. Try again.');
+  }
+}
+
+function openPayLinkDash(link){
+  if(!link){alert('No payment link set up. Go to Reports → Payment settings.');return;}
+  window.open(link,'_blank');
+}
+
+function invoiceDash(jobId,custId,price){
+  const c=DB.customers.find(x=>x.id===custId);
+  if(!c){alert('Customer not found.');return;}
+  const link=c.payLink||getBestPayLink(price);
+  if(!link){alert('No payment link set up. Go to Reports → Payment settings.');return;}
+  const settings=getStripeSettings();
+  const bizName=settings.bizName||'Richardson Outdoor Solutions';
+  const msg=`Hi ${c.first}! You have an outstanding balance of $${price.toFixed(2)} for lawn service on ${fmtDate(DB.jobHistory.find(x=>x.id===jobId)?.date||'')}. Pay securely here: ${link} — Thanks, ${bizName}`;
+  if(c.phone){window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));}
+  else if(c.email){window.open('mailto:'+c.email+'?subject=Invoice — '+bizName+'&body='+encodeURIComponent(msg));}
+  else{alert('No phone or email for this customer.');}
 }
 
 function markPaid(id){
