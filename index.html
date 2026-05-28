@@ -2140,11 +2140,12 @@ function payByInvoice(custId,i,price){
     </div>`;
 }
 
-function sendInvoiceText(custId,i,price){
+async function sendInvoiceText(custId,i,price){
   const c=DB.customers.find(x=>x.id===custId);
   if(!c||!c.phone){alert('No phone number.');return;}
   const amount=parseFloat(price).toFixed(2);
-  const link=c.payLink||getBestPayLink(price)||'';
+  const rawLink=c.payLink||getBestPayLink(price)||'';
+  const link=rawLink?await shortenUrl(rawLink):rawLink;
   const settings=getStripeSettings();
   const bizName=settings.bizName||'Richardson Outdoor Solutions';
   const msg=`Hi ${c.first}! Your lawn service is complete. Amount due: $${amount}. Pay securely here: ${link} — Thanks, ${bizName}`;
@@ -2905,6 +2906,14 @@ function loadHubSpotKeyUI(){
   if(el&&DB.settings.hubspotKey)el.value=DB.settings.hubspotKey;
 }
 
+async function shortenUrl(url){
+  try{
+    const res=await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`);
+    if(res.ok){const short=await res.text();if(short.startsWith('https://tinyurl.com/'))return short;}
+  }catch(e){}
+  return url; // fall back to original if shortener fails
+}
+
 // ══ CARD SETUP LINK ══════════════════════════════════════════════
 async function sendCardSetupLink(custId){
   const c=DB.customers.find(x=>x.id===custId);
@@ -2930,7 +2939,7 @@ async function sendCardSetupLink(custId){
       saveDB();
     }
 
-    const setupUrl=data.setupUrl;
+    const setupUrl=await shortenUrl(data.setupUrl);
     const settings=getStripeSettings();
     const bizName=settings.bizName||'Richardson Outdoor Solutions';
     const msg=`Hi ${c.first}! Please save your card on file for future lawn service payments. It only takes a minute: ${setupUrl} — Thanks, ${bizName}`;
