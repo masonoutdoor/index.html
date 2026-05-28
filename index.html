@@ -159,7 +159,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 /* ── Modal ── */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:flex-end;justify-content:center}
 .modal-bg.open{display:flex}
-.modal{background:var(--s);border-radius:20px 20px 0 0;padding:1.5rem;width:100%;max-width:600px;max-height:90vh;overflow-y:auto}
+.modal{background:var(--s);border-radius:20px 20px 0 0;padding:1.5rem;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--green);margin-bottom:1rem;letter-spacing:.04em}
 .modal-close{position:absolute;top:1rem;right:1rem}
 
@@ -536,8 +536,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <div class="fr"><div class="f"><label>Gate code / access notes</label><input type="text" id="cf-gate" placeholder="Gate code #1234, dog in backyard..."></div></div>
   <div class="fr">
     <div class="f"><label>HubSpot contact URL</label><input type="url" id="cf-hubspot" placeholder="https://app.hubspot.com/contacts/..."></div>
-    <div class="f" style="flex:0 0 130px"><label>HubSpot contact ID</label><input type="text" id="cf-hubspot-id" placeholder="12345678"></div>
-    <div class="f" style="flex:0 0 150px"><label>Stripe customer ID</label><input type="text" id="cf-stripe-id" placeholder="cus_ABC123..."></div>
+  </div>
+  <div class="fr">
+    <div class="f" style="flex:0 0 150px"><label>HubSpot contact ID</label><input type="text" id="cf-hubspot-id" placeholder="12345678"></div>
+    <div class="f" style="flex:0 0 170px"><label>Stripe customer ID</label><input type="text" id="cf-stripe-id" placeholder="cus_ABC123..."></div>
   </div>
   <div class="fr">
     <div class="f" style="flex:0 0 150px"><label>Payment method</label>
