@@ -792,10 +792,12 @@ async function loadDB(){
   }
 
   try{
-    const {data,error}=await supabaseClient
+    const custPromise=supabaseClient
       .from('customers')
       .select('*')
       .order('created_at',{ascending:true});
+    const custTimeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),5000));
+    const {data,error}=await Promise.race([custPromise,custTimeout]);
     if(error){ console.log('Supabase load error',error); return; }
     if(data && data.length){
       DB.customers=data.map(c=>({
@@ -829,12 +831,15 @@ async function loadDB(){
     console.log('Supabase load error',err);
   }
 
-  // Load job history from Supabase if table exists
+  // Load job history from Supabase in background (non-blocking)
+  // Wrapped in Promise.race with timeout so it never freezes the app
   try{
-    const {data:jdata,error:jerror}=await supabaseClient
+    const jobHistoryPromise=supabaseClient
       .from('job_history')
       .select('*')
       .order('date',{ascending:false});
+    const timeoutPromise=new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),5000));
+    const {data:jdata,error:jerror}=await Promise.race([jobHistoryPromise,timeoutPromise]);
     if(!jerror&&jdata&&jdata.length){
       const cloudJobs=jdata.map(j=>({
         id:j.id,
