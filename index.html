@@ -2159,6 +2159,28 @@ function sendInvoiceEmail(custId,i,price){
   setTimeout(()=>{recordPayment(custId,i,'invoice');},1500);
 }
 
+function sendPaymentConfirmationText(custId,amount,method,serviceDesc){
+  const c=DB.customers.find(x=>x.id===custId);
+  if(!c||!c.phone)return;
+  const settings=getStripeSettings();
+  const bizName=settings.bizName||'Richardson Outdoor Solutions';
+  const amtStr=`$${parseFloat(amount).toFixed(2)}`;
+  // Build service phrase
+  const services=getJobServices&&getJobServices._lastI!==undefined?null:null;
+  const svcPhrase=serviceDesc&&serviceDesc!=='Lawn service'?serviceDesc.toLowerCase()+' service':'lawn service';
+  let msg='';
+  if(method==='card'){
+    msg=`Hi ${c.first}! Your ${svcPhrase} is complete. ${amtStr} has been charged to your card on file. Thanks for your business! — ${bizName}`;
+  } else if(method==='cash'){
+    msg=`Hi ${c.first}! Your ${svcPhrase} is complete. Payment of ${amtStr} has been received. Thanks for your business! — ${bizName}`;
+  } else if(method==='invoice'){
+    msg=`Hi ${c.first}! Your ${svcPhrase} is complete. An invoice for ${amtStr} has been sent to you. Thanks for your business! — ${bizName}`;
+  }
+  if(msg){
+    window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));
+  }
+}
+
 function recordPayment(custId,i,method,chargedAmount,serviceDesc){
   const j=trackerRoute&&trackerRoute.jobs[parseInt(i)];
   const c=DB.customers.find(x=>x.id===custId);
@@ -2177,6 +2199,8 @@ function recordPayment(custId,i,method,chargedAmount,serviceDesc){
   if(method==='cash'){
     syncPaymentToHubSpot(custId,price,'Cash/Check',todayStr());
   }
+  // Auto-send confirmation text if customer has a phone
+  sendPaymentConfirmationText(custId,price,method,desc);
   rerenderJCard(parseInt(i));
 }
 
