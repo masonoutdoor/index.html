@@ -414,7 +414,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <!-- HubSpot Settings -->
   <div class="card" style="margin-top:.5rem">
     <div class="card-title">HubSpot integration</div>
-    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">When a cash/check payment is recorded, the app will automatically log a note on the customer's HubSpot contact. Requires a Private App token with <code>crm.objects.notes.write</code> scope.</p>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">When a cash/check payment is recorded, the app updates the customer's HubSpot contact with the last payment date and amount. Requires a Service Key with <code>crm.objects.contacts.write</code> scope.</p>
     <div class="fr">
       <div class="f"><label>HubSpot Private App token</label><input type="password" id="hs-key" placeholder="pat-na1-..." autocomplete="off"></div>
     </div>
@@ -572,6 +572,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
           <th style="padding:6px 8px;text-align:left;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Name</th>
           <th style="padding:6px 8px;text-align:left;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Address</th>
           <th style="padding:6px 8px;text-align:left;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Phone</th>
+          <th style="padding:6px 8px;text-align:left;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.04em">HS ID</th>
         </tr></thead>
         <tbody id="import-tbody"></tbody>
       </table>
@@ -2280,6 +2281,7 @@ function openCustModal(id){
 
 function saveCust(){
   const id=document.getElementById('cust-edit-id').value||uid();
+  const existing=DB.customers.find(x=>x.id===id);
   const c={
     id,
     first:document.getElementById('cf-first').value.trim(),
@@ -2302,7 +2304,7 @@ function saveCust(){
     serviceType:document.getElementById('cf-service').value,
     resumeDate:document.getElementById('cf-resume').value||null,
     pauseReason:document.getElementById('cf-pause-reason').value.trim(),
-    skipWeeks:c?c.skipWeeks||[]:[]
+    skipWeeks:existing?existing.skipWeeks||[]:[]
   };
   if(!c.first&&!c.last){alert('Enter at least a first or last name.');return;}
   const idx=DB.customers.findIndex(x=>x.id===id);
@@ -2336,10 +2338,13 @@ function handleImportFile(file){
         const zip=gc(row,'Zipcode','Zip Code','zip','ZIP','postal code');
         const phone=gc(row,'Phone Number','Phone','phone');
         const email=gc(row,'Email','email');
+        // HubSpot Record ID — the contact's numeric ID
+        const hubspotId=gc(row,'Record ID','record id','Contact ID','contact id','hs_object_id','Vid');
         const fullAddr=addr&&zip&&!addr.includes(zip)&&!/\d{5}/.test(addr)?addr+', '+zip:addr;
-        return{_i:i,fn,ln,addr:fullAddr,rawAddr:addr,zip,phone,email};
+        return{_i:i,fn,ln,addr:fullAddr,rawAddr:addr,zip,phone,email,hubspotId};
       }).filter(r=>r.fn||r.ln);
-      document.getElementById('import-count').textContent=importRows.length+' contacts found';
+      const hasIds=importRows.some(r=>r.hubspotId);
+      document.getElementById('import-count').textContent=importRows.length+' contacts found'+(hasIds?' · HubSpot IDs detected ✓':'· ⚠ No Record ID column found — add it to your HubSpot export for payment sync');
       document.getElementById('import-preview').style.display='';
       document.getElementById('import-tbody').innerHTML=importRows.map(r=>`
         <tr>
@@ -2347,6 +2352,7 @@ function handleImportFile(file){
           <td style="padding:6px 8px;font-weight:500;white-space:nowrap">${r.fn} ${r.ln}</td>
           <td style="padding:6px 8px;font-size:12px;color:var(--ink3)">${r.addr||'—'}</td>
           <td style="padding:6px 8px;font-size:12px;color:var(--ink3)">${r.phone||'—'}</td>
+          <td style="padding:6px 8px;font-size:12px;color:${r.hubspotId?'var(--green)':'var(--ink3)'}">${r.hubspotId||'—'}</td>
         </tr>`).join('');
     }catch(err){alert('Could not read file.');}
   };
@@ -2385,9 +2391,23 @@ function doImport(){
       existing.zip=r.zip||existing.zip;
       existing.phone=r.phone||existing.phone;
       existing.email=r.email||existing.email;
+      // Update HubSpot ID and auto-build contact URL if we have the ID
+      if(r.hubspotId){
+        existing.hubspotContactId=r.hubspotId;
+        if(!existing.hubspotUrl)existing.hubspotUrl=`https://app.hubspot.com/contacts/${r.hubspotId}`;
+      }
       updated++;
     } else {
-      DB.customers.push({id:uid(),first:r.fn,last:r.ln,addr:r.rawAddr,zip:r.zip,phone:r.phone,email:r.email,sched:'weekly',day:'1',price:'',mowTime:45,size:'md',gate:'',notes:''});
+      const hubspotUrl=r.hubspotId?`https://app.hubspot.com/contacts/${r.hubspotId}`:'';
+      DB.customers.push({
+        id:uid(),first:r.fn,last:r.ln,addr:r.rawAddr,zip:r.zip,
+        phone:r.phone,email:r.email,sched:'weekly',day:'1',price:'',
+        mowTime:45,size:'md',gate:'',notes:'',
+        hubspotContactId:r.hubspotId||'',
+        hubspotUrl,
+        payMethod:'cash',payLink:'',serviceType:'mow',
+        skipWeeks:[],resumeDate:null,pauseReason:''
+      });
       added++;
     }
   });
@@ -2488,17 +2508,26 @@ function loadHubSpotKeyUI(){
 // ── HUBSPOT SYNC ─────
 async function syncPaymentToHubSpot(custId,amount,method,jobDate){
   const c=DB.customers.find(x=>x.id===custId);
-  if(!c||!c.hubspotContactId)return; // no contact ID, skip silently
+  if(!c||!c.hubspotContactId)return;
   const hsKey=DB.settings.hubspotKey||'';
-  if(!hsKey)return; // no API key configured
+  if(!hsKey)return;
   try{
-    const note=`Payment received: $${parseFloat(amount).toFixed(2)} via ${method==='cash'?'Cash/Check':method} for lawn service on ${jobDate}.`;
-    await fetch('https://api.hubapi.com/crm/v3/objects/notes',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+hsKey},
+    // Update contact properties with last payment info
+    // Uses crm.objects.contacts.write scope (available on Starter)
+    await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${c.hubspotContactId}`,{
+      method:'PATCH',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+hsKey
+      },
       body:JSON.stringify({
-        properties:{hs_note_body:note,hs_timestamp:Date.now()},
-        associations:[{to:{id:c.hubspotContactId},types:[{associationCategory:'HUBSPOT_DEFINED',associationTypeId:202}]}]
+        properties:{
+          hs_lead_status:'Connected',
+          notes_last_contacted:new Date(jobDate).getTime().toString(),
+          // Store payment info in the contact's "about" notes field
+          // since custom properties require Sales Hub
+          hs_content_membership_notes:`Last payment: $${parseFloat(amount).toFixed(2)} via ${method==='cash'?'Cash/Check':method} on ${jobDate}`
+        }
       })
     });
   }catch(e){console.log('HubSpot sync error',e);}
