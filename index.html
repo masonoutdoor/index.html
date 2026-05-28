@@ -406,6 +406,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   </div>
   <div id="report-content"></div>
 
+  <!-- Services Settings -->
+  <div class="card" style="margin-top:.5rem">
+    <div class="card-title">Services & pricing</div>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">Edit your service names and prices. These appear as tap-to-select buttons in the payment screen so Stripe gets a proper description.</p>
+    <div id="services-list"></div>
+    <button class="btn bsm btng" onclick="addServiceRow()" style="margin-bottom:.875rem"><i class="ti ti-plus"></i> Add service</button>
+    <button class="btn btng" onclick="saveServicesSettings()" style="width:100%"><i class="ti ti-check"></i> Save services</button>
+    <div id="svc-save-msg" style="display:none;margin-top:.625rem;font-size:13px;color:var(--green);text-align:center"></div>
+  </div>
+
   <!-- Stripe & Payment Settings -->
   <div class="card" style="margin-top:.5rem">
     <div class="card-title">Payment settings</div>
@@ -895,7 +905,7 @@ function goTab(t){
   if(t==='dash')renderDash();
   if(t==='cal')renderCalendar();
   if(t==='customers')renderCustomers();
-  if(t==='reports'){renderReports();updateBackupStats();loadStripeSettingsUI();loadHubSpotKeyUI();}
+  if(t==='reports'){renderReports();updateBackupStats();loadStripeSettingsUI();loadHubSpotKeyUI();loadServicesUI();}
 }
 
 // ══ HELPERS ═══════════════════════════════════════════════════════
@@ -1814,42 +1824,116 @@ function getBestPayLink(price){
   return s.defaultLink||'';
 }
 
+function getServices(){
+  try{
+    const saved=JSON.parse(localStorage.getItem('ros_services')||'null');
+    if(saved&&saved.length)return saved;
+  }catch(e){}
+  // Default placeholder services
+  return [
+    {id:'mow',name:'Mow',price:60,active:true},
+    {id:'edge',name:'Edge',price:10,active:true},
+    {id:'blow',name:'Blow',price:5,active:true},
+    {id:'hedge',name:'Hedge trim',price:25,active:true},
+    {id:'weed',name:'Weed pulling',price:20,active:true},
+    {id:'cleanup',name:'Full cleanup',price:50,active:true},
+    {id:'mulch',name:'Mulch',price:40,active:true},
+    {id:'leaf',name:'Leaf removal',price:35,active:true},
+  ];
+}
+
+function saveServices(services){
+  localStorage.setItem('ros_services',JSON.stringify(services));
+}
+
+// Track selected services per job card
+const jobServiceSelections={};
+
+function getJobServices(i){
+  if(!jobServiceSelections[i])jobServiceSelections[i]=[];
+  return jobServiceSelections[i];
+}
+
+function toggleService(i,serviceId,price,basePrice){
+  const sel=getJobServices(i);
+  const idx=sel.findIndex(s=>s.id===serviceId);
+  if(idx>=0){sel.splice(idx,1);}
+  else{
+    const svc=getServices().find(s=>s.id===serviceId);
+    if(svc)sel.push({id:serviceId,name:svc.name,price:parseFloat(price)});
+  }
+  // Recalculate total
+  const total=sel.reduce((a,s)=>a+s.price,0)||parseFloat(basePrice)||0;
+  const el=document.getElementById('pay-amount-'+i);
+  if(el){el.value=total.toFixed(2);updatePayAmount(i,basePrice,sel);}
+  // Update button states
+  getServices().forEach(svc=>{
+    const btn=document.getElementById(`svc-btn-${i}-${svc.id}`);
+    if(btn){
+      const isSelected=sel.some(s=>s.id===svc.id);
+      btn.style.background=isSelected?'var(--green)':'var(--s2)';
+      btn.style.color=isSelected?'#fff':'var(--ink)';
+      btn.style.borderColor=isSelected?'var(--green)':'var(--bd)';
+    }
+  });
+  // Update description
+  const descEl=document.getElementById('pay-desc-'+i);
+  if(descEl){
+    descEl.textContent=sel.length?sel.map(s=>s.name).join(' + '):'No services selected';
+    descEl.style.color=sel.length?'var(--ink2)':'var(--ink3)';
+  }
+}
+
 function buildPaymentUI(j,i,s){
   const rec=getJobRecord(j.id);
   const c=DB.customers.find(x=>x.id===j.id);
   const price=parseFloat(c&&c.price||0);
-  const payMethod=c&&c.payMethod||'cash';
   const stripeSettings=getStripeSettings();
   const hasStripe=!!(stripeSettings.defaultLink||(stripeSettings.priceLinks&&stripeSettings.priceLinks.length));
+  const services=getServices().filter(svc=>svc.active);
 
   // Already paid
   if(rec&&rec.paid){
     return `<div class="pay-done-badge">
       <i class="ti ti-circle-check-filled" style="font-size:24px;color:var(--green);flex-shrink:0"></i>
       <div><div style="font-weight:700;font-size:14px;color:var(--green)">Payment recorded</div>
-      <div style="font-size:12px;color:var(--ink3)">${rec.paidMethod==='cash'?'Cash / Check':rec.paidMethod==='card'?'Charged via Stripe':rec.paidMethod==='invoice'?'Invoice sent':'Paid'} · $${parseFloat(rec.chargedAmount||price).toFixed(2)}</div></div>
+      <div style="font-size:12px;color:var(--ink3)">${rec.paidMethod==='cash'?'Cash / Check':rec.paidMethod==='card'?'Charged via Stripe':rec.paidMethod==='invoice'?'Invoice sent':'Paid'} · $${parseFloat(rec.chargedAmount||price).toFixed(2)}${rec.serviceDesc?' · '+rec.serviceDesc:''}</div></div>
     </div>
     <button class="btn bsm" onclick="textCustomer('${j.id}')" style="margin-bottom:.875rem;width:100%"><i class="ti ti-message"></i> Text job summary</button>`;
   }
 
   const stripeNote=hasStripe?'':`<div style="font-size:11px;color:var(--amb);margin-top:4px">⚠ Set up Stripe links in Reports → Payment settings</div>`;
 
+  // Build service buttons
+  const svcButtons=services.map(svc=>`
+    <button id="svc-btn-${i}-${svc.id}"
+      onclick="toggleService(${i},'${svc.id}',${svc.price},${price})"
+      style="height:auto;padding:.5rem .75rem;border-radius:var(--r);border:1px solid var(--bd);background:var(--s2);color:var(--ink);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px;transition:all .15s">
+      <span>${svc.name}</span>
+      <span style="font-size:11px;opacity:.7">+$${parseFloat(svc.price).toFixed(0)}</span>
+    </button>`).join('');
+
   return `<div style="margin-bottom:.875rem">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem;flex-wrap:wrap;gap:8px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3)">Collect payment</div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:12px;color:var(--ink3)">Amount:</span>
-        <div style="position:relative;display:inline-flex;align-items:center">
-          <span style="position:absolute;left:8px;font-size:14px;font-weight:700;color:var(--green)">$</span>
-          <input type="number" id="pay-amount-${i}" value="${price.toFixed(2)}" min="0" step="0.01"
-            style="width:90px;height:34px;border-radius:var(--r);border:2px solid var(--green);background:var(--s);color:var(--ink);padding:0 8px 0 20px;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;text-align:right"
-            oninput="updatePayAmount(${i})">
-        </div>
-        <button class="btn bxsm" onclick="resetPayAmount(${i},${price})" style="font-size:10px;color:var(--ink3)">Reset</button>
-      </div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">What was done?</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:.75rem">
+      ${svcButtons}
     </div>
-    <div id="pay-extra-note-${i}" style="display:none;background:var(--ambp);border-radius:8px;padding:.5rem .75rem;font-size:12px;color:var(--amb);margin-bottom:.625rem">
-      <i class="ti ti-edit" style="font-size:11px"></i> Custom amount — base price is $${price.toFixed(2)}
+
+    <div style="background:var(--s2);border-radius:var(--r);padding:.625rem .875rem;margin-bottom:.75rem;border:1px solid var(--bd)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span id="pay-desc-${i}" style="font-size:12px;color:var(--ink3);flex:1">Tap services above to build total</span>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <span style="font-size:11px;color:var(--ink3)">Total:</span>
+          <div style="position:relative;display:inline-flex;align-items:center">
+            <span style="position:absolute;left:8px;font-size:14px;font-weight:700;color:var(--green)">$</span>
+            <input type="number" id="pay-amount-${i}" value="${price.toFixed(2)}" min="0" step="0.01"
+              style="width:80px;height:32px;border-radius:var(--r);border:2px solid var(--green);background:var(--s);color:var(--ink);padding:0 6px 0 18px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;text-align:right"
+              oninput="updatePayAmount(${i},${price},getJobServices(${i}))">
+          </div>
+          <button class="btn bxsm" onclick="resetPayJobServices(${i},${price})" style="font-size:10px;color:var(--ink3)">Reset</button>
+        </div>
+      </div>
     </div>
 
     <div class="pay-box pay-cash" onclick="payByCash('${j.id}','${i}',getPayAmount(${i}))">
@@ -1894,27 +1978,39 @@ function getPayAmount(i){
   return el?parseFloat(el.value)||0:0;
 }
 
-function updatePayAmount(i){
+function updatePayAmount(i,basePrice,sel){
   const el=document.getElementById('pay-amount-'+i);
   if(!el)return;
   const amt=parseFloat(el.value)||0;
-  const noteEl=document.getElementById('pay-extra-note-'+i);
   const cardSub=document.getElementById('pay-card-sub-'+i);
   const invSub=document.getElementById('pay-inv-sub-'+i);
-  if(noteEl)noteEl.style.display=amt>0?'':'none';
   if(cardSub)cardSub.textContent=`Charge $${amt.toFixed(2)} to card on file`;
   if(invSub)invSub.textContent=`Text them a payment link for $${amt.toFixed(2)}`;
 }
 
-function resetPayAmount(i,basePrice){
+function resetPayJobServices(i,basePrice){
+  jobServiceSelections[i]=[];
   const el=document.getElementById('pay-amount-'+i);
-  if(el){el.value=parseFloat(basePrice).toFixed(2);updatePayAmount(i);}
+  if(el){el.value=parseFloat(basePrice).toFixed(2);updatePayAmount(i,basePrice,[]);}
+  // Reset all button styles
+  getServices().forEach(svc=>{
+    const btn=document.getElementById(`svc-btn-${i}-${svc.id}`);
+    if(btn){btn.style.background='var(--s2)';btn.style.color='var(--ink)';btn.style.borderColor='var(--bd)';}
+  });
+  const descEl=document.getElementById('pay-desc-'+i);
+  if(descEl){descEl.textContent='Tap services above to build total';descEl.style.color='var(--ink3)';}
+}
+
+function getServiceDescription(i){
+  const sel=getJobServices(i);
+  return sel.length?sel.map(s=>s.name).join(' + '):'Lawn service';
 }
 
 function payByCash(custId,i,price){
   const c=DB.customers.find(x=>x.id===custId);
-  if(!confirm(`Mark $${parseFloat(price).toFixed(2)} cash/check payment received from ${c?custFullName(c):'customer'}?`))return;
-  recordPayment(custId,i,'cash',price);
+  const desc=getServiceDescription(i);
+  if(!confirm(`Mark $${parseFloat(price).toFixed(2)} cash/check payment received from ${c?custFullName(c):'customer'}?\n\nServices: ${desc}`))return;
+  recordPayment(custId,i,'cash',price,desc);
 }
 
 function payByCard(custId,i,price){
@@ -1969,6 +2065,7 @@ function payByCard(custId,i,price){
 async function executeCardCharge(custId,i,price){
   const c=DB.customers.find(x=>x.id===custId);
   const btn=document.getElementById('charge-btn-'+i);
+  const desc=getServiceDescription(i);
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span> Charging...';}
   try{
     const res=await fetch('https://effervescent-pie-af6453.netlify.app/.netlify/functions/charge',{
@@ -1977,13 +2074,13 @@ async function executeCardCharge(custId,i,price){
       body:JSON.stringify({
         stripeCustomerId:c.stripeCustomerId,
         amount:parseFloat(price),
-        description:`Lawn service — ${custFullName(c)} — ${todayStr()}`,
+        description:`${desc} — ${custFullName(c)} — ${todayStr()}`,
         customerName:custFullName(c)
       })
     });
     const data=await res.json();
     if(data.success){
-      recordPayment(custId,i,'card',parseFloat(price));
+      recordPayment(custId,i,'card',parseFloat(price),desc);
       alert(`✓ $${parseFloat(price).toFixed(2)} charged successfully!`);
     } else {
       if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-credit-card"></i> Retry charge';}
@@ -2062,17 +2159,19 @@ function sendInvoiceEmail(custId,i,price){
   setTimeout(()=>{recordPayment(custId,i,'invoice');},1500);
 }
 
-function recordPayment(custId,i,method,chargedAmount){
+function recordPayment(custId,i,method,chargedAmount,serviceDesc){
   const j=trackerRoute&&trackerRoute.jobs[parseInt(i)];
   const c=DB.customers.find(x=>x.id===custId);
   const price=chargedAmount||parseFloat(c&&c.price||0);
+  const desc=serviceDesc||getServiceDescription(i);
   const existing=DB.jobHistory.findIndex(x=>x.custId===custId&&x.date===todayStr());
   if(existing>=0){
     DB.jobHistory[existing].paid=method!=='invoice';
     DB.jobHistory[existing].paidMethod=method;
     DB.jobHistory[existing].chargedAmount=price;
+    DB.jobHistory[existing].serviceDesc=desc;
   } else {
-    DB.jobHistory.push({id:uid(),custId,date:todayStr(),actualMin:0,estMin:j?j.estMin:0,paid:method!=='invoice',paidMethod:method,chargedAmount:price,beforePhotos:[],afterPhotos:[],extraPhotos:[],notes:''});
+    DB.jobHistory.push({id:uid(),custId,date:todayStr(),actualMin:0,estMin:j?j.estMin:0,paid:method!=='invoice',paidMethod:method,chargedAmount:price,serviceDesc:desc,beforePhotos:[],afterPhotos:[],extraPhotos:[],notes:''});
   }
   saveDB();
   if(method==='cash'){
@@ -2720,6 +2819,54 @@ function saveQuickJob(){
   closeModal('quickjob-modal');
   renderDash();
   alert(`Job logged for ${c?custFullName(c):'customer'} on ${fmtDate(date)}.`);
+}
+
+function loadServicesUI(){
+  const services=getServices();
+  const container=document.getElementById('services-list');
+  if(!container)return;
+  container.innerHTML='';
+  services.forEach((svc,idx)=>{
+    const row=document.createElement('div');
+    row.className='fr';
+    row.style.marginBottom='.5rem';
+    row.dataset.idx=idx;
+    row.innerHTML=`
+      <div class="f" style="flex:1"><label>Service name</label><input class="svc-name" type="text" value="${svc.name}" placeholder="Mow"></div>
+      <div class="f" style="flex:0 0 90px"><label>Price ($)</label><input class="svc-price" type="number" value="${svc.price}" min="0" step="0.01" placeholder="0"></div>
+      <button class="btn bxsm btnr" style="margin-top:auto" onclick="removeServiceRow(this)"><i class="ti ti-x"></i></button>`;
+    container.appendChild(row);
+  });
+}
+
+function addServiceRow(){
+  const container=document.getElementById('services-list');
+  const row=document.createElement('div');
+  row.className='fr';
+  row.style.marginBottom='.5rem';
+  row.innerHTML=`
+    <div class="f" style="flex:1"><label>Service name</label><input class="svc-name" type="text" placeholder="e.g. Hedge trim"></div>
+    <div class="f" style="flex:0 0 90px"><label>Price ($)</label><input class="svc-price" type="number" placeholder="0" min="0" step="0.01"></div>
+    <button class="btn bxsm btnr" style="margin-top:auto" onclick="removeServiceRow(this)"><i class="ti ti-x"></i></button>`;
+  container.appendChild(row);
+}
+
+function removeServiceRow(btn){
+  btn.closest('.fr').remove();
+}
+
+function saveServicesSettings(){
+  const rows=document.querySelectorAll('#services-list .fr');
+  const services=[];
+  rows.forEach(row=>{
+    const name=row.querySelector('.svc-name').value.trim();
+    const price=parseFloat(row.querySelector('.svc-price').value)||0;
+    if(name)services.push({id:name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,''),name,price,active:true});
+  });
+  saveServices(services);
+  const msg=document.getElementById('svc-save-msg');
+  msg.textContent='✓ Saved';msg.style.display='';
+  setTimeout(()=>msg.style.display='none',2000);
 }
 
 function loadHubSpotKeyUI(){
