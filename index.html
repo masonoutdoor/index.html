@@ -1058,31 +1058,38 @@ function renderDayJobs(){
 }
 
 function renderUnpaid(){
-  const unpaid=DB.jobHistory.filter(j=>!j.paid).slice(0,5);
+  const unpaid=DB.jobHistory.filter(j=>!j.paid).slice(0,10);
   document.getElementById('unpaid-card').style.display=unpaid.length?'':'none';
   if(!unpaid.length)return;
   document.getElementById('unpaid-list').innerHTML=unpaid.map(j=>{
     const c=DB.customers.find(x=>x.id===j.custId);
-    const price=parseFloat(c&&c.price||0);
+    const price=parseFloat(j.chargedAmount||c&&c.price||0);
     const hasStripeId=c&&c.stripeCustomerId&&c.stripeCustomerId.startsWith('cus_');
     const link=c?(c.payLink||getBestPayLink(price)):'';
-    return `<div style="padding:.75rem 0;border-bottom:1px solid var(--s3)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem">
-        <div>
+    const desc=j.serviceDesc||'';
+    return `<div id="unpaid-job-${j.id}" style="padding:.75rem 0;border-bottom:1px solid var(--s3)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.5rem;gap:8px">
+        <div style="flex:1;min-width:0">
           <div style="font-weight:600;font-size:13px">${c?custFullName(c):j.custId}</div>
-          <div style="font-size:11px;color:var(--ink3)">${fmtDate(j.date)}</div>
+          <div style="font-size:11px;color:var(--ink3)">${fmtDate(j.date)}${desc?' · '+desc:''}</div>
         </div>
-        <span style="font-weight:700;font-size:15px;color:var(--red)">$${price.toFixed(2)}</span>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <span style="font-weight:700;font-size:15px;color:var(--red)">$${price.toFixed(2)}</span>
+          <button class="btn bxsm" onclick="openEditJobModal('${j.id}')" style="font-size:10px"><i class="ti ti-edit" style="font-size:10px"></i></button>
+        </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
-        <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:11px" onclick="markPaidDash('${j.id}','cash')">
-          <i class="ti ti-cash" style="font-size:11px"></i> Cash
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+        <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:10px" onclick="markPaidDash('${j.id}','cash')">
+          <i class="ti ti-cash" style="font-size:10px"></i> Cash
         </button>
-        <button class="btn bxsm" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0;font-size:11px" onclick="${hasStripeId?`chargeDash('${j.id}','${c.stripeCustomerId}',${price})`:`openPayLinkDash('${link}')`}">
-          <i class="ti ti-credit-card" style="font-size:11px"></i> Card
+        <button class="btn bxsm" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0;font-size:10px" onclick="${hasStripeId?`chargeDash('${j.id}','${c.stripeCustomerId}',${price})`:`openPayLinkDash('${link}')`}">
+          <i class="ti ti-credit-card" style="font-size:10px"></i> Card
         </button>
-        <button class="btn bxsm" style="background:var(--ambp);color:var(--amb);border-color:#f0d9a0;font-size:11px" onclick="invoiceDash('${j.id}','${j.custId}',${price})">
-          <i class="ti ti-send" style="font-size:11px"></i> Invoice
+        <button class="btn bxsm" style="background:var(--ambp);color:var(--amb);border-color:#f0d9a0;font-size:10px" onclick="invoiceDash('${j.id}','${j.custId}',${price})">
+          <i class="ti ti-send" style="font-size:10px"></i> Invoice
+        </button>
+        <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:10px" onclick="markPaidDash('${j.id}','paid')">
+          <i class="ti ti-check" style="font-size:10px"></i> Paid
         </button>
       </div>
     </div>`;
@@ -3137,6 +3144,52 @@ async function confirmDedup(){
 }
 
 // ══ REPORTS ═══════════════════════════════════════════════════════
+// ══ EDIT JOB ══════════════════════════════════════════════════════
+function openEditJobModal(jobId){
+  const j=DB.jobHistory.find(x=>x.id===jobId);
+  if(!j)return;
+  document.getElementById('ej-id').value=jobId;
+  // Populate customer dropdown
+  const sel=document.getElementById('ej-cust');
+  sel.innerHTML=DB.customers.map(c=>`<option value="${c.id}" ${c.id===j.custId?'selected':''}>${custFullName(c)}</option>`).join('');
+  document.getElementById('ej-date').value=j.date||todayStr();
+  const c=DB.customers.find(x=>x.id===j.custId);
+  document.getElementById('ej-amount').value=parseFloat(j.chargedAmount||c&&c.price||0).toFixed(2);
+  document.getElementById('ej-desc').value=j.serviceDesc||'';
+  document.getElementById('ej-notes').value=j.notes||'';
+  const paidVal=!j.paid?'unpaid':j.paidMethod||'cash';
+  document.getElementById('ej-paid').value=paidVal;
+  document.getElementById('editjob-modal').classList.add('open');
+}
+
+function saveEditJob(){
+  const id=document.getElementById('ej-id').value;
+  const j=DB.jobHistory.find(x=>x.id===id);
+  if(!j)return;
+  const paidVal=document.getElementById('ej-paid').value;
+  j.custId=document.getElementById('ej-cust').value;
+  j.date=document.getElementById('ej-date').value;
+  j.chargedAmount=parseFloat(document.getElementById('ej-amount').value)||0;
+  j.serviceDesc=document.getElementById('ej-desc').value.trim();
+  j.notes=document.getElementById('ej-notes').value.trim();
+  j.paid=paidVal!=='unpaid';
+  j.paidMethod=paidVal==='unpaid'?null:paidVal;
+  saveDB();
+  closeModal('editjob-modal');
+  renderDash();
+  renderReports();
+}
+
+function deleteJob(){
+  const id=document.getElementById('ej-id').value;
+  if(!confirm('Delete this job record? This cannot be undone.'))return;
+  DB.jobHistory=DB.jobHistory.filter(x=>x.id!==id);
+  saveDB();
+  closeModal('editjob-modal');
+  renderDash();
+  renderReports();
+}
+
 function renderReports(){
   const period=document.getElementById('report-period').value;
   const now=new Date();
@@ -3145,17 +3198,45 @@ function renderReports(){
   if(period==='month'){const start=new Date(now.getFullYear(),now.getMonth(),1);filtered=filtered.filter(j=>new Date(j.date)>=start);}
   const totalJobs=filtered.length;
   const paidJobs=filtered.filter(j=>j.paid).length;
-  const revenue=filtered.filter(j=>j.paid).reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);return a+parseFloat(c&&c.price||0);},0);
-  const unpaidRevenue=filtered.filter(j=>!j.paid).reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);return a+parseFloat(c&&c.price||0);},0);
+  const revenue=filtered.filter(j=>j.paid).reduce((a,j)=>{return a+parseFloat(j.chargedAmount||0)||(()=>{const c=DB.customers.find(x=>x.id===j.custId);return parseFloat(c&&c.price||0);})();},0);
+  const unpaidRevenue=filtered.filter(j=>!j.paid).reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);return a+parseFloat(j.chargedAmount||c&&c.price||0);},0);
   const avgActual=filtered.filter(j=>j.actualMin>0).reduce((a,j,_,arr)=>a+j.actualMin/arr.length,0);
 
-  // Mileage log: sum from stored route payloads per day
+  // Mileage log
   const mileageLog=[];
-  try{
-    const raw=localStorage.getItem('ros_mileage_log');
-    if(raw){const parsed=JSON.parse(raw);mileageLog.push(...parsed);}
-  }catch(e){}
+  try{const raw=localStorage.getItem('ros_mileage_log');if(raw){const p=JSON.parse(raw);mileageLog.push(...p);}}catch(e){}
   const totalMiles=mileageLog.reduce((a,e)=>a+e.miles,0);
+
+  // Service category breakdown
+  const catMap={};
+  filtered.filter(j=>j.paid).forEach(j=>{
+    const c=DB.customers.find(x=>x.id===j.custId);
+    const amt=parseFloat(j.chargedAmount||c&&c.price||0);
+    const desc=j.serviceDesc||j.notes||'';
+    // Extract service categories from description or customer service type
+    const svcType=c?c.serviceType||'mow':'mow';
+    // Try to parse from serviceDesc first
+    if(desc){
+      const parts=desc.split(/\s*\+\s*/);
+      parts.forEach(p=>{
+        const key=p.trim();
+        if(key){
+          if(!catMap[key])catMap[key]={count:0,revenue:0};
+          catMap[key].count++;
+          catMap[key].revenue+=amt/parts.length;
+        }
+      });
+    } else {
+      const key={mow:'Mow',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'}[svcType]||'Lawn service';
+      if(!catMap[key])catMap[key]={count:0,revenue:0};
+      catMap[key].count++;
+      catMap[key].revenue+=amt;
+    }
+  });
+  const catEntries=Object.entries(catMap).sort((a,b)=>b[1].revenue-a[1].revenue);
+
+  // Full job list sorted by date desc
+  const sortedJobs=[...filtered].sort((a,b)=>b.date.localeCompare(a.date));
 
   document.getElementById('report-content').innerHTML=`
     <div class="dash-grid">
@@ -3164,6 +3245,42 @@ function renderReports(){
       <div class="dash-card"><div class="dash-val" style="color:var(--red)">$${unpaidRevenue.toFixed(0)}</div><div class="dash-lbl">Outstanding</div></div>
       <div class="dash-card"><div class="dash-val">${avgActual>0?Math.round(avgActual)+'m':'—'}</div><div class="dash-lbl">Avg job time</div></div>
     </div>
+
+    ${catEntries.length?`<div class="card">
+      <div class="card-title">Revenue by service</div>
+      ${catEntries.map(([name,data])=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--s3)">
+          <div>
+            <div style="font-weight:600;font-size:13px">${name}</div>
+            <div style="font-size:11px;color:var(--ink3)">${data.count} job${data.count!==1?'s':''}</div>
+          </div>
+          <div style="font-weight:700;font-size:14px;color:var(--green)">$${data.revenue.toFixed(0)}</div>
+        </div>`).join('')}
+    </div>`:''}
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem">
+        <div class="card-title" style="margin:0">All jobs (${sortedJobs.length})</div>
+      </div>
+      ${sortedJobs.length?sortedJobs.map(j=>{
+        const c=DB.customers.find(x=>x.id===j.custId);
+        const amt=parseFloat(j.chargedAmount||c&&c.price||0);
+        const desc=j.serviceDesc||({mow:'Mow',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'}[c&&c.serviceType]||'Lawn service');
+        return `<div style="display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:13px">${c?custFullName(c):'Unknown'}</div>
+            <div style="font-size:11px;color:var(--ink3)">${fmtDate(j.date)} · ${desc}</div>
+            ${j.notes?`<div style="font-size:11px;color:var(--ink3)">${j.notes}</div>`:''}
+          </div>
+          <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+            <span style="font-weight:700;font-size:13px;color:${j.paid?'var(--green)':'var(--red)'}">$${amt.toFixed(2)}</span>
+            <span class="tag ${j.paid?'tag-green':'tag-red'}" style="font-size:9px">${j.paid?(j.paidMethod==='card'?'Card':(j.paidMethod==='invoice'?'Invoice':'Cash')):'Unpaid'}</span>
+            <button class="btn bxsm" onclick="openEditJobModal('${j.id}')" style="font-size:10px;height:22px;padding:0 7px"><i class="ti ti-edit" style="font-size:10px"></i></button>
+          </div>
+        </div>`;
+      }).join(''):'<div style="color:var(--ink3);font-size:13px;text-align:center;padding:1rem">No jobs recorded yet</div>'}
+    </div>
+
     <div class="card">
       <div class="card-title">Mileage log</div>
       <div class="mile-badge"><i class="ti ti-car" style="font-size:15px"></i> ${totalMiles.toFixed(1)} total miles logged</div>
@@ -3173,12 +3290,13 @@ function renderReports(){
           <span style="font-weight:600;color:var(--blue)">${e.miles.toFixed(1)} mi · ${e.stops} stop${e.stops!==1?'s':''}</span>
         </div>`).join(''):'<div style="color:var(--ink3);font-size:13px;padding:.5rem 0">Miles are logged automatically when you send a route to the tracker.</div>'}
     </div>
+
     <div class="card">
       <div class="card-title">Customer breakdown</div>
       ${DB.customers.filter(c=>c.sched!=='inactive').map(c=>{
         const cJobs=filtered.filter(j=>j.custId===c.id);
         const cPaid=cJobs.filter(j=>j.paid).length;
-        const cRev=cPaid*parseFloat(c.price||0);
+        const cRev=cJobs.filter(j=>j.paid).reduce((a,j)=>a+parseFloat(j.chargedAmount||c.price||0),0);
         const avgTime=cJobs.filter(j=>j.actualMin>0).reduce((a,j,_,arr)=>a+j.actualMin/arr.length,0);
         return `<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)">
           <div style="width:32px;height:32px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0">${initials(c)}</div>
@@ -3364,5 +3482,41 @@ window.addEventListener('load',()=>{
   }
 });
 </script>
+
+<!-- Edit Job Modal -->
+<div class="modal-bg" id="editjob-modal" onclick="handleModalBg(event,'editjob-modal')">
+<div class="modal">
+  <div class="modal-title">Edit Job</div>
+  <input type="hidden" id="ej-id">
+  <div class="fr">
+    <div class="f"><label>Customer</label><select id="ej-cust"></select></div>
+  </div>
+  <div class="fr">
+    <div class="f" style="flex:0 0 140px"><label>Date</label><input type="date" id="ej-date"></div>
+    <div class="f" style="flex:0 0 110px"><label>Amount ($)</label><input type="number" id="ej-amount" min="0" step="0.01" placeholder="0.00"></div>
+  </div>
+  <div class="fr">
+    <div class="f"><label>Services / description</label><input type="text" id="ej-desc" placeholder="Mow + Edge"></div>
+  </div>
+  <div class="fr">
+    <div class="f" style="flex:0 0 140px"><label>Payment status</label>
+      <select id="ej-paid">
+        <option value="unpaid">Unpaid</option>
+        <option value="cash">Paid — Cash</option>
+        <option value="card">Paid — Card</option>
+        <option value="invoice">Invoice sent</option>
+      </select>
+    </div>
+  </div>
+  <div class="fr" style="margin-bottom:1rem">
+    <div class="f"><label>Notes</label><textarea id="ej-notes" rows="2" placeholder="Any notes..."></textarea></div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btng" onclick="saveEditJob()" style="flex:1"><i class="ti ti-check"></i> Save</button>
+    <button class="btn btnr" onclick="deleteJob()"><i class="ti ti-trash"></i></button>
+    <button class="btn" onclick="closeModal('editjob-modal')">Cancel</button>
+  </div>
+</div>
+</div>
 </body>
 </html>
