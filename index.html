@@ -2303,6 +2303,7 @@ function renderCustomers(){
           ${c.phone?`<button class="btn bsm" onclick="sendOnMyWay('${c.id}')"><i class="ti ti-navigation"></i> On my way</button>`:''}
           ${c.phone?`<button class="btn bsm" onclick="window.open('sms:'+('${c.phone}'.replace(/\\D/g,'')))"><i class="ti ti-message"></i> Text</button>`:''}
           ${c.hubspotUrl?`<button class="btn bsm btnb" onclick="window.open('${c.hubspotUrl}','_blank')"><i class="ti ti-brand-hubspot"></i> HubSpot</button>`:''}
+          <button class="btn bsm btnb" onclick="sendCardSetupLink('${c.id}')"><i class="ti ti-credit-card"></i> Send card setup</button>
           <button class="btn bsm btnr" onclick="deleteCust('${c.id}')"><i class="ti ti-trash"></i> Delete</button>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -2575,6 +2576,47 @@ function saveQuickJob(){
 function loadHubSpotKeyUI(){
   const el=document.getElementById('hs-key');
   if(el&&DB.settings.hubspotKey)el.value=DB.settings.hubspotKey;
+}
+
+// ══ CARD SETUP LINK ══════════════════════════════════════════════
+async function sendCardSetupLink(custId){
+  const c=DB.customers.find(x=>x.id===custId);
+  if(!c){alert('Customer not found.');return;}
+  if(!c.phone&&!c.email){alert('No phone or email on file for this customer.');return;}
+
+  try{
+    const res=await fetch('https://effervescent-pie-af6453.netlify.app/.netlify/functions/setup',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        stripeCustomerId:c.stripeCustomerId||null,
+        customerName:custFullName(c),
+        customerEmail:c.email||''
+      })
+    });
+    const data=await res.json();
+    if(!data.success){alert('Error: '+data.error);return;}
+
+    // Save Stripe customer ID if it was just created
+    if(data.stripeCustomerId&&!c.stripeCustomerId){
+      c.stripeCustomerId=data.stripeCustomerId;
+      saveDB();
+    }
+
+    const setupUrl=data.setupUrl;
+    const settings=getStripeSettings();
+    const bizName=settings.bizName||'Richardson Outdoor Solutions';
+    const msg=`Hi ${c.first}! Please save your card on file for future lawn service payments. It only takes a minute: ${setupUrl} — Thanks, ${bizName}`;
+
+    // Send via SMS or email
+    if(c.phone){
+      window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));
+    } else if(c.email){
+      window.open('mailto:'+c.email+'?subject=Save your card — '+bizName+'&body='+encodeURIComponent(msg));
+    }
+  }catch(e){
+    alert('Connection error. Check internet and try again.');
+  }
 }
 
 // ── HUBSPOT SYNC ─────
