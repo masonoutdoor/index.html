@@ -515,7 +515,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
       </select>
     </div>
     <div class="f" style="flex:0 0 120px"><label>Preferred day</label><select id="cf-day"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></div>
+    <div class="f" style="flex:0 0 130px"><label>Start date</label><input type="date" id="cf-start-date" placeholder="First service date"></div>
     <div class="f" style="flex:0 0 100px"><label>Price ($)</label><input type="number" id="cf-price" placeholder="65" min="0" step="0.01"></div>
+  </div>
+  <div id="cf-biweekly-row" class="fr" style="display:none">
+    <div class="f" style="flex:0 0 140px"><label>Biweekly week</label>
+      <select id="cf-biweekly-week">
+        <option value="A">Week A (calculated from start date)</option>
+        <option value="B">Week B (offset by 1 week)</option>
+      </select>
+    </div>
+    <div style="flex:1;font-size:11px;color:var(--ink3);padding-top:20px;line-height:1.5">Set start date first — the app calculates Week A automatically. Flip to Week B to shift their cycle by one week.</div>
   </div>
   <div id="cf-pause-row" class="fr" style="display:none">
     <div class="f" style="flex:0 0 140px"><label>Resume date</label><input type="date" id="cf-resume"></div>
@@ -740,6 +750,8 @@ async function saveDB(){
           service_type: customer.serviceType||'mow',
           resume_date: customer.resumeDate||null,
           pause_reason: customer.pauseReason||'',
+          start_date: customer.startDate||null,
+          biweekly_week: customer.biweeklyWeek||'A',
           skip_weeks: JSON.stringify(customer.skipWeeks||[])
         });
       if(error){ console.log('Supabase save error',error); }
@@ -823,6 +835,8 @@ async function loadDB(){
         serviceType:c.service_type||'mow',
         resumeDate:c.resume_date||null,
         pauseReason:c.pause_reason||'',
+        startDate:c.start_date||null,
+        biweeklyWeek:c.biweekly_week||'A',
         skipWeeks:safeParseJSON(c.skip_weeks,[])
       }));
       localStorage.setItem('ros_db',JSON.stringify(DB));
@@ -931,24 +945,44 @@ function getDayJobs(dayOffset){
 
 function isDueOnDate(c,date){
   if(c.sched==='inactive'||c.sched==='onetime')return false;
+
+  // Respect start date — no jobs before first service date
+  if(c.startDate){
+    const start=new Date(c.startDate+'T12:00:00');
+    start.setHours(0,0,0,0);
+    if(date<start)return false;
+  }
+
   // Paused: skip until resume date
   if(c.sched==='paused'){
     if(!c.resumeDate)return false;
     const resume=new Date(c.resumeDate+'T12:00:00');
     if(date<resume)return false;
-    // Auto-resume: treat as weekly once past resume date
   }
+
   const dow=parseInt(c.day||0);
   if(date.getDay()!==dow)return false;
-  // Check skip weeks — array of date strings to skip
+
+  // Check skip weeks
   const dateStr=date.toISOString().slice(0,10);
   if(c.skipWeeks&&c.skipWeeks.includes(dateStr))return false;
+
   if(c.sched==='weekly'||c.sched==='paused')return true;
+
   if(c.sched==='biweekly'){
-    const epoch=new Date(2024,0,1);
-    const diffMs=date.getTime()-epoch.getTime();
+    // Use customer's start date as anchor if set, otherwise fall back to epoch
+    let anchor;
+    if(c.startDate){
+      anchor=new Date(c.startDate+'T12:00:00');
+      anchor.setHours(0,0,0,0);
+    } else {
+      anchor=new Date(2024,0,1);
+    }
+    const diffMs=date.getTime()-anchor.getTime();
     const diffWeeks=Math.floor(diffMs/(7*86400000));
-    return diffWeeks%2===0;
+    // Week A = even weeks from anchor, Week B = odd weeks from anchor
+    const weekOffset=c.biweeklyWeek==='B'?1:0;
+    return (diffWeeks+weekOffset)%2===0;
   }
   return false;
 }
@@ -2409,12 +2443,17 @@ function openCustModal(id){
   document.getElementById('cf-service').value=c?c.serviceType||'mow':'mow';
   document.getElementById('cf-resume').value=c?c.resumeDate||'':'';
   document.getElementById('cf-pause-reason').value=c?c.pauseReason||'':'';
+  document.getElementById('cf-start-date').value=c?c.startDate||'':'';
+  document.getElementById('cf-biweekly-week').value=c?c.biweeklyWeek||'A':'A';
   document.getElementById('cf-sched').value=c?c.sched||'weekly':'weekly';
-  // Show/hide pause row
-  document.getElementById('cf-pause-row').style.display=(c&&c.sched==='paused')?'':'none';
-  document.getElementById('cf-sched').onchange=function(){
-    document.getElementById('cf-pause-row').style.display=this.value==='paused'?'':'none';
+  // Show/hide biweekly row and pause row based on schedule
+  const updateSchedRows=()=>{
+    const v=document.getElementById('cf-sched').value;
+    document.getElementById('cf-pause-row').style.display=v==='paused'?'':'none';
+    document.getElementById('cf-biweekly-row').style.display=v==='biweekly'?'':'none';
   };
+  updateSchedRows();
+  document.getElementById('cf-sched').onchange=updateSchedRows;
   document.getElementById('cf-day').value=c?c.day||'1':'1';
   document.getElementById('cf-price').value=c?c.price||'':'';
   document.getElementById('cf-mow').value=c?c.mowTime||45:45;
@@ -2448,6 +2487,8 @@ function saveCust(){
     serviceType:document.getElementById('cf-service').value,
     resumeDate:document.getElementById('cf-resume').value||null,
     pauseReason:document.getElementById('cf-pause-reason').value.trim(),
+    startDate:document.getElementById('cf-start-date').value||null,
+    biweeklyWeek:document.getElementById('cf-biweekly-week').value||'A',
     skipWeeks:existing?existing.skipWeeks||[]:[]
   };
   if(!c.first&&!c.last){alert('Enter at least a first or last name.');return;}
