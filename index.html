@@ -190,6 +190,55 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 
 /* ── Sort select ── */
 .sort-select{height:28px;border-radius:99px;border:1px solid var(--bd);background:var(--s);font-size:11px;font-weight:600;padding:0 10px;font-family:'DM Sans',sans-serif;color:var(--ink3);cursor:pointer;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:22px}
+
+/* ── History photos ── */
+.hist-job{padding:.625rem 0;border-bottom:1px solid var(--s3)}
+.hist-job:last-child{border-bottom:none}
+.hist-photo-strip{display:flex;gap:6px;overflow-x:auto;padding:.375rem 0;-webkit-overflow-scrolling:touch}
+.hist-thumb{width:64px;height:64px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--bd);cursor:pointer}
+
+/* ── Mileage ── */
+.mile-badge{display:inline-flex;align-items:center;gap:5px;background:var(--bp);color:var(--blue);border-radius:8px;padding:.5rem .875rem;font-size:13px;font-weight:600;margin-bottom:.875rem}
+
+/* ── Calendar ── */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:1rem}
+.cal-dow{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);text-align:center;padding:.375rem 0}
+.cal-cell{border-radius:8px;min-height:52px;padding:4px;cursor:pointer;border:1px solid transparent;transition:all .15s;position:relative;background:var(--s);border-color:var(--bd)}
+.cal-cell.empty{background:transparent;border-color:transparent;cursor:default}
+.cal-cell.today{border-color:var(--amb);background:var(--ambp)}
+.cal-cell.has-jobs{border-color:var(--green);background:var(--gp)}
+.cal-cell.selected{background:var(--green);border-color:var(--green)}
+.cal-cell.selected .cal-num,.cal-cell.selected .cal-dots{color:#fff!important}
+.cal-cell.past{opacity:.5}
+.cal-num{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--ink);line-height:1;display:block}
+.cal-dots{display:flex;flex-wrap:wrap;gap:2px;margin-top:3px}
+.cal-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
+.cal-dot.paid{background:var(--gl)}
+.cal-dot.unpaid{background:var(--red)}
+.cal-day-panel{background:var(--s);border:1px solid var(--bd);border-radius:var(--rl);padding:1rem 1.125rem;margin-bottom:.875rem;min-height:80px}
+.cal-day-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);letter-spacing:.04em;margin-bottom:.625rem}
+.cal-job-row{display:flex;align-items:center;gap:10px;padding:.5rem 0;border-bottom:1px solid var(--s3)}
+.cal-job-row:last-child{border-bottom:none}
+.cal-month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.cal-month-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.04em;color:var(--ink)}
+.cal-rev-badge{display:inline-flex;align-items:center;gap:4px;background:var(--gp);color:var(--green);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700}
+
+/* ── Payment UI ── */
+.pay-box{border-radius:var(--rl);border:2px solid var(--bd);padding:1rem;margin-bottom:.625rem;cursor:pointer;transition:all .15s;background:var(--s)}
+.pay-box:active{transform:scale(.98)}
+.pay-box.pay-cash{border-color:#b8d5b4}
+.pay-box.pay-card{border-color:#b3c8f0}
+.pay-box.pay-invoice{border-color:#f0d9a0}
+.pay-box-icon{font-size:28px;margin-bottom:.375rem}
+.pay-box-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.04em}
+.pay-box-sub{font-size:11px;color:var(--ink3);margin-top:2px;line-height:1.4}
+.pay-amount{font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--green);line-height:1;text-align:center;padding:.75rem 0}
+.pay-confirm-card{background:var(--bp);border-radius:var(--rl);padding:1rem;margin-bottom:.875rem}
+.pay-steps{counter-reset:step;margin-bottom:.875rem}
+.pay-step{display:flex;align-items:flex-start;gap:10px;padding:.5rem 0;border-bottom:1px solid var(--s3);font-size:13px}
+.pay-step:last-child{border-bottom:none}
+.pay-step-num{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;flex-shrink:0;margin-top:1px}
+.pay-done-badge{background:var(--gp);border:1px solid var(--gl);border-radius:var(--rl);padding:.875rem;display:flex;align-items:center;gap:10px;margin-bottom:.875rem}
 </style>
 </head>
 <body>
@@ -230,6 +279,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
         <button class="btn" onclick="goTab('track')"><i class="ti ti-device-mobile"></i> Field Tracker</button>
         <button class="btn" onclick="goTab('customers')"><i class="ti ti-users"></i> Customers</button>
         <button class="btn" onclick="openReportModal()"><i class="ti ti-chart-bar"></i> Reports</button>
+        <button class="btn btna" onclick="openQuickJobModal()" style="grid-column:span 2"><i class="ti ti-plus"></i> Log One-Off Job</button>
       </div>
     </div>
   </div>
@@ -344,6 +394,34 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   </div>
   <div id="report-content"></div>
 
+  <!-- Stripe & Payment Settings -->
+  <div class="card" style="margin-top:.5rem">
+    <div class="card-title">Payment settings</div>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">Configure Stripe payment links. Create these once in your <a href="https://dashboard.stripe.com/payment-links" target="_blank" style="color:var(--blue)">Stripe dashboard</a> and paste the links here.</p>
+    <div class="fr">
+      <div class="f"><label>Default payment link (any amount)</label><input type="url" id="st-default-link" placeholder="https://buy.stripe.com/..."></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem;margin-top:.25rem">Price-specific links (optional — faster for common amounts)</div>
+    <div id="stripe-price-links"></div>
+    <button class="btn bsm" onclick="addStripePriceLink()" style="margin-bottom:.875rem"><i class="ti ti-plus"></i> Add price link</button>
+    <div class="fr">
+      <div class="f"><label>Business name (for texts)</label><input type="text" id="st-biz-name" placeholder="Richardson Outdoor Solutions"></div>
+    </div>
+    <button class="btn btng" onclick="saveStripeSettings()" style="width:100%"><i class="ti ti-check"></i> Save payment settings</button>
+    <div id="stripe-save-msg" style="display:none;margin-top:.625rem;font-size:13px;color:var(--green);text-align:center"></div>
+  </div>
+
+  <!-- HubSpot Settings -->
+  <div class="card" style="margin-top:.5rem">
+    <div class="card-title">HubSpot integration</div>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">When a cash/check payment is recorded, the app will automatically log a note on the customer's HubSpot contact. Requires a Private App token with <code>crm.objects.notes.write</code> scope.</p>
+    <div class="fr">
+      <div class="f"><label>HubSpot Private App token</label><input type="password" id="hs-key" placeholder="pat-na1-..." autocomplete="off"></div>
+    </div>
+    <button class="btn btng" onclick="saveHubSpotKey()" style="width:100%"><i class="ti ti-check"></i> Save HubSpot token</button>
+    <div id="hs-save-msg" style="display:none;margin-top:.625rem;font-size:13px;color:var(--green);text-align:center"></div>
+  </div>
+
   <!-- Deduplicate -->
   <div class="card" style="margin-top:.5rem">
     <div class="card-title">Deduplicate customers</div>
@@ -369,11 +447,38 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   </div>
 </div>
 
+<!-- ══ CALENDAR ════════════════════════════════════════════════════ -->
+<div class="page" id="pg-cal">
+  <div class="page-hdr">
+    <div><div class="page-title">Calendar</div><div class="page-sub" id="cal-sub">Monthly schedule</div></div>
+    <button class="btn bsm btng" onclick="goTab('plan');buildTodayRoute()"><i class="ti ti-route"></i> Plan today</button>
+  </div>
+  <div class="cal-month-nav">
+    <button class="btn bsm" onclick="calPrevMonth()"><i class="ti ti-chevron-left"></i></button>
+    <div class="cal-month-title" id="cal-month-title"></div>
+    <button class="btn bsm" onclick="calNextMonth()"><i class="ti ti-chevron-right"></i></button>
+  </div>
+  <!-- Day of week headers -->
+  <div class="cal-grid" id="cal-dow-row"></div>
+  <!-- Calendar cells -->
+  <div class="cal-grid" id="cal-cells"></div>
+  <!-- Selected day panel -->
+  <div class="cal-day-panel" id="cal-day-panel">
+    <div style="color:var(--ink3);font-size:13px;text-align:center;padding:1rem 0">Tap a day to see jobs</div>
+  </div>
+  <!-- Month summary -->
+  <div class="card" id="cal-month-summary" style="display:none">
+    <div class="card-title">Month summary</div>
+    <div id="cal-summary-content"></div>
+  </div>
+</div>
+
 <!-- ══ NAV ═════════════════════════════════════════════════════════ -->
 <nav class="nav" style="left:50%;transform:translateX(-50%);max-width:600px">
   <button class="nav-btn active" onclick="goTab('dash')" id="nav-dash"><i class="ti ti-home"></i><span>Home</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="goTab('plan')" id="nav-plan"><i class="ti ti-route"></i><span>Route</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="goTab('track')" id="nav-track"><i class="ti ti-device-mobile"></i><span>Field</span><div class="nav-indicator"></div></button>
+  <button class="nav-btn" onclick="goTab('cal')" id="nav-cal"><i class="ti ti-calendar"></i><span>Calendar</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="goTab('customers')" id="nav-customers"><i class="ti ti-users"></i><span>Clients</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="goTab('reports')" id="nav-reports"><i class="ti ti-chart-bar"></i><span>Reports</span><div class="nav-indicator"></div></button>
 </nav>
@@ -388,15 +493,49 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <div class="fr"><div class="f"><label>Street address</label><input type="text" id="cf-addr" placeholder="3342 Westgreen Way"></div><div class="f" style="flex:0 0 90px"><label>Zip</label><input type="text" id="cf-zip" placeholder="74066" maxlength="10"></div></div>
   <div class="fr"><div class="f"><label>Phone</label><input type="tel" id="cf-phone" placeholder="+1 (918) 000-0000"></div><div class="f"><label>Email</label><input type="email" id="cf-email" placeholder="email@example.com"></div></div>
   <div class="fr">
-    <div class="f" style="flex:0 0 130px"><label>Schedule</label><select id="cf-sched"><option value="weekly">Weekly</option><option value="biweekly">Biweekly</option><option value="onetime">One-time</option><option value="inactive">Inactive</option></select></div>
+    <div class="f" style="flex:0 0 130px"><label>Schedule</label>
+      <select id="cf-sched">
+        <option value="weekly">Weekly</option>
+        <option value="biweekly">Biweekly</option>
+        <option value="onetime">One-time</option>
+        <option value="paused">Paused</option>
+        <option value="inactive">Inactive</option>
+      </select>
+    </div>
     <div class="f" style="flex:0 0 120px"><label>Preferred day</label><select id="cf-day"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></div>
     <div class="f" style="flex:0 0 100px"><label>Price ($)</label><input type="number" id="cf-price" placeholder="65" min="0" step="0.01"></div>
+  </div>
+  <div id="cf-pause-row" class="fr" style="display:none">
+    <div class="f" style="flex:0 0 140px"><label>Resume date</label><input type="date" id="cf-resume"></div>
+    <div class="f"><label>Pause reason</label><input type="text" id="cf-pause-reason" placeholder="Vacation, construction..."></div>
   </div>
   <div class="fr">
     <div class="f" style="flex:0 0 100px"><label>Est. mow (min)</label><input type="number" id="cf-mow" value="45" min="5" max="300"></div>
     <div class="f" style="flex:0 0 90px"><label>Yard size</label><select id="cf-size"><option value="sm">Small</option><option value="md" selected>Medium</option><option value="lg">Large</option></select></div>
+    <div class="f" style="flex:0 0 130px"><label>Service type</label>
+      <select id="cf-service">
+        <option value="mow">Mow only</option>
+        <option value="mow_edge">Mow + Edge</option>
+        <option value="full">Mow + Edge + Blow</option>
+        <option value="cleanup">Full cleanup</option>
+      </select>
+    </div>
   </div>
   <div class="fr"><div class="f"><label>Gate code / access notes</label><input type="text" id="cf-gate" placeholder="Gate code #1234, dog in backyard..."></div></div>
+  <div class="fr">
+    <div class="f"><label>HubSpot contact URL</label><input type="url" id="cf-hubspot" placeholder="https://app.hubspot.com/contacts/..."></div>
+    <div class="f" style="flex:0 0 130px"><label>HubSpot contact ID</label><input type="text" id="cf-hubspot-id" placeholder="12345678"></div>
+  </div>
+  <div class="fr">
+    <div class="f" style="flex:0 0 150px"><label>Payment method</label>
+      <select id="cf-paymethod">
+        <option value="cash">Cash / Check</option>
+        <option value="card">Charge card (Stripe)</option>
+        <option value="invoice">Send invoice link</option>
+      </select>
+    </div>
+    <div class="f"><label>Custom payment link (overrides default)</label><input type="url" id="cf-paylink" placeholder="https://buy.stripe.com/..."></div>
+  </div>
   <div class="fr" style="margin-bottom:1rem">
     <div class="f"><label>Additional notes</label><textarea id="cf-notes" rows="2" placeholder="Anything else to know..."></textarea></div>
   </div>
@@ -465,6 +604,43 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 </div>
 </div>
 
+<!-- Quick-add job modal -->
+<div class="modal-bg" id="quickjob-modal" onclick="handleModalBg(event,'quickjob-modal')">
+<div class="modal">
+  <div class="modal-title">Log One-Off Job</div>
+  <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">Record a job that wasn't on your route — a last-minute call, extra service, or anything outside your normal schedule.</p>
+  <div class="fr">
+    <div class="f"><label>Customer</label>
+      <select id="qj-cust">
+        <option value="">— select customer —</option>
+      </select>
+    </div>
+  </div>
+  <div class="fr">
+    <div class="f" style="flex:0 0 140px"><label>Date</label><input type="date" id="qj-date"></div>
+    <div class="f" style="flex:0 0 110px"><label>Time (min)</label><input type="number" id="qj-mins" value="45" min="1" max="600"></div>
+    <div class="f" style="flex:0 0 100px"><label>Price ($)</label><input type="number" id="qj-price" placeholder="65" min="0" step="0.01"></div>
+  </div>
+  <div class="fr">
+    <div class="f" style="flex:0 0 130px"><label>Payment</label>
+      <select id="qj-paid">
+        <option value="unpaid">Unpaid</option>
+        <option value="cash">Paid — Cash</option>
+        <option value="check">Paid — Check</option>
+        <option value="other">Paid — Other</option>
+      </select>
+    </div>
+  </div>
+  <div class="fr" style="margin-bottom:1rem">
+    <div class="f"><label>Notes</label><textarea id="qj-notes" rows="2" placeholder="What was done, any extras..."></textarea></div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btng" onclick="saveQuickJob()" style="flex:1"><i class="ti ti-check"></i> Save job</button>
+    <button class="btn" onclick="closeModal('quickjob-modal')">Cancel</button>
+  </div>
+</div>
+</div>
+
 <!-- Photo viewer -->
 <div class="pviewer" id="pviewer">
   <div class="pv-close" onclick="closePV()"><i class="ti ti-x"></i></div>
@@ -498,6 +674,10 @@ function makeUuid(){
     const r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);
     return v.toString(16);
   });
+}
+
+function safeParseJSON(str,fallback){
+  try{return JSON.parse(str||'null')||fallback;}catch(e){return fallback;}
 }
 
 // ══ DATA STORE ═══════════════════════════════════════════════════
@@ -535,12 +715,51 @@ async function saveDB(){
           mowtime: customer.mowTime===''||customer.mowTime==null?45:parseInt(customer.mowTime),
           size: customer.size||'md',
           gate: customer.gate||'',
-          notes: customer.notes||''
+          notes: customer.notes||'',
+          hubspot_url: customer.hubspotUrl||'',
+          hubspot_contact_id: customer.hubspotContactId||'',
+          pay_method: customer.payMethod||'cash',
+          pay_link: customer.payLink||'',
+          service_type: customer.serviceType||'mow',
+          resume_date: customer.resumeDate||null,
+          pause_reason: customer.pauseReason||'',
+          skip_weeks: JSON.stringify(customer.skipWeeks||[])
         });
       if(error){ console.log('Supabase save error',error); }
     }
   }catch(err){
     console.log('Supabase sync error',err);
+  }
+
+  // Sync job history to Supabase — store URLs only (not base64 blobs)
+  try{
+    for(const job of DB.jobHistory){
+      if(!isUuid(job.id)){job.id=makeUuid();}
+      const {error}=await supabaseClient
+        .from('job_history')
+        .upsert({
+          id: job.id,
+          cust_id: job.custId,
+          date: job.date,
+          actual_min: job.actualMin||0,
+          est_min: job.estMin||0,
+          paid: job.paid||false,
+          paid_method: job.paidMethod||null,
+          notes: job.notes||'',
+          is_one_off: job.isOneOff||false,
+          // Store URLs in the URL columns (empty array if not yet uploaded)
+          before_photo_urls: JSON.stringify(job.beforePhotoUrls||[]),
+          after_photo_urls: JSON.stringify(job.afterPhotoUrls||[]),
+          extra_photo_urls: JSON.stringify(job.extraPhotoUrls||[]),
+          // Keep base64 columns for backwards compatibility with old records
+          before_photos: JSON.stringify((job.beforePhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p)),
+          after_photos: JSON.stringify((job.afterPhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p)),
+          extra_photos: JSON.stringify((job.extraPhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p))
+        });
+      if(error&&error.code!=='42P01'){console.log('Job history sync error',error);}
+    }
+  }catch(err){
+    console.log('Job history sync error',err);
   }
 }
 
@@ -576,25 +795,70 @@ async function loadDB(){
         mowTime:c.mowtime??45,
         size:c.size||'md',
         gate:c.gate||'',
-        notes:c.notes||''
+        notes:c.notes||'',
+        hubspotUrl:c.hubspot_url||'',
+        hubspotContactId:c.hubspot_contact_id||'',
+        payMethod:c.pay_method||'cash',
+        payLink:c.pay_link||'',
+        serviceType:c.service_type||'mow',
+        resumeDate:c.resume_date||null,
+        pauseReason:c.pause_reason||'',
+        skipWeeks:safeParseJSON(c.skip_weeks,[])
       }));
       localStorage.setItem('ros_db',JSON.stringify(DB));
     }
   }catch(err){
     console.log('Supabase load error',err);
   }
+
+  // Load job history from Supabase if table exists
+  try{
+    const {data:jdata,error:jerror}=await supabaseClient
+      .from('job_history')
+      .select('*')
+      .order('date',{ascending:false});
+    if(!jerror&&jdata&&jdata.length){
+      const cloudJobs=jdata.map(j=>({
+        id:j.id,
+        custId:j.cust_id,
+        date:j.date,
+        actualMin:j.actual_min||0,
+        estMin:j.est_min||0,
+        paid:j.paid||false,
+        paidMethod:j.paid_method||null,
+        notes:j.notes||'',
+        isOneOff:j.is_one_off||false,
+        // Prefer URL arrays; fall back to base64 for old records
+        beforePhotoUrls:safeParseJSON(j.before_photo_urls,[]),
+        afterPhotoUrls:safeParseJSON(j.after_photo_urls,[]),
+        extraPhotoUrls:safeParseJSON(j.extra_photo_urls,[]),
+        // Keep base64 locally for backwards compat but don't re-push to DB
+        beforePhotos:safeParseJSON(j.before_photos,[]).filter(p=>p!=='[uploaded]'),
+        afterPhotos:safeParseJSON(j.after_photos,[]).filter(p=>p!=='[uploaded]'),
+        extraPhotos:safeParseJSON(j.extra_photos,[]).filter(p=>p!=='[uploaded]')
+      }));
+      // Merge: cloud wins for any job that exists in both, keep local-only entries
+      const cloudIds=new Set(cloudJobs.map(j=>j.id));
+      const localOnly=DB.jobHistory.filter(j=>!cloudIds.has(j.id));
+      DB.jobHistory=[...cloudJobs,...localOnly];
+      localStorage.setItem('ros_db',JSON.stringify(DB));
+    }
+  }catch(err){
+    console.log('Job history load error',err);
+  }
 }
 
 // ══ NAVIGATION ════════════════════════════════════════════════════
-const TABS=['dash','plan','track','customers','reports'];
+const TABS=['dash','plan','track','cal','customers','reports'];
 function goTab(t){
   TABS.forEach(id=>{
     document.getElementById('pg-'+id).classList.toggle('active',id===t);
     document.getElementById('nav-'+id).classList.toggle('active',id===t);
   });
   if(t==='dash')renderDash();
+  if(t==='cal')renderCalendar();
   if(t==='customers')renderCustomers();
-  if(t==='reports'){renderReports();updateBackupStats();}
+  if(t==='reports'){renderReports();updateBackupStats();loadStripeSettingsUI();loadHubSpotKeyUI();}
 }
 
 // ══ HELPERS ═══════════════════════════════════════════════════════
@@ -644,12 +908,20 @@ function getDayJobs(dayOffset){
 
 function isDueOnDate(c,date){
   if(c.sched==='inactive'||c.sched==='onetime')return false;
+  // Paused: skip until resume date
+  if(c.sched==='paused'){
+    if(!c.resumeDate)return false;
+    const resume=new Date(c.resumeDate+'T12:00:00');
+    if(date<resume)return false;
+    // Auto-resume: treat as weekly once past resume date
+  }
   const dow=parseInt(c.day||0);
   if(date.getDay()!==dow)return false;
-  if(c.sched==='weekly')return true;
+  // Check skip weeks — array of date strings to skip
+  const dateStr=date.toISOString().slice(0,10);
+  if(c.skipWeeks&&c.skipWeeks.includes(dateStr))return false;
+  if(c.sched==='weekly'||c.sched==='paused')return true;
   if(c.sched==='biweekly'){
-    // FIX: Use a stable rolling anchor based on ISO week number
-    // Week 1 of 2024 (Jan 1 2024) as epoch — gives consistent even/odd week grouping
     const epoch=new Date(2024,0,1);
     const diffMs=date.getTime()-epoch.getTime();
     const diffWeeks=Math.floor(diffMs/(7*86400000));
@@ -745,6 +1017,191 @@ function getMonthRevenue(){
   return DB.jobHistory.filter(j=>j.paid&&new Date(j.date).getMonth()===m&&new Date(j.date).getFullYear()===y).reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);return a+parseFloat(c&&c.price||0);},0);
 }
 
+// ══ CALENDAR ═════════════════════════════════════════════════════
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth(), calSelectedDate=null;
+
+function calPrevMonth(){
+  calMonth--;
+  if(calMonth<0){calMonth=11;calYear--;}
+  calSelectedDate=null;
+  renderCalendar();
+}
+function calNextMonth(){
+  calMonth++;
+  if(calMonth>11){calMonth=0;calYear++;}
+  calSelectedDate=null;
+  renderCalendar();
+}
+
+function renderCalendar(){
+  const now=new Date();
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const firstDay=new Date(calYear,calMonth,1);
+  const lastDay=new Date(calYear,calMonth+1,0);
+  const monthName=firstDay.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+
+  document.getElementById('cal-month-title').textContent=monthName;
+  document.getElementById('cal-sub').textContent=monthName;
+
+  // Day of week headers
+  document.getElementById('cal-dow-row').innerHTML=
+    ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>
+      `<div class="cal-dow">${d}</div>`).join('');
+
+  // Build cells — pad start with empty cells
+  let cells='';
+  const startPad=firstDay.getDay(); // 0=Sun
+  for(let p=0;p<startPad;p++) cells+=`<div class="cal-cell empty"></div>`;
+
+  for(let d=1;d<=lastDay.getDate();d++){
+    const date=new Date(calYear,calMonth,d);
+    const dateStr=date.toISOString().slice(0,10);
+    const isToday=date.getTime()===today.getTime();
+    const isPast=date<today;
+    const isSel=calSelectedDate===dateStr;
+
+    // Get jobs for this day
+    const dayOffset=Math.round((date-today)/86400000);
+    const jobs=getDayJobsForDate(date);
+    const histJobs=DB.jobHistory.filter(j=>j.date===dateStr);
+    const paidCount=histJobs.filter(j=>j.paid).length;
+    const unpaidCount=histJobs.filter(j=>!j.paid).length;
+
+    // Dots: green for scheduled, filled for completed
+    let dots='';
+    if(jobs.length){
+      jobs.forEach(j=>{
+        const done=histJobs.find(h=>h.custId===j.id);
+        const dotCls=done?(done.paid?'paid':'unpaid'):'';
+        dots+=`<div class="cal-dot ${dotCls}"></div>`;
+      });
+    }
+
+    const cls=[
+      'cal-cell',
+      isToday?'today':'',
+      jobs.length?'has-jobs':'',
+      isSel?'selected':'',
+      isPast&&!isToday?'past':''
+    ].filter(Boolean).join(' ');
+
+    cells+=`<div class="${cls}" onclick="selectCalDay('${dateStr}')">
+      <span class="cal-num">${d}</span>
+      ${dots?`<div class="cal-dots">${dots}</div>`:''}
+    </div>`;
+  }
+
+  // Pad end to complete last row
+  const totalCells=startPad+lastDay.getDate();
+  const endPad=(7-totalCells%7)%7;
+  for(let p=0;p<endPad;p++) cells+=`<div class="cal-cell empty"></div>`;
+
+  document.getElementById('cal-cells').innerHTML=cells;
+
+  // Month summary
+  renderCalMonthSummary();
+
+  // If a date was selected, re-render its panel
+  if(calSelectedDate) renderCalDayPanel(calSelectedDate);
+  else{
+    document.getElementById('cal-day-panel').innerHTML=
+      `<div style="color:var(--ink3);font-size:13px;text-align:center;padding:1rem 0">Tap a day to see jobs</div>`;
+  }
+}
+
+function getDayJobsForDate(date){
+  return DB.customers.filter(c=>isDueOnDate(c,date));
+}
+
+function selectCalDay(dateStr){
+  calSelectedDate=calSelectedDate===dateStr?null:dateStr;
+  renderCalendar();
+}
+
+function renderCalDayPanel(dateStr){
+  const date=new Date(dateStr+'T12:00:00');
+  const dayLabel=date.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const jobs=getDayJobsForDate(date);
+  const histJobs=DB.jobHistory.filter(j=>j.date===dateStr);
+  const panel=document.getElementById('cal-day-panel');
+
+  if(!jobs.length){
+    panel.innerHTML=`<div class="cal-day-title">${dayLabel}</div>
+      <div style="color:var(--ink3);font-size:13px;padding:.25rem 0">No jobs scheduled</div>`;
+    return;
+  }
+
+  const totalMow=jobs.reduce((a,c)=>a+parseInt(c.mowTime||45),0);
+  const totalRev=jobs.reduce((a,c)=>a+parseFloat(c.price||0),0);
+
+  let h=`<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:6px">
+    <div class="cal-day-title" style="margin:0">${dayLabel}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <span class="cal-rev-badge"><i class="ti ti-clock" style="font-size:10px"></i> ${fmtMins(totalMow)}</span>
+      <span class="cal-rev-badge"><i class="ti ti-currency-dollar" style="font-size:10px"></i> $${totalRev.toFixed(0)}</span>
+    </div>
+  </div>`;
+
+  jobs.forEach((c,i)=>{
+    const hist=histJobs.find(h=>h.custId===c.id);
+    const statusDot=hist
+      ?(hist.paid
+        ?`<span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0"></span>`
+        :`<span style="width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block;flex-shrink:0"></span>`)
+      :`<span style="width:8px;height:8px;border-radius:50%;background:var(--bd);border:1px solid var(--bd);display:inline-block;flex-shrink:0"></span>`;
+
+    const payBadge=hist
+      ?(hist.paid
+        ?`<span class="tag tag-green" style="font-size:9px">Paid</span>`
+        :`<span class="tag tag-red" style="font-size:9px">Unpaid</span>`)
+      :'';
+
+    h+=`<div class="cal-job-row">
+      ${statusDot}
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${custFullName(c)}</div>
+        <div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${custAddr(c)}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+        <span style="font-size:12px;font-weight:600;color:var(--green)">$${parseFloat(c.price||0).toFixed(0)}</span>
+        <span style="font-size:10px;color:var(--ink3)">${fmtMins(c.mowTime)}</span>
+        ${payBadge}
+      </div>
+    </div>`;
+  });
+
+  panel.innerHTML=h;
+}
+
+function renderCalMonthSummary(){
+  const summary=document.getElementById('cal-month-summary');
+  const content=document.getElementById('cal-summary-content');
+  // Count all jobs in this month
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  let totalJobs=0, totalRev=0, totalMow=0, workDays=new Set();
+  for(let d=1;d<=daysInMonth;d++){
+    const date=new Date(calYear,calMonth,d);
+    const jobs=getDayJobsForDate(date);
+    if(jobs.length){
+      totalJobs+=jobs.length;
+      totalRev+=jobs.reduce((a,c)=>a+parseFloat(c.price||0),0);
+      totalMow+=jobs.reduce((a,c)=>a+parseInt(c.mowTime||45),0);
+      workDays.add(d);
+    }
+  }
+  if(!totalJobs){summary.style.display='none';return;}
+  summary.style.display='';
+  content.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      <div class="sum-box"><div class="sum-v">${totalJobs}</div><div class="sum-l">Jobs</div></div>
+      <div class="sum-box"><div class="sum-v">${workDays.size}</div><div class="sum-l">Work days</div></div>
+      <div class="sum-box"><div class="sum-v" style="color:var(--green)">$${totalRev.toFixed(0)}</div><div class="sum-l">Revenue</div></div>
+    </div>
+    <div style="margin-top:.75rem;font-size:12px;color:var(--ink3);display:flex;gap:12px;flex-wrap:wrap">
+      <span>🟢 Scheduled &nbsp;🟩 Paid &nbsp;🔴 Unpaid</span>
+    </div>`;
+}
+
 // ══ WEATHER ══════════════════════════════════════════════════════
 // Sapulpa, OK coordinates — free Open-Meteo API, no key needed
 const WEATHER_LAT=36.0034, WEATHER_LON=-96.1128;
@@ -798,7 +1255,7 @@ function buildTodayRoute(){
   goTab('plan');
   const custs=getDayJobs(0);
   if(!custs.length){alert('No customers scheduled for today. Check customer schedules.');return;}
-  planJobs=custs.map(c=>({id:c.id,name:custFullName(c),addr:custAddr(c),time:parseInt(c.mowTime||45),size:c.size||'md',notes:c.gate||'',priority:false}));
+  planJobs=custs.map(c=>({id:c.id,name:custFullName(c),addr:custAddr(c),time:parseInt(c.mowTime||45),size:c.size||'md',notes:c.gate||'',priority:false,serviceType:c.serviceType||'mow'}));
   planDT={};
   if(mapsLoaded)fetchPlanDT();else renderPlan();
 }
@@ -862,11 +1319,19 @@ function renderPlan(){
   document.getElementById('plan-metrics-wrap').style.display=planJobs.length?'':'none';
   if(planJobs.length){
     const cls=pct>100?'color:var(--red)':pct>85?'color:var(--amb)':'color:var(--green)';
+    // Compute total distance from DT matrix (minutes -> rough miles at 25mph avg)
+    let totalDriveMi=0;
+    if(Object.keys(planDT).length){
+      // Sum drive segments: prev->ci for each scheduled job
+      let p2=0;
+      planJobs.forEach((_,i2)=>{const ci2=i2+off;const dm2=planDT[p2+'-'+ci2];if(dm2)totalDriveMi+=dm2/60*25;p2=ci2;});
+    }
+    const miStr=totalDriveMi>0?totalDriveMi.toFixed(1)+' mi':'—';
     document.getElementById('plan-metrics').innerHTML=
       `<div class="dash-card" style="padding:.75rem"><div class="dash-val" style="font-size:26px;color:var(--green)">${Math.round(tm)}m</div><div class="dash-lbl">Mow</div></div>`+
       `<div class="dash-card" style="padding:.75rem"><div class="dash-val" style="font-size:26px">${Math.round(td)}m</div><div class="dash-lbl">Drive</div></div>`+
       `<div class="dash-card" style="padding:.75rem"><div class="dash-val" style="font-size:26px;${cls}">${Math.round(tt)}m</div><div class="dash-lbl">Total</div></div>`+
-      `<div class="dash-card" style="padding:.75rem"><div class="dash-val" style="font-size:26px;${cls}">${pct}%</div><div class="dash-lbl">Capacity</div></div>`;
+      `<div class="dash-card" style="padding:.75rem"><div class="dash-val" style="font-size:26px;color:var(--blue)">${miStr}</div><div class="dash-lbl">Miles</div></div>`;
   }
   const tagCls={sm:'tag-green',md:'tag-blue',lg:'tag-amb'},tagLbl={sm:'Sm',md:'Med',lg:'Lg'};
   let h='';
@@ -933,13 +1398,31 @@ function sendToTracker(){
   const parts=st.split(':');let cur=parseInt(parts[0])*60+parseInt(parts[1]);
   const off=home?1:0;let prev=0;
   const sch=[];
+  let totalMiles=0;
   planJobs.forEach((j,i)=>{
     const ci=i+off,dm=planDT[prev+'-'+ci]??null,mm=Math.round(j.time);
-    sch.push({id:j.id,name:j.name,addr:j.addr,size:j.size,notes:j.notes,estMin:mm,arr:cur+(dm||0),done:cur+(dm||0)+mm,dm});
+    const segMiles=dm?parseFloat((dm/60*25).toFixed(1)):0;
+    totalMiles+=segMiles;
+    sch.push({id:j.id,name:j.name,addr:j.addr,size:j.size,notes:j.notes,estMin:mm,arr:cur+(dm||0),done:cur+(dm||0)+mm,dm,miles:segMiles,serviceType:j.serviceType||'mow'});
     cur+=(dm||0)+mm;prev=ci;
   });
-  const payload={date:new Date().toISOString(),jobs:sch};
+  const payload={date:new Date().toISOString(),jobs:sch,totalMiles:parseFloat(totalMiles.toFixed(1))};
   localStorage.setItem('ros_track_route',JSON.stringify(payload));
+  // Log mileage for reports
+  if(payload.totalMiles>0){
+    try{
+      const raw=localStorage.getItem('ros_mileage_log');
+      const log=raw?JSON.parse(raw):[];
+      const today=todayStr();
+      const existing=log.findIndex(e=>e.date===today);
+      const entry={date:today,miles:payload.totalMiles,stops:payload.jobs.length};
+      if(existing>=0)log[existing]=entry;else log.push(entry);
+      // Keep last 90 days
+      log.sort((a,b)=>a.date.localeCompare(b.date));
+      if(log.length>90)log.splice(0,log.length-90);
+      localStorage.setItem('ros_mileage_log',JSON.stringify(log));
+    }catch(e){}
+  }
   trackerRoute=payload;
   // FIX: clear tracker states when a new route is loaded from planner
   trackerStates={};
@@ -962,14 +1445,15 @@ function saveTrackerStates(){
       const s=trackerStates[i];
       toSave[i]={
         status: s.status,
-        // If currently running, capture current elapsed up to now
         elapsed: s.elapsed+(s.startMs?Math.floor((Date.now()-s.startMs)/1000):0),
-        // Mark whether it was actively running at save time (so we can resume ticking on reload)
         wasActive: s.status==='active',
         startMs: s.status==='active'?Date.now():null,
         beforePhotos: s.beforePhotos,
         afterPhotos: s.afterPhotos,
         extraPhotos: s.extraPhotos,
+        beforePhotoUrls: s.beforePhotoUrls||[],
+        afterPhotoUrls: s.afterPhotoUrls||[],
+        extraPhotoUrls: s.extraPhotoUrls||[],
         notes: s.notes,
         actualMin: s.actualMin,
         expanded: s.expanded
@@ -992,12 +1476,14 @@ function loadTrackerStates(){
       trackerStates[i]={
         status: s.status,
         elapsed: s.elapsed||0,
-        // If it was active when saved, resume the timer from now
         startMs: s.wasActive?Date.now():null,
         interval: null,
         beforePhotos: s.beforePhotos||[],
         afterPhotos: s.afterPhotos||[],
         extraPhotos: s.extraPhotos||[],
+        beforePhotoUrls: s.beforePhotoUrls||[],
+        afterPhotoUrls: s.afterPhotoUrls||[],
+        extraPhotoUrls: s.extraPhotoUrls||[],
         notes: s.notes||'',
         actualMin: s.actualMin||0,
         expanded: s.expanded||false
@@ -1010,7 +1496,7 @@ function loadTrackerStates(){
 }
 
 function getTS(i){
-  if(!trackerStates[i])trackerStates[i]={status:'pending',startMs:null,elapsed:0,interval:null,beforePhotos:[],afterPhotos:[],extraPhotos:[],notes:'',actualMin:0,expanded:false};
+  if(!trackerStates[i])trackerStates[i]={status:'pending',startMs:null,elapsed:0,interval:null,beforePhotos:[],afterPhotos:[],extraPhotos:[],beforePhotoUrls:[],afterPhotoUrls:[],extraPhotoUrls:[],notes:'',actualMin:0,expanded:false};
   return trackerStates[i];
 }
 function getElap(i){const s=getTS(i);return s.elapsed+(s.startMs?Math.floor((Date.now()-s.startMs)/1000):0);}
@@ -1036,7 +1522,8 @@ function loadTrackerRoute(data){
   trackerRoute=data;
   document.getElementById('track-empty').style.display='none';
   document.getElementById('track-export-wrap').style.display='';
-  document.getElementById('track-sub').textContent=data.jobs.length+' stops · '+new Date(data.date).toLocaleDateString();
+  const miles=data.totalMiles?` · ${data.totalMiles} mi`:'';
+  document.getElementById('track-sub').textContent=data.jobs.length+' stops · '+new Date(data.date).toLocaleDateString()+miles;
   renderTracker();
 }
 
@@ -1054,9 +1541,12 @@ function buildJobCard(j,i){
   const ccls=s.status==='active'?'active':s.status==='done'?'done':(s.expanded?'exp':'');
   const tcls=s.status==='active'?'':s.status==='done'?'fin':'paused';
 
-  const beforeGrid=s.beforePhotos.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'before',${pi})">`).join('');
-  const afterGrid=s.afterPhotos.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'after',${pi})">`).join('');
-  const extraGrid=s.extraPhotos.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'extra',${pi})">`).join('');
+  const beforeSrcs=s.beforePhotos.map((p,pi)=>s.beforePhotoUrls&&s.beforePhotoUrls[pi]?s.beforePhotoUrls[pi]:p);
+  const afterSrcs=s.afterPhotos.map((p,pi)=>s.afterPhotoUrls&&s.afterPhotoUrls[pi]?s.afterPhotoUrls[pi]:p);
+  const extraSrcs=s.extraPhotos.map((p,pi)=>s.extraPhotoUrls&&s.extraPhotoUrls[pi]?s.extraPhotoUrls[pi]:p);
+  const beforeGrid=beforeSrcs.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'before',${pi})" onerror="this.style.opacity='.3'">`).join('');
+  const afterGrid=afterSrcs.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'after',${pi})" onerror="this.style.opacity='.3'">`).join('');
+  const extraGrid=extraSrcs.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'extra',${pi})" onerror="this.style.opacity='.3'">`).join('');
 
   return `<div class="job-card ${ccls}" id="jcard-${i}">
   <div class="job-hdr" onclick="toggleJCard(${i})">
@@ -1069,6 +1559,7 @@ function buildJobCard(j,i){
       <span><i class="ti ti-clock" style="font-size:11px"></i> Est. ${fmtMins(j.estMin)}</span>
       <span><i class="ti ti-flag" style="font-size:11px"></i> Arrive ${fmtClock(j.arr)}</span>
       ${j.notes?`<span><i class="ti ti-note" style="font-size:11px"></i> ${j.notes}</span>`:''}
+      ${j.serviceType&&j.serviceType!=='mow'?`<span><i class="ti ti-list-check" style="font-size:11px"></i> ${{mow:'Mow only',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'}[j.serviceType]||j.serviceType}</span>`:''}
     </div>
 
     <!-- Before photos -->
@@ -1119,14 +1610,12 @@ function buildJobCard(j,i){
         <div class="sum-box"><div class="sum-v">${fmtMins(s.actualMin)}</div><div class="sum-l">Actual</div></div>
         <div class="sum-box"><div class="sum-v">${fmtMins(j.estMin)}</div><div class="sum-l">Estimated</div></div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:.875rem">
-        ${!getJobRecord(j.id)?`<button class="btn btng bsm" style="flex:1" onclick="markJobPaid('${j.id}','${i}')"><i class="ti ti-cash"></i> Mark Paid (Cash)</button>`:`<div class="tag tag-green" style="padding:6px 12px">✓ Paid</div>`}
-        <button class="btn bsm" onclick="textCustomer('${j.id}')"><i class="ti ti-message"></i> Text summary</button>
-      </div>`:''}
+      ${buildPaymentUI(j,i,s)}`:''}
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.875rem">
       <button class="btn" style="font-size:12px" onclick="document.getElementById('ecam-${i}').click()"><i class="ti ti-camera-plus"></i> Extra photo</button>
       <button class="btn" style="font-size:12px" onclick="navTo('${j.addr.replace(/'/g,"\\'")}')"><i class="ti ti-navigation"></i> Navigate</button>
+      <button class="btn" style="font-size:12px;grid-column:span 2" onclick="sendOnMyWayFromTracker('${j.id}')"><i class="ti ti-send"></i> Text "On my way"</button>
       <input type="file" id="ecam-${i}" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(${i},'extra',this)">
     </div>
 
@@ -1139,6 +1628,245 @@ function buildJobCard(j,i){
 }
 
 function getJobRecord(custId){return DB.jobHistory.find(j=>j.custId===custId&&j.date===todayStr());}
+
+// ══ PAYMENT UI ════════════════════════════════════════════════════
+function getStripeSettings(){
+  try{return JSON.parse(localStorage.getItem('ros_stripe')||'{}');}catch(e){return {};}
+}
+
+function saveStripeSettings(){
+  const defaultLink=document.getElementById('st-default-link').value.trim();
+  const bizName=document.getElementById('st-biz-name').value.trim();
+  // Collect price links
+  const priceLinks=[];
+  document.querySelectorAll('.stripe-price-row').forEach(row=>{
+    const price=row.querySelector('.spl-price').value.trim();
+    const link=row.querySelector('.spl-link').value.trim();
+    if(price&&link)priceLinks.push({price,link});
+  });
+  const settings={defaultLink,bizName,priceLinks};
+  localStorage.setItem('ros_stripe',JSON.stringify(settings));
+  DB.settings.stripeDefaultLink=defaultLink;
+  DB.settings.stripeBizName=bizName;
+  saveDB();
+  const msg=document.getElementById('stripe-save-msg');
+  msg.textContent='✓ Saved';msg.style.display='';
+  setTimeout(()=>msg.style.display='none',2000);
+}
+
+function addStripePriceLink(price='',link=''){
+  const container=document.getElementById('stripe-price-links');
+  const row=document.createElement('div');
+  row.className='stripe-price-row fr';
+  row.style.marginBottom='.5rem';
+  row.innerHTML=`<div class="f" style="flex:0 0 90px"><label>Price ($)</label><input class="spl-price" type="number" placeholder="65" value="${price}" min="0" step="0.01"></div><div class="f"><label>Stripe link</label><input class="spl-link" type="url" placeholder="https://buy.stripe.com/..." value="${link}"></div><button class="btn bxsm btnr" style="margin-top:auto" onclick="this.closest('.stripe-price-row').remove()"><i class="ti ti-x"></i></button>`;
+  container.appendChild(row);
+}
+
+function loadStripeSettingsUI(){
+  const s=getStripeSettings();
+  const dl=document.getElementById('st-default-link');
+  const bn=document.getElementById('st-biz-name');
+  if(dl)dl.value=s.defaultLink||'';
+  if(bn)bn.value=s.bizName||'Richardson Outdoor Solutions';
+  const container=document.getElementById('stripe-price-links');
+  if(container){
+    container.innerHTML='';
+    (s.priceLinks||[]).forEach(pl=>addStripePriceLink(pl.price,pl.link));
+  }
+}
+
+function getBestPayLink(price){
+  const s=getStripeSettings();
+  // Try to find a price-specific link first
+  if(s.priceLinks&&price){
+    const match=s.priceLinks.find(pl=>parseFloat(pl.price)===parseFloat(price));
+    if(match&&match.link)return match.link;
+  }
+  return s.defaultLink||'';
+}
+
+function buildPaymentUI(j,i,s){
+  const rec=getJobRecord(j.id);
+  const c=DB.customers.find(x=>x.id===j.id);
+  const price=parseFloat(c&&c.price||0);
+  const payMethod=c&&c.payMethod||'cash';
+  const stripeSettings=getStripeSettings();
+  const hasStripe=!!(stripeSettings.defaultLink||(stripeSettings.priceLinks&&stripeSettings.priceLinks.length));
+
+  // Already paid
+  if(rec&&rec.paid){
+    return `<div class="pay-done-badge">
+      <i class="ti ti-circle-check-filled" style="font-size:24px;color:var(--green);flex-shrink:0"></i>
+      <div><div style="font-weight:700;font-size:14px;color:var(--green)">Payment recorded</div>
+      <div style="font-size:12px;color:var(--ink3)">${rec.paidMethod==='cash'?'Cash / Check':rec.paidMethod==='card'?'Charged via Stripe':rec.paidMethod==='invoice'?'Invoice sent':'Paid'} · $${price.toFixed(2)}</div></div>
+    </div>
+    <button class="btn bsm" onclick="textCustomer('${j.id}')" style="margin-bottom:.875rem;width:100%"><i class="ti ti-message"></i> Text job summary</button>`;
+  }
+
+  // Not yet paid — show 3 options
+  const stripeNote=hasStripe?'':`<div style="font-size:11px;color:var(--amb);margin-top:4px">⚠ Set up Stripe links in Reports → Payment settings</div>`;
+
+  return `<div style="margin-bottom:.875rem">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.625rem">Collect payment — $${price.toFixed(2)}</div>
+
+    <div class="pay-box pay-cash" onclick="payByCash('${j.id}','${i}',${price})">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:26px">💵</div>
+        <div>
+          <div class="pay-box-title">Cash / Check</div>
+          <div class="pay-box-sub">Mark as received on the spot</div>
+        </div>
+        <i class="ti ti-chevron-right" style="margin-left:auto;color:var(--ink3)"></i>
+      </div>
+    </div>
+
+    <div class="pay-box pay-card" onclick="payByCard('${j.id}','${i}',${price})">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:26px">💳</div>
+        <div>
+          <div class="pay-box-title">Charge card</div>
+          <div class="pay-box-sub">Open Stripe to charge $${price.toFixed(2)}</div>
+          ${stripeNote}
+        </div>
+        <i class="ti ti-chevron-right" style="margin-left:auto;color:var(--ink3)"></i>
+      </div>
+    </div>
+
+    <div class="pay-box pay-invoice" onclick="payByInvoice('${j.id}','${i}',${price})">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:26px">📨</div>
+        <div>
+          <div class="pay-box-title">Send invoice</div>
+          <div class="pay-box-sub">Text them a Stripe payment link for $${price.toFixed(2)}</div>
+          ${stripeNote}
+        </div>
+        <i class="ti ti-chevron-right" style="margin-left:auto;color:var(--ink3)"></i>
+      </div>
+    </div>
+  </div>`;
+}
+
+function payByCash(custId,i,price){
+  const c=DB.customers.find(x=>x.id===custId);
+  if(!confirm(`Mark $${parseFloat(price).toFixed(2)} cash/check payment received from ${c?custFullName(c):'customer'}?`))return;
+  recordPayment(custId,i,'cash');
+}
+
+function payByCard(custId,i,price){
+  const c=DB.customers.find(x=>x.id===custId);
+  const name=c?custFullName(c):'customer';
+  const amount=parseFloat(price).toFixed(2);
+  const stripeLink=getBestPayLink(price)||'https://dashboard.stripe.com/payments';
+  // Build the confirmation UI inline
+  const card=document.getElementById('jcard-'+i);
+  if(!card)return;
+  const paySection=card.querySelector('.pay-box.pay-card');
+  if(!paySection)return;
+  const parent=paySection.closest('div[style*="margin-bottom"]');
+  if(!parent)return;
+  parent.innerHTML=`
+    <div class="pay-confirm-card" style="background:var(--bp);border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
+      <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.875rem"><i class="ti ti-credit-card" style="font-size:16px"></i> Charge card — ${name}</div>
+      <div class="pay-amount">$${amount}</div>
+      <div class="pay-steps">
+        <div class="pay-step"><div class="pay-step-num">1</div><div>Open Stripe and go to <strong>Customers → ${name}</strong></div></div>
+        <div class="pay-step"><div class="pay-step-num">2</div><div>Tap <strong>Charge</strong> and enter <strong>$${amount}</strong></div></div>
+        <div class="pay-step"><div class="pay-step-num">3</div><div>Come back here and tap <strong>Confirm charged</strong></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:.75rem">
+        <button class="btn btng" onclick="window.open('${stripeLink}','_blank')"><i class="ti ti-external-link"></i> Open Stripe</button>
+        <button class="btn btng" onclick="recordPayment('${custId}','${i}','card')"><i class="ti ti-check"></i> Confirm charged</button>
+      </div>
+      <button class="btn btn-ghost bsm" style="width:100%;margin-top:.5rem" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
+    </div>`;
+}
+
+function payByInvoice(custId,i,price){
+  const c=DB.customers.find(x=>x.id===custId);
+  if(!c){alert('Customer not found.');return;}
+  const amount=parseFloat(price).toFixed(2);
+  // Use customer-specific link, or price-matched, or default
+  const link=c.payLink||getBestPayLink(price);
+  const settings=getStripeSettings();
+  const bizName=settings.bizName||'Richardson Outdoor Solutions';
+
+  if(!link){
+    alert('No payment link set up yet. Go to Reports → Payment settings and add your Stripe link first.');
+    goTab('reports');
+    return;
+  }
+
+  if(!c.phone&&!c.email){
+    alert('No phone or email on file for this customer. Edit their record to add contact info.');
+    return;
+  }
+
+  const card=document.getElementById('jcard-'+i);
+  if(!card)return;
+  const paySection=card.querySelector('.pay-box.pay-invoice');
+  if(!paySection)return;
+  const parent=paySection.closest('div[style*="margin-bottom"]');
+  if(!parent)return;
+
+  const msgBody=`Hi ${c.first}! Your lawn service is complete. Amount due: $${amount}. Pay securely here: ${link} — Thanks, ${bizName}`;
+
+  parent.innerHTML=`
+    <div style="background:var(--ambp);border:1px solid #f0c070;border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
+      <div style="font-weight:700;font-size:15px;color:var(--amb);margin-bottom:.75rem"><i class="ti ti-send" style="font-size:16px"></i> Send invoice — ${custFullName(c)}</div>
+      <div style="background:var(--s);border-radius:var(--r);padding:.75rem;font-size:13px;line-height:1.6;color:var(--ink2);margin-bottom:.875rem;border:1px solid var(--bd)">${msgBody}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${c.phone?`<button class="btn btna" onclick="sendInvoiceText('${custId}','${i}',${price})"><i class="ti ti-message"></i> Send text</button>`:'<div></div>'}
+        ${c.email?`<button class="btn btna" onclick="sendInvoiceEmail('${custId}','${i}',${price})"><i class="ti ti-mail"></i> Send email</button>`:'<div></div>'}
+      </div>
+      <button class="btn btn-ghost bsm" style="width:100%;margin-top:.5rem" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
+    </div>`;
+}
+
+function sendInvoiceText(custId,i,price){
+  const c=DB.customers.find(x=>x.id===custId);
+  if(!c||!c.phone){alert('No phone number.');return;}
+  const amount=parseFloat(price).toFixed(2);
+  const link=c.payLink||getBestPayLink(price)||'';
+  const settings=getStripeSettings();
+  const bizName=settings.bizName||'Richardson Outdoor Solutions';
+  const msg=`Hi ${c.first}! Your lawn service is complete. Amount due: $${amount}. Pay securely here: ${link} — Thanks, ${bizName}`;
+  window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg),'_blank');
+  // Mark invoice as sent after opening SMS
+  setTimeout(()=>{recordPayment(custId,i,'invoice');},1500);
+}
+
+function sendInvoiceEmail(custId,i,price){
+  const c=DB.customers.find(x=>x.id===custId);
+  if(!c||!c.email){alert('No email address.');return;}
+  const amount=parseFloat(price).toFixed(2);
+  const link=c.payLink||getBestPayLink(price)||'';
+  const settings=getStripeSettings();
+  const bizName=settings.bizName||'Richardson Outdoor Solutions';
+  const subject=`${bizName} — Invoice $${amount}`;
+  const body=`Hi ${c.first},\n\nYour lawn service is complete. Amount due: $${amount}.\n\nPay securely here: ${link}\n\nThank you!\n${bizName}`;
+  window.open('mailto:'+c.email+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body),'_blank');
+  setTimeout(()=>{recordPayment(custId,i,'invoice');},1500);
+}
+
+function recordPayment(custId,i,method){
+  const j=trackerRoute&&trackerRoute.jobs[parseInt(i)];
+  const c=DB.customers.find(x=>x.id===custId);
+  const price=parseFloat(c&&c.price||0);
+  const existing=DB.jobHistory.findIndex(x=>x.custId===custId&&x.date===todayStr());
+  if(existing>=0){
+    DB.jobHistory[existing].paid=method!=='invoice';
+    DB.jobHistory[existing].paidMethod=method;
+  } else {
+    DB.jobHistory.push({id:uid(),custId,date:todayStr(),actualMin:0,estMin:j?j.estMin:0,paid:method!=='invoice',paidMethod:method,beforePhotos:[],afterPhotos:[],extraPhotos:[],notes:''});
+  }
+  saveDB();
+  // Sync cash/check payment to HubSpot
+  if(method==='cash'){
+    syncPaymentToHubSpot(custId,price,'Cash/Check',todayStr());
+  }
+  rerenderJCard(parseInt(i));
+}
 
 function rerenderJCard(i){
   const card=document.getElementById('jcard-'+i);
@@ -1176,6 +1904,79 @@ function pauseJob(i){
   saveTrackerStates();
   rerenderJCard(i);
 }
+function isBase64Photo(str){
+  return typeof str==='string'&&str.startsWith('data:image');
+}
+
+// Convert base64 data URL to a Blob for uploading
+function base64ToBlob(dataUrl){
+  const parts=dataUrl.split(',');
+  const mime=parts[0].match(/:(.*?);/)[1];
+  const bytes=atob(parts[1]);
+  const arr=new Uint8Array(bytes.length);
+  for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+
+// Upload a single photo to Supabase Storage, return public URL
+async function uploadPhotoToStorage(base64,jobId,type,idx){
+  try{
+    const blob=base64ToBlob(base64);
+    const ext=blob.type.includes('png')?'png':'jpg';
+    const path=`${jobId}/${type}-${idx+1}.${ext}`;
+    const {data,error}=await supabaseClient.storage
+      .from('job-photos')
+      .upload(path,blob,{contentType:blob.type,upsert:true});
+    if(error){console.log('Photo upload error',error);return null;}
+    const {data:urlData}=supabaseClient.storage
+      .from('job-photos')
+      .getPublicUrl(path);
+    return urlData.publicUrl||null;
+  }catch(e){
+    console.log('Photo upload error',e);
+    return null;
+  }
+}
+
+// Upload all photos for a job, replace base64 with URLs where successful
+async function uploadJobPhotos(jobRec,trackerState,onProgress){
+  const types=[
+    {key:'beforePhotos',urlKey:'beforePhotoUrls',label:'before'},
+    {key:'afterPhotos',urlKey:'afterPhotoUrls',label:'after'},
+    {key:'extraPhotos',urlKey:'extraPhotoUrls',label:'extra'}
+  ];
+  let uploaded=0,total=0;
+  types.forEach(t=>{total+=(trackerState[t.key]||[]).filter(isBase64Photo).length;});
+  if(!jobRec.beforePhotoUrls)jobRec.beforePhotoUrls=[];
+  if(!jobRec.afterPhotoUrls)jobRec.afterPhotoUrls=[];
+  if(!jobRec.extraPhotoUrls)jobRec.extraPhotoUrls=[];
+
+  for(const t of types){
+    const photos=trackerState[t.key]||[];
+    const urls=jobRec[t.urlKey]||[];
+    for(let idx=0;idx<photos.length;idx++){
+      const p=photos[idx];
+      if(!isBase64Photo(p)){
+        // Already a URL — keep it
+        if(!urls[idx])urls[idx]=p;
+        continue;
+      }
+      if(onProgress)onProgress(++uploaded,total);
+      const url=await uploadPhotoToStorage(p,jobRec.id,t.label,idx);
+      if(url){
+        urls[idx]=url;
+        // Replace base64 with URL in tracker state to free memory
+        photos[idx]=url;
+      } else {
+        urls[idx]=p; // keep base64 as fallback if upload failed
+      }
+    }
+    jobRec[t.urlKey]=urls;
+    trackerState[t.key]=photos;
+  }
+  return jobRec;
+}
+
 function finishJob(i){
   if(!hasAfter(i)){alert('Take an after photo first.');return;}
   const s=getTS(i);
@@ -1183,11 +1984,48 @@ function finishJob(i){
   stopTick(i);s.status='done';s.actualMin=Math.round(s.elapsed/60);
   const j=trackerRoute.jobs[i];
   const existing=DB.jobHistory.findIndex(x=>x.custId===j.id&&x.date===todayStr());
-  const rec={id:existing>=0?DB.jobHistory[existing].id:uid(),custId:j.id,date:todayStr(),actualMin:s.actualMin,estMin:j.estMin,paid:false,paidMethod:null,beforePhotos:s.beforePhotos,afterPhotos:s.afterPhotos,extraPhotos:s.extraPhotos,notes:s.notes};
+  const rec={
+    id:existing>=0?DB.jobHistory[existing].id:uid(),
+    custId:j.id,
+    date:todayStr(),
+    actualMin:s.actualMin,
+    estMin:j.estMin,
+    paid:false,
+    paidMethod:null,
+    beforePhotos:s.beforePhotos,
+    afterPhotos:s.afterPhotos,
+    extraPhotos:s.extraPhotos,
+    beforePhotoUrls:[],
+    afterPhotoUrls:[],
+    extraPhotoUrls:[],
+    notes:s.notes
+  };
   if(existing>=0)DB.jobHistory[existing]=rec;else DB.jobHistory.push(rec);
-  saveDB();
-  saveTrackerStates();
-  rerenderJCard(i);
+
+  // Show uploading state on card
+  const card=document.getElementById('jcard-'+i);
+  if(card){
+    const uploadBanner=document.createElement('div');
+    uploadBanner.id='upload-banner-'+i;
+    uploadBanner.style.cssText='background:var(--bp);border-radius:8px;padding:.625rem .875rem;font-size:13px;color:var(--blue);font-weight:600;margin-bottom:.75rem;display:flex;align-items:center;gap:8px';
+    uploadBanner.innerHTML='<span class="spin" style="border-top-color:var(--blue);border-color:rgba(21,101,192,.2)"></span> Uploading photos...';
+    const body=card.querySelector('.job-body2');
+    if(body)body.prepend(uploadBanner);
+  }
+
+  // Upload photos async, then save
+  uploadJobPhotos(rec,s,(done,total)=>{
+    const banner=document.getElementById('upload-banner-'+i);
+    if(banner)banner.innerHTML=`<span class="spin" style="border-top-color:var(--blue);border-color:rgba(21,101,192,.2)"></span> Uploading photos (${done}/${total})...`;
+  }).then(()=>{
+    if(existing>=0)DB.jobHistory[existing]=rec;else{
+      const idx2=DB.jobHistory.findIndex(x=>x.id===rec.id);
+      if(idx2>=0)DB.jobHistory[idx2]=rec;
+    }
+    saveDB();
+    saveTrackerStates();
+    rerenderJCard(i);
+  });
 }
 
 function markJobPaid(custId,i){
@@ -1197,10 +2035,22 @@ function markJobPaid(custId,i){
   rerenderJCard(parseInt(i));
 }
 
+function saveHubSpotKey(){
+  const key=document.getElementById('hs-key').value.trim();
+  DB.settings.hubspotKey=key;
+  saveDB();
+  const msg=document.getElementById('hs-save-msg');
+  msg.textContent='✓ Saved';msg.style.display='';
+  setTimeout(()=>msg.style.display='none',2000);
+}
+
 function textCustomer(custId){
   const c=DB.customers.find(x=>x.id===custId);
   if(!c||!c.phone){alert('No phone number for this customer.');return;}
-  const msg='Hi '+c.first+'! Your lawn service is complete for today. Thanks for your business! — Richardson Outdoor Solutions';
+  const settings=getStripeSettings();
+  const bizName=settings.bizName||'Richardson Outdoor Solutions';
+  const serviceLabel={mow:'lawn mowing',mow_edge:'lawn mowing and edging',full:'lawn mowing, edging and blowing',cleanup:'full lawn cleanup'}[c.serviceType||'mow']||'lawn service';
+  const msg=`Hi ${c.first}! Your ${serviceLabel} is complete for today. Thanks for your business! — ${bizName}`;
   window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));
 }
 
@@ -1232,7 +2082,10 @@ function openPV(i,type,idx){
   pvJob=i;pvType=type;pvIdx=idx;
   const s=getTS(i);
   const photos=type==='before'?s.beforePhotos:type==='after'?s.afterPhotos:s.extraPhotos;
-  document.getElementById('pv-img').src=photos[idx];
+  const urlPhotos=type==='before'?s.beforePhotoUrls:type==='after'?s.afterPhotoUrls:s.extraPhotoUrls;
+  // Prefer URL over base64 for display
+  const src=(urlPhotos&&urlPhotos[idx])||photos[idx];
+  document.getElementById('pv-img').src=src;
   document.getElementById('pv-lbl').textContent={before:'Before',after:'After',extra:'Extra'}[type]+' photo '+(idx+1)+' of '+photos.length;
   document.getElementById('pviewer').classList.add('open');
 }
@@ -1263,9 +2116,10 @@ async function exportDaySummary(){
     const actualMin=s.actualMin||Math.round(s.elapsed/60);
     const c=DB.customers.find(x=>x.id===j.id);
     const price=c?parseFloat(c.price||0):0;
-    function pSection(photos,label,prefix){
-      if(!photos.length)return `<p style="color:#aaa;font-size:13px">No ${label.toLowerCase()} taken</p>`;
-      return photos.map((p,pi)=>`<div style="margin-bottom:12px"><img src="${p}" style="width:100%;max-width:340px;border-radius:8px;border:1px solid #ddd;display:block;margin-bottom:6px"><a href="${p}" download="${prefix}-${pi+1}.jpg" style="font-size:12px;color:#2d5a27;font-weight:600;text-decoration:none">⬇ Save ${label} ${pi+1}</a></div>`).join('');
+    function pSection(photos,urlPhotos,label,prefix){
+      const srcs=photos.map((p,pi)=>(urlPhotos&&urlPhotos[pi])||p).filter(Boolean);
+      if(!srcs.length)return `<p style="color:#aaa;font-size:13px">No ${label.toLowerCase()} taken</p>`;
+      return srcs.map((p,pi)=>`<div style="margin-bottom:12px"><img src="${p}" style="width:100%;max-width:340px;border-radius:8px;border:1px solid #ddd;display:block;margin-bottom:6px">${isBase64Photo(p)?`<a href="${p}" download="${prefix}-${pi+1}.jpg" style="font-size:12px;color:#2d5a27;font-weight:600;text-decoration:none">⬇ Save ${label} ${pi+1}</a>`:`<a href="${p}" target="_blank" style="font-size:12px;color:#2d5a27;font-weight:600;text-decoration:none">🔗 View ${label} ${pi+1}</a>`}</div>`).join('');
     }
     const safe=(j.name||'Job').replace(/[^a-z0-9]/gi,'_');
     const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${j.name} — Job Summary</title><style>body{font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:2rem 1.25rem;color:#1a1a1a}h1{color:#2d5a27;font-size:22px;margin-bottom:.25rem}.co{font-size:13px;color:#888;margin-bottom:1.5rem}.badge{display:inline-block;padding:4px 14px;border-radius:99px;font-size:12px;font-weight:700;text-transform:uppercase;background:${s.status==='done'?'#d4edda':'#fff3cd'};color:${s.status==='done'?'#155724':'#856404'};margin-bottom:1.5rem}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem}.box{background:#f7f8f5;border-radius:8px;padding:.875rem}.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:.25rem}.val{font-size:18px;font-weight:600}.section{margin-bottom:1.5rem}.stitle{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:.75rem;padding-bottom:.375rem;border-bottom:1px solid #eee}hr{border:none;border-top:1px solid #eee;margin:1.5rem 0}.nbox{background:#f7f8f5;border-radius:8px;padding:.875rem;font-size:14px;white-space:pre-wrap;line-height:1.6}footer{font-size:12px;color:#aaa;text-align:center;margin-top:2rem;padding-top:1rem;border-top:1px solid #eee}</style></head><body>
@@ -1280,15 +2134,16 @@ async function exportDaySummary(){
 ${j.notes?`<div class="section"><div class="lbl">Job notes</div><div class="nbox">${j.notes}</div></div>`:''}
 ${s.notes?`<div class="section"><div class="lbl">Field notes</div><div class="nbox">${s.notes}</div></div>`:''}
 <hr>
-<div class="section"><div class="stitle">📷 Before photos (${s.beforePhotos.length})</div>${pSection(s.beforePhotos,'Before',safe+'-before')}</div>
-<div class="section"><div class="stitle">✅ After photos (${s.afterPhotos.length})</div>${pSection(s.afterPhotos,'After',safe+'-after')}</div>
-${s.extraPhotos.length?`<div class="section"><div class="stitle">📸 Extra photos (${s.extraPhotos.length})</div>${pSection(s.extraPhotos,'Extra',safe+'-extra')}</div>`:''}
+<div class="section"><div class="stitle">📷 Before photos (${s.beforePhotos.length})</div>${pSection(s.beforePhotos,s.beforePhotoUrls,'Before',safe+'-before')}</div>
+<div class="section"><div class="stitle">✅ After photos (${s.afterPhotos.length})</div>${pSection(s.afterPhotos,s.afterPhotoUrls,'After',safe+'-after')}</div>
+${s.extraPhotos.length?`<div class="section"><div class="stitle">📸 Extra photos (${s.extraPhotos.length})</div>${pSection(s.extraPhotos,s.extraPhotoUrls,'Extra',safe+'-extra')}</div>`:''}
 <footer>Richardson Outdoor Solutions Field Tracker</footer></body></html>`;
     zip.file('Stop-'+(i+1)+'-'+safe+'.html',html);
     const folder=safe;
-    s.beforePhotos.forEach((p,pi)=>{const b=p.split(',')[1];if(b)zip.file(folder+'/before-'+(pi+1)+'.jpg',b,{base64:true});});
-    s.afterPhotos.forEach((p,pi)=>{const b=p.split(',')[1];if(b)zip.file(folder+'/after-'+(pi+1)+'.jpg',b,{base64:true});});
-    s.extraPhotos.forEach((p,pi)=>{const b=p.split(',')[1];if(b)zip.file(folder+'/extra-'+(pi+1)+'.jpg',b,{base64:true});});
+    // Only include base64 photos in zip — uploaded ones are accessible by URL
+    s.beforePhotos.forEach((p,pi)=>{if(isBase64Photo(p)){const b=p.split(',')[1];if(b)zip.file(folder+'/before-'+(pi+1)+'.jpg',b,{base64:true});}});
+    s.afterPhotos.forEach((p,pi)=>{if(isBase64Photo(p)){const b=p.split(',')[1];if(b)zip.file(folder+'/after-'+(pi+1)+'.jpg',b,{base64:true});}});
+    s.extraPhotos.forEach((p,pi)=>{if(isBase64Photo(p)){const b=p.split(',')[1];if(b)zip.file(folder+'/extra-'+(pi+1)+'.jpg',b,{base64:true});}});
   });
   try{const blob=await zip.generateAsync({type:'blob'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ROS-Day-'+todayStr()+'.zip';a.click();}
   catch(e){alert('Export failed: '+e);}
@@ -1339,8 +2194,8 @@ function renderCustomers(){
     document.getElementById('cust-list').innerHTML=`<div class="empty-state"><i class="ti ti-users"></i><p>No customers yet</p><small>Import from HubSpot or add manually</small></div>`;
     return;
   }
-  const schedBadge={weekly:'tag-green',biweekly:'tag-blue',onetime:'tag-amb',inactive:'tag-gray'};
-  const schedLbl={weekly:'Weekly',biweekly:'Biweekly',onetime:'One-time',inactive:'Inactive'};
+  const schedBadge={weekly:'tag-green',biweekly:'tag-blue',onetime:'tag-amb',paused:'tag-amb',inactive:'tag-gray'};
+  const schedLbl={weekly:'Weekly',biweekly:'Biweekly',onetime:'One-time',paused:'Paused',inactive:'Inactive'};
   document.getElementById('cust-list').innerHTML=list.map(c=>{
     const jobs=DB.jobHistory.filter(j=>j.custId===c.id);
     const lastJob=jobs.length?jobs.sort((a,b)=>b.date.localeCompare(a.date))[0]:null;
@@ -1368,13 +2223,22 @@ function renderCustomers(){
           <div class="detail-item"><div class="dl">Last service</div><div class="dv" style="font-size:12px">${lastJob?fmtDate(lastJob.date):'Never'}</div></div>
         </div>
         ${c.gate?`<div style="background:var(--ambp);border-radius:8px;padding:.625rem .75rem;font-size:13px;color:var(--amb);margin-bottom:.75rem"><i class="ti ti-key" style="font-size:13px"></i> ${c.gate}</div>`:''}
+        ${c.sched==='paused'?`<div style="background:var(--ambp);border:1px solid #f0c070;border-radius:8px;padding:.625rem .75rem;font-size:13px;color:var(--amb);margin-bottom:.75rem"><i class="ti ti-player-pause" style="font-size:13px"></i> <strong>Paused</strong>${c.resumeDate?' · Resumes '+fmtDate(c.resumeDate):''}${c.pauseReason?' · '+c.pauseReason:''}</div>`:''}
         ${c.notes?`<div style="background:var(--s2);border-radius:8px;padding:.625rem .75rem;font-size:13px;color:var(--ink2);margin-bottom:.75rem">${c.notes}</div>`:''}
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${c.serviceType&&c.serviceType!=='mow'?`<div style="font-size:11px;color:var(--ink3);margin-bottom:.75rem"><i class="ti ti-list-check" style="font-size:11px"></i> Service: <strong>${{mow:'Mow only',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'}[c.serviceType]||c.serviceType}</strong></div>`:''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.5rem">
           <button class="btn bsm btng" onclick="openCustModal('${c.id}')"><i class="ti ti-edit"></i> Edit</button>
           ${c.phone?`<button class="btn bsm" onclick="window.open('tel:'+('${c.phone}'.replace(/\\D/g,'')))"><i class="ti ti-phone"></i> Call</button>`:''}
+          ${c.phone?`<button class="btn bsm" onclick="sendOnMyWay('${c.id}')"><i class="ti ti-navigation"></i> On my way</button>`:''}
           ${c.phone?`<button class="btn bsm" onclick="window.open('sms:'+('${c.phone}'.replace(/\\D/g,'')))"><i class="ti ti-message"></i> Text</button>`:''}
+          ${c.hubspotUrl?`<button class="btn bsm btnb" onclick="window.open('${c.hubspotUrl}','_blank')"><i class="ti ti-brand-hubspot"></i> HubSpot</button>`:''}
           <button class="btn bsm btnr" onclick="deleteCust('${c.id}')"><i class="ti ti-trash"></i> Delete</button>
         </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${c.sched==='paused'?`<button class="btn bsm btng" onclick="resumeCust('${c.id}')"><i class="ti ti-player-play"></i> Resume schedule</button>`:`<button class="btn bsm" onclick="pauseCust('${c.id}')"><i class="ti ti-player-pause"></i> Pause schedule</button>`}
+          <button class="btn bsm" onclick="skipNextWeek('${c.id}')"><i class="ti ti-calendar-off"></i> Skip next visit</button>
+        </div>
+        ${renderCustHistory(c.id)}
       </div>
     </div>`;
   }).join('');
@@ -1394,7 +2258,19 @@ function openCustModal(id){
   ['first','last','addr','zip','phone','email','gate','notes'].forEach(f=>{
     document.getElementById('cf-'+f).value=c?c[f]||'':'';
   });
+  document.getElementById('cf-hubspot').value=c?c.hubspotUrl||'':'';
+  document.getElementById('cf-hubspot-id').value=c?c.hubspotContactId||'':'';
+  document.getElementById('cf-paymethod').value=c?c.payMethod||'cash':'cash';
+  document.getElementById('cf-paylink').value=c?c.payLink||'':'';
+  document.getElementById('cf-service').value=c?c.serviceType||'mow':'mow';
+  document.getElementById('cf-resume').value=c?c.resumeDate||'':'';
+  document.getElementById('cf-pause-reason').value=c?c.pauseReason||'':'';
   document.getElementById('cf-sched').value=c?c.sched||'weekly':'weekly';
+  // Show/hide pause row
+  document.getElementById('cf-pause-row').style.display=(c&&c.sched==='paused')?'':'none';
+  document.getElementById('cf-sched').onchange=function(){
+    document.getElementById('cf-pause-row').style.display=this.value==='paused'?'':'none';
+  };
   document.getElementById('cf-day').value=c?c.day||'1':'1';
   document.getElementById('cf-price').value=c?c.price||'':'';
   document.getElementById('cf-mow').value=c?c.mowTime||45:45;
@@ -1418,7 +2294,15 @@ function saveCust(){
     mowTime:parseInt(document.getElementById('cf-mow').value)||45,
     size:document.getElementById('cf-size').value,
     gate:document.getElementById('cf-gate').value.trim(),
-    notes:document.getElementById('cf-notes').value.trim()
+    notes:document.getElementById('cf-notes').value.trim(),
+    hubspotUrl:document.getElementById('cf-hubspot').value.trim(),
+    hubspotContactId:document.getElementById('cf-hubspot-id').value.trim(),
+    payMethod:document.getElementById('cf-paymethod').value,
+    payLink:document.getElementById('cf-paylink').value.trim(),
+    serviceType:document.getElementById('cf-service').value,
+    resumeDate:document.getElementById('cf-resume').value||null,
+    pauseReason:document.getElementById('cf-pause-reason').value.trim(),
+    skipWeeks:c?c.skipWeeks||[]:[]
   };
   if(!c.first&&!c.last){alert('Enter at least a first or last name.');return;}
   const idx=DB.customers.findIndex(x=>x.id===id);
@@ -1511,6 +2395,174 @@ function doImport(){
   closeModal('import-modal');
   renderCustomers();
   alert(`Imported: ${added} new, ${updated} updated.`);
+}
+
+// ══ CUSTOMER HISTORY PHOTOS ══════════════════════════════════════
+function renderCustHistory(custId){
+  const jobs=DB.jobHistory.filter(j=>j.custId===custId).sort((a,b)=>b.date.localeCompare(a.date));
+  if(!jobs.length)return '';
+  let h=`<div style="margin-top:.875rem;border-top:1px solid var(--s3);padding-top:.875rem">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.625rem">Job history (${jobs.length})</div>`;
+  jobs.slice(0,8).forEach(j=>{
+    // Prefer uploaded URLs over base64 blobs for display
+    const beforeSrcs=(j.beforePhotoUrls&&j.beforePhotoUrls.length?j.beforePhotoUrls:j.beforePhotos)||[];
+    const afterSrcs=(j.afterPhotoUrls&&j.afterPhotoUrls.length?j.afterPhotoUrls:j.afterPhotos)||[];
+    const extraSrcs=(j.extraPhotoUrls&&j.extraPhotoUrls.length?j.extraPhotoUrls:j.extraPhotos)||[];
+    const allPhotos=[...beforeSrcs,...afterSrcs,...extraSrcs].filter(Boolean);
+    h+=`<div class="hist-job">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${allPhotos.length?'.375rem':'0'}">
+        <div>
+          <span style="font-size:13px;font-weight:600">${fmtDate(j.date)}</span>
+          <span style="font-size:11px;color:var(--ink3);margin-left:8px">${j.actualMin?j.actualMin+'m':j.estMin?j.estMin+'m est':''}</span>
+        </div>
+        <span class="tag ${j.paid?'tag-green':'tag-red'}">${j.paid?'Paid':'Unpaid'}</span>
+      </div>
+      ${allPhotos.length?`<div class="hist-photo-strip">${allPhotos.map(p=>`<img class="hist-thumb" src="${p}" onclick="openHistPhoto('${encodeURIComponent(p)}')" onerror="this.style.display='none'">`).join('')}</div>`:''}
+      ${j.notes?`<div style="font-size:11px;color:var(--ink3);margin-top:3px">${j.notes}</div>`:''}
+    </div>`;
+  });
+  h+='</div>';
+  return h;
+}
+
+function openHistPhoto(encodedSrc){
+  const src=decodeURIComponent(encodedSrc);
+  document.getElementById('pv-img').src=src;
+  document.getElementById('pv-lbl').textContent='Historical photo';
+  pvJob=null;// mark as non-deletable history photo
+  document.getElementById('pviewer').classList.add('open');
+}
+
+// ══ QUICK-ADD JOB ════════════════════════════════════════════════
+function openQuickJobModal(){
+  // Populate customer dropdown
+  const sel=document.getElementById('qj-cust');
+  sel.innerHTML='<option value="">— select customer —</option>'+
+    DB.customers.filter(c=>c.sched!=='inactive').map(c=>`<option value="${c.id}">${custFullName(c)}</option>`).join('');
+  document.getElementById('qj-date').value=todayStr();
+  document.getElementById('qj-mins').value=45;
+  document.getElementById('qj-price').value='';
+  document.getElementById('qj-paid').value='unpaid';
+  document.getElementById('qj-notes').value='';
+  document.getElementById('quickjob-modal').classList.add('open');
+}
+
+function saveQuickJob(){
+  const custId=document.getElementById('qj-cust').value;
+  if(!custId){alert('Select a customer.');return;}
+  const date=document.getElementById('qj-date').value||todayStr();
+  const mins=parseInt(document.getElementById('qj-mins').value)||45;
+  const paidVal=document.getElementById('qj-paid').value;
+  const paid=paidVal!=='unpaid';
+  const paidMethod=paid?paidVal:null;
+  const notes=document.getElementById('qj-notes').value.trim();
+  // Use customer's price if not overridden — store override in notes
+  const priceOverride=document.getElementById('qj-price').value;
+  const c=DB.customers.find(x=>x.id===custId);
+  const rec={
+    id:uid(),
+    custId,
+    date,
+    actualMin:mins,
+    estMin:parseInt(c&&c.mowTime||45),
+    paid,
+    paidMethod,
+    beforePhotos:[],
+    afterPhotos:[],
+    extraPhotos:[],
+    notes:notes+(priceOverride?` [price: $${priceOverride}]`:''),
+    isOneOff:true
+  };
+  DB.jobHistory.push(rec);
+  saveDB();
+  closeModal('quickjob-modal');
+  renderDash();
+  alert(`Job logged for ${c?custFullName(c):'customer'} on ${fmtDate(date)}.`);
+}
+
+function loadHubSpotKeyUI(){
+  const el=document.getElementById('hs-key');
+  if(el&&DB.settings.hubspotKey)el.value=DB.settings.hubspotKey;
+}
+
+// ── HUBSPOT SYNC ─────
+async function syncPaymentToHubSpot(custId,amount,method,jobDate){
+  const c=DB.customers.find(x=>x.id===custId);
+  if(!c||!c.hubspotContactId)return; // no contact ID, skip silently
+  const hsKey=DB.settings.hubspotKey||'';
+  if(!hsKey)return; // no API key configured
+  try{
+    const note=`Payment received: $${parseFloat(amount).toFixed(2)} via ${method==='cash'?'Cash/Check':method} for lawn service on ${jobDate}.`;
+    await fetch('https://api.hubapi.com/crm/v3/objects/notes',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+hsKey},
+      body:JSON.stringify({
+        properties:{hs_note_body:note,hs_timestamp:Date.now()},
+        associations:[{to:{id:c.hubspotContactId},types:[{associationCategory:'HUBSPOT_DEFINED',associationTypeId:202}]}]
+      })
+    });
+  }catch(e){console.log('HubSpot sync error',e);}
+}
+
+// ══ PAUSE / RESUME / SKIP ════════════════════════════════════════
+function pauseCust(id){
+  const c=DB.customers.find(x=>x.id===id);
+  if(!c)return;
+  const resumeDate=prompt('Resume date (YYYY-MM-DD) — leave blank for indefinite pause:','');
+  const reason=prompt('Reason (optional):','');
+  c.sched='paused';
+  c.resumeDate=resumeDate||null;
+  c.pauseReason=reason||'';
+  saveDB();renderCustomers();
+}
+
+function resumeCust(id){
+  const c=DB.customers.find(x=>x.id===id);
+  if(!c)return;
+  c.sched='weekly'; // restore to weekly — they can change if needed
+  c.resumeDate=null;
+  c.pauseReason='';
+  saveDB();renderCustomers();
+  alert(custFullName(c)+' resumed on weekly schedule.');
+}
+
+function skipNextWeek(id){
+  const c=DB.customers.find(x=>x.id===id);
+  if(!c)return;
+  // Find their next scheduled date
+  const today=new Date();today.setHours(0,0,0,0);
+  let next=null;
+  for(let i=1;i<=14;i++){
+    const d=new Date(today);d.setDate(today.getDate()+i);
+    if(isDueOnDate(c,d)){next=d;break;}
+  }
+  if(!next){alert('No upcoming visit found in the next 2 weeks.');return;}
+  const dateStr=next.toISOString().slice(0,10);
+  if(!c.skipWeeks)c.skipWeeks=[];
+  if(c.skipWeeks.includes(dateStr)){
+    alert('Already skipping '+fmtDate(dateStr)+'.');return;
+  }
+  if(!confirm('Skip '+custFullName(c)+'\'s visit on '+fmtDate(dateStr)+'?'))return;
+  c.skipWeeks.push(dateStr);
+  // Keep only future skips (clean up old ones)
+  c.skipWeeks=c.skipWeeks.filter(d=>d>=todayStr());
+  saveDB();renderCustomers();renderDash();
+  alert('Visit on '+fmtDate(dateStr)+' skipped.');
+}
+
+// ══ ON MY WAY TEXT ════════════════════════════════════════════════
+function sendOnMyWay(custId){
+  const c=DB.customers.find(x=>x.id===custId);
+  if(!c||!c.phone){alert('No phone number for this customer.');return;}
+  const settings=getStripeSettings();
+  const bizName=settings.bizName||'Richardson Outdoor Solutions';
+  const msg=`Hi ${c.first}! I'm on my way for your lawn service today. See you soon! — ${bizName}`;
+  window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));
+}
+
+// Also add on-my-way button to field tracker job card navigate section
+function sendOnMyWayFromTracker(custId){
+  sendOnMyWay(custId);
 }
 
 // ══ DEDUPLICATE ═══════════════════════════════════════════════════
@@ -1633,12 +2685,30 @@ function renderReports(){
   const revenue=filtered.filter(j=>j.paid).reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);return a+parseFloat(c&&c.price||0);},0);
   const unpaidRevenue=filtered.filter(j=>!j.paid).reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);return a+parseFloat(c&&c.price||0);},0);
   const avgActual=filtered.filter(j=>j.actualMin>0).reduce((a,j,_,arr)=>a+j.actualMin/arr.length,0);
+
+  // Mileage log: sum from stored route payloads per day
+  const mileageLog=[];
+  try{
+    const raw=localStorage.getItem('ros_mileage_log');
+    if(raw){const parsed=JSON.parse(raw);mileageLog.push(...parsed);}
+  }catch(e){}
+  const totalMiles=mileageLog.reduce((a,e)=>a+e.miles,0);
+
   document.getElementById('report-content').innerHTML=`
     <div class="dash-grid">
       <div class="dash-card"><div class="dash-val">${totalJobs}</div><div class="dash-lbl">Jobs completed</div></div>
       <div class="dash-card"><div class="dash-val" style="color:var(--green)">$${revenue.toFixed(0)}</div><div class="dash-lbl">Revenue collected</div></div>
       <div class="dash-card"><div class="dash-val" style="color:var(--red)">$${unpaidRevenue.toFixed(0)}</div><div class="dash-lbl">Outstanding</div></div>
       <div class="dash-card"><div class="dash-val">${avgActual>0?Math.round(avgActual)+'m':'—'}</div><div class="dash-lbl">Avg job time</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Mileage log</div>
+      <div class="mile-badge"><i class="ti ti-car" style="font-size:15px"></i> ${totalMiles.toFixed(1)} total miles logged</div>
+      ${mileageLog.length?mileageLog.slice(-10).reverse().map(e=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--s3);font-size:13px">
+          <span>${fmtDate(e.date)}</span>
+          <span style="font-weight:600;color:var(--blue)">${e.miles.toFixed(1)} mi · ${e.stops} stop${e.stops!==1?'s':''}</span>
+        </div>`).join(''):'<div style="color:var(--ink3);font-size:13px;padding:.5rem 0">Miles are logged automatically when you send a route to the tracker.</div>'}
     </div>
     <div class="card">
       <div class="card-title">Customer breakdown</div>
@@ -1763,6 +2833,8 @@ function showRestoreMsg(msg,bg,color){
   renderCustomers();
   renderReports();
   updateBackupStats();
+  loadStripeSettingsUI();
+  loadHubSpotKeyUI();
 })();
 </script>
 </body>
