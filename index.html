@@ -748,6 +748,13 @@ const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Shared secret sent to the Netlify serverless functions (charge/setup/hubspot-sync).
+// This is a first layer that blocks anonymous calls to those endpoints. Note it is
+// visible in page source, so the functions also lock to this app's origin; the
+// strongest protection (verifying the Supabase session server-side) can be added later.
+const APP_SHARED_SECRET = 'a7f3K9mQ2pX8vL4nR6wB1cY5tH0jD3sZ9eU7gN2kF8aW4qM6rT1xP5oV3iC0bL';
+const FN_HEADERS = {'Content-Type':'application/json','x-app-secret':APP_SHARED_SECRET};
+
 function isUuid(value){
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''));
 }
@@ -1229,7 +1236,7 @@ async function chargeDash(jobId,stripeCustomerId,price){
   try{
     const res=await fetch('https://effervescent-pie-af6453.netlify.app/.netlify/functions/charge',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:FN_HEADERS,
       body:JSON.stringify({stripeCustomerId,amount:price,description:`Lawn service — ${c?custFullName(c):''} — ${j.date}`,customerName:c?custFullName(c):''})
     });
     const data=await res.json();
@@ -2188,7 +2195,7 @@ async function executeCardCharge(custId,i,price){
   try{
     const res=await fetch('https://effervescent-pie-af6453.netlify.app/.netlify/functions/charge',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:FN_HEADERS,
       body:JSON.stringify({
         stripeCustomerId:c.stripeCustomerId,
         amount:parseFloat(price),
@@ -3049,7 +3056,7 @@ async function sendCardSetupLink(custId){
   try{
     const res=await fetch('https://effervescent-pie-af6453.netlify.app/.netlify/functions/setup',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:FN_HEADERS,
       body:JSON.stringify({
         stripeCustomerId:c.stripeCustomerId||null,
         customerName:custFullName(c),
@@ -3093,7 +3100,7 @@ async function syncPaymentToHubSpot(custId,amount,method,jobDate){
   try{
     await fetch('https://effervescent-pie-af6453.netlify.app/.netlify/functions/hubspot-sync',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:FN_HEADERS,
       body:JSON.stringify({
         contactId:c.hubspotContactId,
         amount:parseFloat(amount)||0,
