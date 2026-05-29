@@ -251,9 +251,49 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .pay-step:last-child{border-bottom:none}
 .pay-step-num{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;flex-shrink:0;margin-top:1px}
 .pay-done-badge{background:var(--gp);border:1px solid var(--gl);border-radius:var(--rl);padding:.875rem;display:flex;align-items:center;gap:10px;margin-bottom:.875rem}
+
+/* ── Login gate ── */
+#auth-gate{position:fixed;inset:0;z-index:500;background:linear-gradient(160deg,var(--green) 0%,#1f3d1c 100%);display:flex;align-items:center;justify-content:center;padding:1.5rem}
+#auth-gate.hidden{display:none}
+.auth-card{background:var(--s);border-radius:20px;padding:2rem 1.5rem;width:100%;max-width:380px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.auth-logo{text-align:center;font-size:44px;margin-bottom:.5rem}
+.auth-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.04em;color:var(--green);text-align:center;line-height:1.1}
+.auth-sub{font-size:13px;color:var(--ink3);text-align:center;margin-top:4px;margin-bottom:1.5rem}
+.auth-card .f{margin-bottom:.875rem}
+.auth-card input{height:44px;font-size:15px}
+.auth-btn{height:46px;width:100%;border:none;border-radius:var(--r);background:var(--green);color:#fff;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.auth-btn:active{background:var(--gl)}
+.auth-btn:disabled{opacity:.6;cursor:not-allowed}
+.auth-err{background:var(--rp);color:var(--red);border-radius:var(--r);padding:.625rem .875rem;font-size:13px;margin-bottom:.875rem;display:none}
+.auth-err.show{display:block}
+#auth-loading{position:fixed;inset:0;z-index:600;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em}
+#auth-loading.hidden{display:none}
+.signout-btn{background:none;border:none;color:var(--ink3);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:4px;padding:4px 6px}
 </style>
 </head>
 <body>
+
+<!-- ══ AUTH LOADING (shown while checking session) ══════════════════ -->
+<div id="auth-loading"><span>🌿 Loading…</span></div>
+
+<!-- ══ LOGIN GATE ═══════════════════════════════════════════════════ -->
+<div id="auth-gate" class="hidden">
+  <div class="auth-card">
+    <div class="auth-logo">🌿</div>
+    <div class="auth-title">Richardson Outdoor Solutions</div>
+    <div class="auth-sub">Sign in to continue</div>
+    <div class="auth-err" id="auth-err"></div>
+    <div class="f">
+      <label>Email</label>
+      <input type="email" id="auth-email" autocomplete="username" placeholder="you@example.com">
+    </div>
+    <div class="f">
+      <label>Password</label>
+      <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <button class="auth-btn" id="auth-submit" onclick="doLogin()"><i class="ti ti-login"></i> Sign in</button>
+  </div>
+</div>
 
 <!-- ══ DASHBOARD ══════════════════════════════════════════════════ -->
 <div class="page active" id="pg-dash">
@@ -436,12 +476,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <!-- HubSpot Settings -->
   <div class="card" style="margin-top:.5rem">
     <div class="card-title">HubSpot integration</div>
-    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">When a cash/check payment is recorded, the app updates the customer's HubSpot contact with the last payment date and amount. Requires a Service Key with <code>crm.objects.contacts.write</code> scope.</p>
-    <div class="fr">
-      <div class="f"><label>HubSpot Private App token</label><input type="password" id="hs-key" placeholder="pat-na1-..." autocomplete="off"></div>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">When a cash/check payment is recorded, the app updates the customer's HubSpot contact with the last payment date and amount.</p>
+    <div style="background:var(--bp);border:1px solid #b3c8f0;border-radius:var(--r);padding:.75rem .875rem;font-size:13px;color:var(--blue);line-height:1.6">
+      <strong>Token stored server-side.</strong> For security, your HubSpot Private App token is set as the <code>HUBSPOT_TOKEN</code> environment variable on your Netlify deployment — never in this app. The token is a full-access CRM credential, so it must not live in the browser.
     </div>
-    <button class="btn btng" onclick="saveHubSpotKey()" style="width:100%"><i class="ti ti-check"></i> Save HubSpot token</button>
-    <div id="hs-save-msg" style="display:none;margin-top:.625rem;font-size:13px;color:var(--green);text-align:center"></div>
+    <button class="btn bsm" onclick="saveHubSpotKey()" style="width:100%;margin-top:.625rem">Clear any token saved by older versions</button>
+    <input type="hidden" id="hs-key">
+    <div id="hs-save-msg" style="display:none;margin-top:.625rem;font-size:13px;color:var(--blue);text-align:center"></div>
   </div>
 
   <!-- Deduplicate -->
@@ -466,6 +507,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     </div>
     <input type="file" id="restore-file" accept=".json" style="display:none" onchange="restoreData(this)">
     <div id="restore-msg" style="display:none;margin-top:.75rem;border-radius:var(--r);padding:.75rem;font-size:13px"></div>
+  </div>
+
+  <!-- Account -->
+  <div class="card" style="margin-top:.5rem">
+    <div class="card-title">Account</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+      <div style="font-size:13px;color:var(--ink3)" id="account-email">Signed in</div>
+      <button class="btn bsm btnr" onclick="doLogout()"><i class="ti ti-logout"></i> Sign out</button>
+    </div>
   </div>
 </div>
 
@@ -716,6 +766,40 @@ function safeParseJSON(str,fallback){
   try{return JSON.parse(str||'null')||fallback;}catch(e){return fallback;}
 }
 
+// ══ XSS-SAFE OUTPUT HELPERS ══════════════════════════════════════
+// esc(): escape arbitrary user text before inserting into innerHTML.
+// attr(): escape text destined for an HTML attribute value (double-quoted).
+// jsStr(): escape text that will sit inside a single-quoted JS string in an
+//          inline handler (e.g. onclick="foo('...')"). Strips anything that
+//          could break out of the quotes or the attribute.
+function esc(v){
+  return String(v==null?'':v)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+function attr(v){return esc(v);}
+function jsStr(v){
+  // For values interpolated into single-quoted JS strings inside attributes.
+  // Remove characters that could terminate the string or the attribute.
+  return String(v==null?'':v)
+    .replace(/\\/g,'\\\\')
+    .replace(/'/g,'\\x27')
+    .replace(/"/g,'\\x22')
+    .replace(/</g,'\\x3C')
+    .replace(/>/g,'\\x3E')
+    .replace(/&/g,'\\x26')
+    .replace(/\r?\n/g,' ');
+}
+// Only allow http(s) URLs; anything else (javascript:, data:, etc.) → ''.
+function safeUrl(u){
+  const s=String(u==null?'':u).trim();
+  if(/^https?:\/\//i.test(s))return s;
+  return '';
+}
+
 // ══ DATA STORE ═══════════════════════════════════════════════════
 let DB = {
   customers: [],
@@ -723,79 +807,106 @@ let DB = {
   settings: {mapsKey:'',homeBase:'',startTime:'07:00',hours:8}
 };
 
+// Tracks the last-synced signature of each record so we only push changes.
+const _syncedSig = {customers:{}, jobs:{}};
+function _sig(obj){return JSON.stringify(obj);}
+
+function _customerRow(customer){
+  return {
+    id: customer.id,
+    first: customer.first||'',
+    last: customer.last||'',
+    addr: customer.addr||'',
+    zip: customer.zip||'',
+    phone: customer.phone||'',
+    email: customer.email||'',
+    sched: customer.sched||'weekly',
+    day: parseInt(customer.day||0),
+    price: customer.price===''||customer.price==null?0:parseFloat(customer.price),
+    mowtime: customer.mowTime===''||customer.mowTime==null?45:parseInt(customer.mowTime),
+    size: customer.size||'md',
+    gate: customer.gate||'',
+    notes: customer.notes||'',
+    hubspot_url: customer.hubspotUrl||'',
+    hubspot_contact_id: customer.hubspotContactId||'',
+    stripe_customer_id: customer.stripeCustomerId||'',
+    pay_method: customer.payMethod||'cash',
+    pay_link: customer.payLink||'',
+    service_type: customer.serviceType||'mow',
+    resume_date: customer.resumeDate||null,
+    pause_reason: customer.pauseReason||'',
+    start_date: customer.startDate||null,
+    biweekly_week: customer.biweeklyWeek||'A',
+    skip_weeks: JSON.stringify(customer.skipWeeks||[])
+  };
+}
+
+function _jobRow(job){
+  return {
+    id: job.id,
+    cust_id: job.custId,
+    date: job.date,
+    actual_min: job.actualMin||0,
+    est_min: job.estMin||0,
+    paid: job.paid||false,
+    paid_method: job.paidMethod||null,
+    notes: job.notes||'',
+    is_one_off: job.isOneOff||false,
+    before_photo_urls: JSON.stringify(job.beforePhotoUrls||[]),
+    after_photo_urls: JSON.stringify(job.afterPhotoUrls||[]),
+    extra_photo_urls: JSON.stringify(job.extraPhotoUrls||[]),
+    // Keep base64 columns for backwards compatibility with old records
+    before_photos: JSON.stringify((job.beforePhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p)),
+    after_photos: JSON.stringify((job.afterPhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p)),
+    extra_photos: JSON.stringify((job.extraPhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p))
+  };
+}
+
 async function saveDB(){
+  // Local save first — always succeeds offline and is the source of truth.
   try{
     localStorage.setItem('ros_db',JSON.stringify(DB));
   }catch(e){
     console.log('Local save error',e);
   }
 
+  // Assign UUIDs to any new records before building rows.
+  for(const customer of DB.customers){
+    if(!isUuid(customer.id))customer.id=makeUuid();
+  }
+  for(const job of DB.jobHistory){
+    if(!isUuid(job.id))job.id=makeUuid();
+  }
+
+  // Only push records whose content changed since the last successful sync,
+  // and send them in a single batched upsert per table.
   try{
+    const changed=[];
     for(const customer of DB.customers){
-      if(!isUuid(customer.id)){
-        customer.id=makeUuid();
-      }
-      const {error}=await supabaseClient
-        .from('customers')
-        .upsert({
-          id: customer.id,
-          first: customer.first||'',
-          last: customer.last||'',
-          addr: customer.addr||'',
-          zip: customer.zip||'',
-          phone: customer.phone||'',
-          email: customer.email||'',
-          sched: customer.sched||'weekly',
-          day: parseInt(customer.day||0),
-          price: customer.price===''||customer.price==null?0:parseFloat(customer.price),
-          mowtime: customer.mowTime===''||customer.mowTime==null?45:parseInt(customer.mowTime),
-          size: customer.size||'md',
-          gate: customer.gate||'',
-          notes: customer.notes||'',
-          hubspot_url: customer.hubspotUrl||'',
-          hubspot_contact_id: customer.hubspotContactId||'',
-          stripe_customer_id: customer.stripeCustomerId||'',
-          pay_method: customer.payMethod||'cash',
-          pay_link: customer.payLink||'',
-          service_type: customer.serviceType||'mow',
-          resume_date: customer.resumeDate||null,
-          pause_reason: customer.pauseReason||'',
-          start_date: customer.startDate||null,
-          biweekly_week: customer.biweeklyWeek||'A',
-          skip_weeks: JSON.stringify(customer.skipWeeks||[])
-        });
-      if(error){ console.log('Supabase save error',error); }
+      const row=_customerRow(customer);
+      const sig=_sig(row);
+      if(_syncedSig.customers[customer.id]!==sig)changed.push({row,id:customer.id,sig});
+    }
+    if(changed.length){
+      const {error}=await supabaseClient.from('customers').upsert(changed.map(c=>c.row));
+      if(error){console.log('Supabase save error',error);}
+      else{changed.forEach(c=>{_syncedSig.customers[c.id]=c.sig;});}
     }
   }catch(err){
     console.log('Supabase sync error',err);
   }
 
-  // Sync job history to Supabase — store URLs only (not base64 blobs)
   try{
+    const changed=[];
     for(const job of DB.jobHistory){
-      if(!isUuid(job.id)){job.id=makeUuid();}
-      const {error}=await supabaseClient
-        .from('job_history')
-        .upsert({
-          id: job.id,
-          cust_id: job.custId,
-          date: job.date,
-          actual_min: job.actualMin||0,
-          est_min: job.estMin||0,
-          paid: job.paid||false,
-          paid_method: job.paidMethod||null,
-          notes: job.notes||'',
-          is_one_off: job.isOneOff||false,
-          // Store URLs in the URL columns (empty array if not yet uploaded)
-          before_photo_urls: JSON.stringify(job.beforePhotoUrls||[]),
-          after_photo_urls: JSON.stringify(job.afterPhotoUrls||[]),
-          extra_photo_urls: JSON.stringify(job.extraPhotoUrls||[]),
-          // Keep base64 columns for backwards compatibility with old records
-          before_photos: JSON.stringify((job.beforePhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p)),
-          after_photos: JSON.stringify((job.afterPhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p)),
-          extra_photos: JSON.stringify((job.extraPhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p))
-        });
+      const row=_jobRow(job);
+      const sig=_sig(row);
+      if(_syncedSig.jobs[job.id]!==sig)changed.push({row,id:job.id,sig});
+    }
+    if(changed.length){
+      const {error}=await supabaseClient.from('job_history').upsert(changed.map(c=>c.row));
       if(error&&error.code!=='42P01'){console.log('Job history sync error',error);}
+      else if(!error){changed.forEach(c=>{_syncedSig.jobs[c.id]=c.sig;});}
     }
   }catch(err){
     console.log('Job history sync error',err);
@@ -918,7 +1029,7 @@ function fmtDate(d){return new Date(d).toLocaleDateString('en-US',{month:'short'
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function custFullName(c){return (c.first+' '+c.last).trim();}
 function custAddr(c){return c.addr+(c.zip?', '+c.zip:'');}
-function initials(c){return ((c.first||'')[0]||'')+(( c.last||'')[0]||'').toUpperCase();}
+function initials(c){return (((c.first||'')[0]||'')+((c.last||'')[0]||'')).toUpperCase();}
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const DAYS_FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
@@ -1045,8 +1156,8 @@ function renderDayJobs(){
     h+=`<div style="display:flex;align-items:center;gap:10px;padding:.5rem 0;border-bottom:1px solid var(--s3)">
       <div style="width:28px;height:28px;border-radius:50%;background:${done?'var(--gl)':'var(--green)'};color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0">${done?'<i class="ti ti-check" style="font-size:13px"></i>':(i+1)}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:13px">${custFullName(c)}</div>
-        <div style="font-size:11px;color:var(--ink3)">${custAddr(c)} · ${fmtMins(c.mowTime)}</div>
+        <div style="font-weight:600;font-size:13px">${esc(custFullName(c))}</div>
+        <div style="font-size:11px;color:var(--ink3)">${esc(custAddr(c))} · ${esc(fmtMins(c.mowTime))}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-weight:600;font-size:13px;color:var(--green)">$${parseFloat(c.price||0).toFixed(0)}</div>
@@ -1067,28 +1178,28 @@ function renderUnpaid(){
     const hasStripeId=c&&c.stripeCustomerId&&c.stripeCustomerId.startsWith('cus_');
     const link=c?(c.payLink||getBestPayLink(price)):'';
     const desc=j.serviceDesc||'';
-    return `<div id="unpaid-job-${j.id}" style="padding:.75rem 0;border-bottom:1px solid var(--s3)">
+    return `<div id="unpaid-job-${attr(j.id)}" style="padding:.75rem 0;border-bottom:1px solid var(--s3)">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.5rem;gap:8px">
         <div style="flex:1;min-width:0">
-          <div style="font-weight:600;font-size:13px">${c?custFullName(c):j.custId}</div>
-          <div style="font-size:11px;color:var(--ink3)">${fmtDate(j.date)}${desc?' · '+desc:''}</div>
+          <div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):esc(j.custId)}</div>
+          <div style="font-size:11px;color:var(--ink3)">${esc(fmtDate(j.date))}${desc?' · '+esc(desc):''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           <span style="font-weight:700;font-size:15px;color:var(--red)">$${price.toFixed(2)}</span>
-          <button class="btn bxsm" onclick="openEditJobModal('${j.id}')" style="font-size:10px"><i class="ti ti-edit" style="font-size:10px"></i></button>
+          <button class="btn bxsm" onclick="openEditJobModal('${jsStr(j.id)}')" style="font-size:10px"><i class="ti ti-edit" style="font-size:10px"></i></button>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
-        <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:10px" onclick="markPaidDash('${j.id}','cash')">
+        <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:10px" onclick="markPaidDash('${jsStr(j.id)}','cash')">
           <i class="ti ti-cash" style="font-size:10px"></i> Cash
         </button>
-        <button class="btn bxsm" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0;font-size:10px" onclick="${hasStripeId?`chargeDash('${j.id}','${c.stripeCustomerId}',${price})`:`openPayLinkDash('${link}')`}">
+        <button class="btn bxsm" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0;font-size:10px" onclick="${hasStripeId?`chargeDash('${jsStr(j.id)}','${jsStr(c.stripeCustomerId)}',${price})`:`openPayLinkDash('${jsStr(safeUrl(link))}')`}">
           <i class="ti ti-credit-card" style="font-size:10px"></i> Card
         </button>
-        <button class="btn bxsm" style="background:var(--ambp);color:var(--amb);border-color:#f0d9a0;font-size:10px" onclick="invoiceDash('${j.id}','${j.custId}',${price})">
+        <button class="btn bxsm" style="background:var(--ambp);color:var(--amb);border-color:#f0d9a0;font-size:10px" onclick="invoiceDash('${jsStr(j.id)}','${jsStr(j.custId)}',${price})">
           <i class="ti ti-send" style="font-size:10px"></i> Invoice
         </button>
-        <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:10px" onclick="markPaidDash('${j.id}','paid')">
+        <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:10px" onclick="markPaidDash('${jsStr(j.id)}','paid')">
           <i class="ti ti-check" style="font-size:10px"></i> Paid
         </button>
       </div>
@@ -1304,8 +1415,8 @@ function renderCalDayPanel(dateStr){
     h+=`<div class="cal-job-row">
       ${statusDot}
       <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:13px">${custFullName(c)}</div>
-        <div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${custAddr(c)}</div>
+        <div style="font-weight:600;font-size:13px">${esc(custFullName(c))}</div>
+        <div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(custAddr(c))}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px">
         <span style="font-size:12px;font-weight:600;color:var(--green)">$${parseFloat(c.price||0).toFixed(0)}</span>
@@ -1485,8 +1596,8 @@ function renderPlan(){
     h+=`<div class="sched-row">
       <div class="sched-num">${i+1}</div>
       <div class="sched-info">
-        <div class="sched-name">${j.name} <span class="tag ${tagCls[j.size]}">${tagLbl[j.size]}</span></div>
-        <div class="sched-detail">${j.addr}${j.notes?' · <em>'+j.notes+'</em>':''}</div>
+        <div class="sched-name">${esc(j.name)} <span class="tag ${tagCls[j.size]||'tag-gray'}">${esc(tagLbl[j.size]||'')}</span></div>
+        <div class="sched-detail">${esc(j.addr)}${j.notes?' · <em>'+esc(j.notes)+'</em>':''}</div>
         <div style="font-size:11px;color:var(--ink3);margin-top:2px">Arrive ${fmtClock(j.arr)} · Done ${fmtClock(j.done)}</div>
       </div>
       <div class="sched-right"><div class="sched-time">${j.mm}</div><div class="sched-timelbl">min</div></div>
@@ -1496,7 +1607,7 @@ function renderPlan(){
   document.getElementById('plan-jobs-list').innerHTML=planJobs.map((j,i)=>
     `<div style="display:flex;align-items:center;gap:10px;padding:.5rem 0;border-bottom:1px solid var(--s3)">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--ink3);width:24px;text-align:center">${i+1}</div>
-      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${j.name}</div><div style="font-size:11px;color:var(--ink3)">${j.addr}</div></div>
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(j.name)}</div><div style="font-size:11px;color:var(--ink3)">${esc(j.addr)}</div></div>
       <button class="btn bxsm btnr" onclick="removePlanJob(${i})"><i class="ti ti-trash"></i></button>
     </div>`).join('');
 }
@@ -1689,22 +1800,22 @@ function buildJobCard(j,i){
   const beforeSrcs=s.beforePhotos.map((p,pi)=>s.beforePhotoUrls&&s.beforePhotoUrls[pi]?s.beforePhotoUrls[pi]:p);
   const afterSrcs=s.afterPhotos.map((p,pi)=>s.afterPhotoUrls&&s.afterPhotoUrls[pi]?s.afterPhotoUrls[pi]:p);
   const extraSrcs=s.extraPhotos.map((p,pi)=>s.extraPhotoUrls&&s.extraPhotoUrls[pi]?s.extraPhotoUrls[pi]:p);
-  const beforeGrid=beforeSrcs.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'before',${pi})" onerror="this.style.opacity='.3'">`).join('');
-  const afterGrid=afterSrcs.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'after',${pi})" onerror="this.style.opacity='.3'">`).join('');
-  const extraGrid=extraSrcs.map((p,pi)=>`<img class="pthumb" src="${p}" onclick="openPV(${i},'extra',${pi})" onerror="this.style.opacity='.3'">`).join('');
+  const beforeGrid=beforeSrcs.map((p,pi)=>`<img class="pthumb" src="${attr(p)}" onclick="openPV(${i},'before',${pi})" onerror="this.style.opacity='.3'">`).join('');
+  const afterGrid=afterSrcs.map((p,pi)=>`<img class="pthumb" src="${attr(p)}" onclick="openPV(${i},'after',${pi})" onerror="this.style.opacity='.3'">`).join('');
+  const extraGrid=extraSrcs.map((p,pi)=>`<img class="pthumb" src="${attr(p)}" onclick="openPV(${i},'extra',${pi})" onerror="this.style.opacity='.3'">`).join('');
 
   return `<div class="job-card ${ccls}" id="jcard-${i}">
   <div class="job-hdr" onclick="toggleJCard(${i})">
     <div class="job-num2" id="jnum-${i}">${s.status==='done'?'<i class="ti ti-check" style="font-size:15px"></i>':(i+1)}</div>
-    <div class="job-meta2"><div class="job-name2">${j.name||'Job #'+(i+1)}</div><div class="job-addr2">${j.addr}</div></div>
+    <div class="job-meta2"><div class="job-name2">${esc(j.name||'Job #'+(i+1))}</div><div class="job-addr2">${esc(j.addr||'')}</div></div>
     <div class="jstat ${scls[s.status]}">${slbl[s.status]}</div>
   </div>
   <div class="job-body2">
     <div class="est-info">
       <span><i class="ti ti-clock" style="font-size:11px"></i> Est. ${fmtMins(j.estMin)}</span>
       <span><i class="ti ti-flag" style="font-size:11px"></i> Arrive ${fmtClock(j.arr)}</span>
-      ${j.notes?`<span><i class="ti ti-note" style="font-size:11px"></i> ${j.notes}</span>`:''}
-      ${j.serviceType&&j.serviceType!=='mow'?`<span><i class="ti ti-list-check" style="font-size:11px"></i> ${{mow:'Mow only',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'}[j.serviceType]||j.serviceType}</span>`:''}
+      ${j.notes?`<span><i class="ti ti-note" style="font-size:11px"></i> ${esc(j.notes)}</span>`:''}
+      ${j.serviceType&&j.serviceType!=='mow'?`<span><i class="ti ti-list-check" style="font-size:11px"></i> ${esc({mow:'Mow only',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'}[j.serviceType]||j.serviceType)}</span>`:''}
     </div>
 
     <!-- Before photos -->
@@ -1759,15 +1870,15 @@ function buildJobCard(j,i){
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.875rem">
       <button class="btn" style="font-size:12px" onclick="document.getElementById('ecam-${i}').click()"><i class="ti ti-camera-plus"></i> Extra photo</button>
-      <button class="btn" style="font-size:12px" onclick="navTo('${j.addr.replace(/'/g,"\\'")}')"><i class="ti ti-navigation"></i> Navigate</button>
-      <button class="btn" style="font-size:12px;grid-column:span 2" onclick="sendOnMyWayFromTracker('${j.id}')"><i class="ti ti-send"></i> Text "On my way"</button>
+      <button class="btn" style="font-size:12px" onclick="navTo('${jsStr(j.addr||'')}')"><i class="ti ti-navigation"></i> Navigate</button>
+      <button class="btn" style="font-size:12px;grid-column:span 2" onclick="sendOnMyWayFromTracker('${jsStr(j.id)}')"><i class="ti ti-send"></i> Text "On my way"</button>
       <input type="file" id="ecam-${i}" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(${i},'extra',this)">
     </div>
 
     ${s.extraPhotos.length>0?`<div class="photo-section"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">Extra photos (${s.extraPhotos.length})</div><div class="photo-grid">${extraGrid}</div></div>`:''}
 
     <div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.4rem">Field notes</div>
-    <textarea class="notes-area" id="jnotes-${i}" placeholder="Gate confirmed, issues found..." oninput="getTS(${i}).notes=this.value;saveTrackerStates()">${s.notes}</textarea></div>
+    <textarea class="notes-area" id="jnotes-${i}" placeholder="Gate confirmed, issues found..." oninput="getTS(${i}).notes=this.value;saveTrackerStates()">${esc(s.notes)}</textarea></div>
   </div>
 </div>`;
 }
@@ -1904,19 +2015,19 @@ function buildPaymentUI(j,i,s){
     return `<div class="pay-done-badge">
       <i class="ti ti-circle-check-filled" style="font-size:24px;color:var(--green);flex-shrink:0"></i>
       <div><div style="font-weight:700;font-size:14px;color:var(--green)">Payment recorded</div>
-      <div style="font-size:12px;color:var(--ink3)">${rec.paidMethod==='cash'?'Cash / Check':rec.paidMethod==='card'?'Charged via Stripe':rec.paidMethod==='invoice'?'Invoice sent':'Paid'} · $${parseFloat(rec.chargedAmount||price).toFixed(2)}${rec.serviceDesc?' · '+rec.serviceDesc:''}</div></div>
+      <div style="font-size:12px;color:var(--ink3)">${rec.paidMethod==='cash'?'Cash / Check':rec.paidMethod==='card'?'Charged via Stripe':rec.paidMethod==='invoice'?'Invoice sent':'Paid'} · $${parseFloat(rec.chargedAmount||price).toFixed(2)}${rec.serviceDesc?' · '+esc(rec.serviceDesc):''}</div></div>
     </div>
-    <button class="btn bsm" onclick="textCustomer('${j.id}')" style="margin-bottom:.875rem;width:100%"><i class="ti ti-message"></i> Text job summary</button>`;
+    <button class="btn bsm" onclick="textCustomer('${jsStr(j.id)}')" style="margin-bottom:.875rem;width:100%"><i class="ti ti-message"></i> Text job summary</button>`;
   }
 
   const stripeNote=hasStripe?'':`<div style="font-size:11px;color:var(--amb);margin-top:4px">⚠ Set up Stripe links in Reports → Payment settings</div>`;
 
   // Build service buttons
   const svcButtons=services.map(svc=>`
-    <button id="svc-btn-${i}-${svc.id}"
-      onclick="toggleService(${i},'${svc.id}',${svc.price},${price})"
+    <button id="svc-btn-${i}-${attr(svc.id)}"
+      onclick="toggleService(${i},'${jsStr(svc.id)}',${parseFloat(svc.price)||0},${price})"
       style="height:auto;padding:.5rem .75rem;border-radius:var(--r);border:1px solid var(--bd);background:var(--s2);color:var(--ink);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px;transition:all .15s">
-      <span>${svc.name}</span>
+      <span>${esc(svc.name)}</span>
       <span style="font-size:11px;opacity:.7">+$${parseFloat(svc.price).toFixed(0)}</span>
     </button>`).join('');
 
@@ -1943,7 +2054,7 @@ function buildPaymentUI(j,i,s){
       </div>
     </div>
 
-    <div class="pay-box pay-cash" onclick="payByCash('${j.id}','${i}',getPayAmount(${i}))">
+    <div class="pay-box pay-cash" onclick="payByCash('${jsStr(j.id)}','${i}',getPayAmount(${i}))">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="font-size:26px">💵</div>
         <div>
@@ -1954,7 +2065,7 @@ function buildPaymentUI(j,i,s){
       </div>
     </div>
 
-    <div class="pay-box pay-card" onclick="payByCard('${j.id}','${i}',getPayAmount(${i}))">
+    <div class="pay-box pay-card" onclick="payByCard('${jsStr(j.id)}','${i}',getPayAmount(${i}))">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="font-size:26px">💳</div>
         <div>
@@ -1966,7 +2077,7 @@ function buildPaymentUI(j,i,s){
       </div>
     </div>
 
-    <div class="pay-box pay-invoice" onclick="payByInvoice('${j.id}','${i}',getPayAmount(${i}))">
+    <div class="pay-box pay-invoice" onclick="payByInvoice('${jsStr(j.id)}','${i}',getPayAmount(${i}))">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="font-size:26px">📨</div>
         <div>
@@ -2038,10 +2149,10 @@ function payByCard(custId,i,price){
     // Charge card on file via Netlify backend
     parent.innerHTML=`
       <div class="pay-confirm-card" style="background:var(--bp);border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
-        <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.75rem"><i class="ti ti-credit-card"></i> Charge card on file — ${name}</div>
+        <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.75rem"><i class="ti ti-credit-card"></i> Charge card on file — ${esc(name)}</div>
         <div class="pay-amount">$${amount}</div>
         <p style="font-size:13px;color:var(--ink3);text-align:center;margin:.75rem 0">Charges the card saved in Stripe for this customer.</p>
-        <button class="btn btng" style="width:100%;margin-bottom:.5rem" id="charge-btn-${i}" onclick="executeCardCharge('${custId}','${i}',${price})">
+        <button class="btn btng" style="width:100%;margin-bottom:.5rem" id="charge-btn-${i}" onclick="executeCardCharge('${jsStr(custId)}','${i}',${price})">
           <i class="ti ti-credit-card"></i> Charge $${amount} now
         </button>
         <button class="btn btn-ghost bsm" style="width:100%" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
@@ -2050,20 +2161,20 @@ function payByCard(custId,i,price){
     // No Stripe ID — fall back to payment link
     parent.innerHTML=`
       <div class="pay-confirm-card" style="background:var(--bp);border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
-        <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.75rem"><i class="ti ti-credit-card"></i> Charge card — ${name}</div>
+        <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.75rem"><i class="ti ti-credit-card"></i> Charge card — ${esc(name)}</div>
         <div class="pay-amount">$${amount}</div>
         <div style="background:#fff3cd;border-radius:8px;padding:.625rem;font-size:12px;color:#856404;margin-bottom:.875rem">No Stripe Customer ID set — using payment link instead. Add their Stripe ID in Edit customer to enable one-tap charging.</div>
-        <button class="btn btng" style="width:100%;margin-bottom:.5rem" onclick="window.open('${link}','_blank')"><i class="ti ti-external-link"></i> Open payment page — $${amount}</button>
-        <button class="btn btng" style="width:100%;margin-bottom:.5rem" onclick="recordPayment('${custId}','${i}','card')"><i class="ti ti-check"></i> Confirm charged</button>
+        <button class="btn btng" style="width:100%;margin-bottom:.5rem" onclick="window.open('${jsStr(safeUrl(link))}','_blank')"><i class="ti ti-external-link"></i> Open payment page — $${amount}</button>
+        <button class="btn btng" style="width:100%;margin-bottom:.5rem" onclick="recordPayment('${jsStr(custId)}','${i}','card')"><i class="ti ti-check"></i> Confirm charged</button>
         <button class="btn btn-ghost bsm" style="width:100%" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
       </div>`;
   } else {
     parent.innerHTML=`
       <div class="pay-confirm-card" style="background:var(--bp);border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
-        <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.75rem"><i class="ti ti-credit-card"></i> Charge card — ${name}</div>
+        <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.75rem"><i class="ti ti-credit-card"></i> Charge card — ${esc(name)}</div>
         <div class="pay-amount">$${amount}</div>
         <div style="background:var(--rp);border-radius:8px;padding:.625rem;font-size:12px;color:var(--red);margin-bottom:.875rem">No Stripe Customer ID or payment link set up. Edit this customer to add one.</div>
-        <button class="btn btng" style="width:100%;margin-bottom:.5rem" onclick="openCustModal('${custId}')"><i class="ti ti-edit"></i> Edit customer</button>
+        <button class="btn btng" style="width:100%;margin-bottom:.5rem" onclick="openCustModal('${jsStr(custId)}')"><i class="ti ti-edit"></i> Edit customer</button>
         <button class="btn btn-ghost bsm" style="width:100%" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
       </div>`;
   }
@@ -2130,11 +2241,11 @@ function payByInvoice(custId,i,price){
 
   parent.innerHTML=`
     <div style="background:var(--ambp);border:1px solid #f0c070;border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
-      <div style="font-weight:700;font-size:15px;color:var(--amb);margin-bottom:.75rem"><i class="ti ti-send" style="font-size:16px"></i> Send invoice — ${custFullName(c)}</div>
-      <div style="background:var(--s);border-radius:var(--r);padding:.75rem;font-size:13px;line-height:1.6;color:var(--ink2);margin-bottom:.875rem;border:1px solid var(--bd)">${msgBody}</div>
+      <div style="font-weight:700;font-size:15px;color:var(--amb);margin-bottom:.75rem"><i class="ti ti-send" style="font-size:16px"></i> Send invoice — ${esc(custFullName(c))}</div>
+      <div style="background:var(--s);border-radius:var(--r);padding:.75rem;font-size:13px;line-height:1.6;color:var(--ink2);margin-bottom:.875rem;border:1px solid var(--bd)">${esc(msgBody)}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        ${c.phone?`<button class="btn btna" onclick="sendInvoiceText('${custId}','${i}',${price})"><i class="ti ti-message"></i> Send text</button>`:'<div></div>'}
-        ${c.email?`<button class="btn btna" onclick="sendInvoiceEmail('${custId}','${i}',${price})"><i class="ti ti-mail"></i> Send email</button>`:'<div></div>'}
+        ${c.phone?`<button class="btn btna" onclick="sendInvoiceText('${jsStr(custId)}','${i}',${price})"><i class="ti ti-message"></i> Send text</button>`:'<div></div>'}
+        ${c.email?`<button class="btn btna" onclick="sendInvoiceEmail('${jsStr(custId)}','${i}',${price})"><i class="ti ti-mail"></i> Send email</button>`:'<div></div>'}
       </div>
       <button class="btn btn-ghost bsm" style="width:100%;margin-top:.5rem" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
     </div>`;
@@ -2380,12 +2491,21 @@ function markJobPaid(custId,i){
 }
 
 function saveHubSpotKey(){
-  const key=document.getElementById('hs-key').value.trim();
-  DB.settings.hubspotKey=key;
-  saveDB();
+  // SECURITY: The HubSpot token is no longer stored in the browser. It must be
+  // set as the HUBSPOT_TOKEN environment variable on your Netlify deployment.
+  // This handler only scrubs any token that older versions may have saved.
+  const el=document.getElementById('hs-key');
+  if(el)el.value='';
+  if(DB.settings&&DB.settings.hubspotKey){
+    delete DB.settings.hubspotKey;
+    saveDB();
+  }
   const msg=document.getElementById('hs-save-msg');
-  msg.textContent='✓ Saved';msg.style.display='';
-  setTimeout(()=>msg.style.display='none',2000);
+  if(msg){
+    msg.textContent='Set the token as HUBSPOT_TOKEN in Netlify — it is not stored here.';
+    msg.style.display='';
+    setTimeout(()=>msg.style.display='none',5000);
+  }
 }
 
 function textCustomer(custId){
@@ -2466,17 +2586,17 @@ async function exportDaySummary(){
       return srcs.map((p,pi)=>`<div style="margin-bottom:12px"><img src="${p}" style="width:100%;max-width:340px;border-radius:8px;border:1px solid #ddd;display:block;margin-bottom:6px">${isBase64Photo(p)?`<a href="${p}" download="${prefix}-${pi+1}.jpg" style="font-size:12px;color:#2d5a27;font-weight:600;text-decoration:none">⬇ Save ${label} ${pi+1}</a>`:`<a href="${p}" target="_blank" style="font-size:12px;color:#2d5a27;font-weight:600;text-decoration:none">🔗 View ${label} ${pi+1}</a>`}</div>`).join('');
     }
     const safe=(j.name||'Job').replace(/[^a-z0-9]/gi,'_');
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${j.name} — Job Summary</title><style>body{font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:2rem 1.25rem;color:#1a1a1a}h1{color:#2d5a27;font-size:22px;margin-bottom:.25rem}.co{font-size:13px;color:#888;margin-bottom:1.5rem}.badge{display:inline-block;padding:4px 14px;border-radius:99px;font-size:12px;font-weight:700;text-transform:uppercase;background:${s.status==='done'?'#d4edda':'#fff3cd'};color:${s.status==='done'?'#155724':'#856404'};margin-bottom:1.5rem}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem}.box{background:#f7f8f5;border-radius:8px;padding:.875rem}.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:.25rem}.val{font-size:18px;font-weight:600}.section{margin-bottom:1.5rem}.stitle{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:.75rem;padding-bottom:.375rem;border-bottom:1px solid #eee}hr{border:none;border-top:1px solid #eee;margin:1.5rem 0}.nbox{background:#f7f8f5;border-radius:8px;padding:.875rem;font-size:14px;white-space:pre-wrap;line-height:1.6}footer{font-size:12px;color:#aaa;text-align:center;margin-top:2rem;padding-top:1rem;border-top:1px solid #eee}</style></head><body>
-<h1>${j.name||'Job #'+(i+1)}</h1><div class="co">Richardson Outdoor Solutions · ${dateStr}</div>
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(j.name||'Job')} — Job Summary</title><style>body{font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:2rem 1.25rem;color:#1a1a1a}h1{color:#2d5a27;font-size:22px;margin-bottom:.25rem}.co{font-size:13px;color:#888;margin-bottom:1.5rem}.badge{display:inline-block;padding:4px 14px;border-radius:99px;font-size:12px;font-weight:700;text-transform:uppercase;background:${s.status==='done'?'#d4edda':'#fff3cd'};color:${s.status==='done'?'#155724':'#856404'};margin-bottom:1.5rem}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem}.box{background:#f7f8f5;border-radius:8px;padding:.875rem}.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:.25rem}.val{font-size:18px;font-weight:600}.section{margin-bottom:1.5rem}.stitle{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:.75rem;padding-bottom:.375rem;border-bottom:1px solid #eee}hr{border:none;border-top:1px solid #eee;margin:1.5rem 0}.nbox{background:#f7f8f5;border-radius:8px;padding:.875rem;font-size:14px;white-space:pre-wrap;line-height:1.6}footer{font-size:12px;color:#aaa;text-align:center;margin-top:2rem;padding-top:1rem;border-top:1px solid #eee}</style></head><body>
+<h1>${esc(j.name||'Job #'+(i+1))}</h1><div class="co">Richardson Outdoor Solutions · ${esc(dateStr)}</div>
 <span class="badge">${s.status==='done'?'✓ Complete':'In Progress'}</span>
-<div class="section"><div class="lbl">Address</div><div style="font-size:15px">${j.addr}</div></div>
+<div class="section"><div class="lbl">Address</div><div style="font-size:15px">${esc(j.addr||'')}</div></div>
 <div class="grid">
   <div class="box"><div class="lbl">Actual time</div><div class="val">${actualMin>0?actualMin+' min':'—'}</div></div>
-  <div class="box"><div class="lbl">Estimated</div><div class="val">${j.estMin} min</div></div>
+  <div class="box"><div class="lbl">Estimated</div><div class="val">${parseInt(j.estMin)||0} min</div></div>
   <div class="box"><div class="lbl">Amount due</div><div class="val" style="color:#2d5a27">$${price.toFixed(2)}</div></div>
 </div>
-${j.notes?`<div class="section"><div class="lbl">Job notes</div><div class="nbox">${j.notes}</div></div>`:''}
-${s.notes?`<div class="section"><div class="lbl">Field notes</div><div class="nbox">${s.notes}</div></div>`:''}
+${j.notes?`<div class="section"><div class="lbl">Job notes</div><div class="nbox">${esc(j.notes)}</div></div>`:''}
+${s.notes?`<div class="section"><div class="lbl">Field notes</div><div class="nbox">${esc(s.notes)}</div></div>`:''}
 <hr>
 <div class="section"><div class="stitle">📷 Before photos (${s.beforePhotos.length})</div>${pSection(s.beforePhotos,s.beforePhotoUrls,'Before',safe+'-before')}</div>
 <div class="section"><div class="stitle">✅ After photos (${s.afterPhotos.length})</div>${pSection(s.afterPhotos,s.afterPhotoUrls,'After',safe+'-after')}</div>
@@ -2545,43 +2665,43 @@ function renderCustomers(){
     const lastJob=jobs.length?jobs.sort((a,b)=>b.date.localeCompare(a.date))[0]:null;
     const isCoord=/^-?\d{1,3}\.\d+,\s*-?\d{1,3}\.\d+/.test(c.addr||'');
     const coordBadge=isCoord?`<span class="coord-warn"><i class="ti ti-map-pin" style="font-size:9px"></i> Fix address</span>`:'';
-    return `<div class="cust-card" id="cc-${c.id}">
-      <div class="cust-hdr" onclick="toggleCust('${c.id}')">
-        <div class="cust-avatar">${initials(c)}</div>
+    return `<div class="cust-card" id="cc-${attr(c.id)}">
+      <div class="cust-hdr" onclick="toggleCust('${jsStr(c.id)}')">
+        <div class="cust-avatar">${esc(initials(c))}</div>
         <div class="cust-info">
-          <div class="cust-name">${custFullName(c)}${coordBadge}</div>
-          <div class="cust-meta">${custAddr(c)}${c.price?' · $'+parseFloat(c.price).toFixed(0):''}</div>
+          <div class="cust-name">${esc(custFullName(c))}${coordBadge}</div>
+          <div class="cust-meta">${esc(custAddr(c))}${c.price?' · $'+parseFloat(c.price).toFixed(0):''}</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-          <span class="tag ${schedBadge[c.sched]||'tag-gray'}">${schedLbl[c.sched]||c.sched}</span>
-          <span style="font-size:10px;color:var(--ink3)">${DAYS_FULL[parseInt(c.day||0)]}</span>
+          <span class="tag ${schedBadge[c.sched]||'tag-gray'}">${esc(schedLbl[c.sched]||c.sched)}</span>
+          <span style="font-size:10px;color:var(--ink3)">${esc(DAYS_FULL[parseInt(c.day||0)]||'')}</span>
         </div>
       </div>
       <div class="cust-body">
         <div class="detail-grid">
-          <div class="detail-item"><div class="dl">Phone</div><div class="dv">${c.phone||'—'}</div></div>
-          <div class="detail-item"><div class="dl">Email</div><div class="dv" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.email||'—'}</div></div>
-          <div class="detail-item"><div class="dl">Mow time</div><div class="dv">${fmtMins(c.mowTime)}</div></div>
+          <div class="detail-item"><div class="dl">Phone</div><div class="dv">${esc(c.phone||'—')}</div></div>
+          <div class="detail-item"><div class="dl">Email</div><div class="dv" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.email||'—')}</div></div>
+          <div class="detail-item"><div class="dl">Mow time</div><div class="dv">${esc(fmtMins(c.mowTime))}</div></div>
           <div class="detail-item"><div class="dl">Price</div><div class="dv" style="color:var(--green)">$${parseFloat(c.price||0).toFixed(2)}</div></div>
           <div class="detail-item"><div class="dl">Jobs done</div><div class="dv">${jobs.length}</div></div>
-          <div class="detail-item"><div class="dl">Last service</div><div class="dv" style="font-size:12px">${lastJob?fmtDate(lastJob.date):'Never'}</div></div>
+          <div class="detail-item"><div class="dl">Last service</div><div class="dv" style="font-size:12px">${lastJob?esc(fmtDate(lastJob.date)):'Never'}</div></div>
         </div>
-        ${c.gate?`<div style="background:var(--ambp);border-radius:8px;padding:.625rem .75rem;font-size:13px;color:var(--amb);margin-bottom:.75rem"><i class="ti ti-key" style="font-size:13px"></i> ${c.gate}</div>`:''}
-        ${c.sched==='paused'?`<div style="background:var(--ambp);border:1px solid #f0c070;border-radius:8px;padding:.625rem .75rem;font-size:13px;color:var(--amb);margin-bottom:.75rem"><i class="ti ti-player-pause" style="font-size:13px"></i> <strong>Paused</strong>${c.resumeDate?' · Resumes '+fmtDate(c.resumeDate):''}${c.pauseReason?' · '+c.pauseReason:''}</div>`:''}
-        ${c.notes?`<div style="background:var(--s2);border-radius:8px;padding:.625rem .75rem;font-size:13px;color:var(--ink2);margin-bottom:.75rem">${c.notes}</div>`:''}
-        ${c.serviceType&&c.serviceType!=='mow'?`<div style="font-size:11px;color:var(--ink3);margin-bottom:.75rem"><i class="ti ti-list-check" style="font-size:11px"></i> Service: <strong>${{mow:'Mow only',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'}[c.serviceType]||c.serviceType}</strong></div>`:''}
+        ${c.gate?`<div style="background:var(--ambp);border-radius:8px;padding:.625rem .75rem;font-size:13px;color:var(--amb);margin-bottom:.75rem"><i class="ti ti-key" style="font-size:13px"></i> ${esc(c.gate)}</div>`:''}
+        ${c.sched==='paused'?`<div style="background:var(--ambp);border:1px solid #f0c070;border-radius:8px;padding:.625rem .75rem;font-size:13px;color:var(--amb);margin-bottom:.75rem"><i class="ti ti-player-pause" style="font-size:13px"></i> <strong>Paused</strong>${c.resumeDate?' · Resumes '+esc(fmtDate(c.resumeDate)):''}${c.pauseReason?' · '+esc(c.pauseReason):''}</div>`:''}
+        ${c.notes?`<div style="background:var(--s2);border-radius:8px;padding:.625rem .75rem;font-size:13px;color:var(--ink2);margin-bottom:.75rem">${esc(c.notes)}</div>`:''}
+        ${c.serviceType&&c.serviceType!=='mow'?`<div style="font-size:11px;color:var(--ink3);margin-bottom:.75rem"><i class="ti ti-list-check" style="font-size:11px"></i> Service: <strong>${esc({mow:'Mow only',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'}[c.serviceType]||c.serviceType)}</strong></div>`:''}
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.5rem">
-          <button class="btn bsm btng" onclick="openCustModal('${c.id}')"><i class="ti ti-edit"></i> Edit</button>
-          ${c.phone?`<button class="btn bsm" onclick="window.open('tel:'+('${c.phone}'.replace(/\\D/g,'')))"><i class="ti ti-phone"></i> Call</button>`:''}
-          ${c.phone?`<button class="btn bsm" onclick="sendOnMyWay('${c.id}')"><i class="ti ti-navigation"></i> On my way</button>`:''}
-          ${c.phone?`<button class="btn bsm" onclick="window.open('sms:'+('${c.phone}'.replace(/\\D/g,'')))"><i class="ti ti-message"></i> Text</button>`:''}
-          ${c.hubspotUrl?`<button class="btn bsm btnb" onclick="window.open('${c.hubspotUrl}','_blank')"><i class="ti ti-brand-hubspot"></i> HubSpot</button>`:''}
-          <button class="btn bsm btnb" onclick="sendCardSetupLink('${c.id}')"><i class="ti ti-credit-card"></i> Send card setup</button>
-          <button class="btn bsm btnr" onclick="deleteCust('${c.id}')"><i class="ti ti-trash"></i> Delete</button>
+          <button class="btn bsm btng" onclick="openCustModal('${jsStr(c.id)}')"><i class="ti ti-edit"></i> Edit</button>
+          ${c.phone?`<button class="btn bsm" onclick="window.open('tel:'+('${jsStr(c.phone)}'.replace(/\\D/g,'')))"><i class="ti ti-phone"></i> Call</button>`:''}
+          ${c.phone?`<button class="btn bsm" onclick="sendOnMyWay('${jsStr(c.id)}')"><i class="ti ti-navigation"></i> On my way</button>`:''}
+          ${c.phone?`<button class="btn bsm" onclick="window.open('sms:'+('${jsStr(c.phone)}'.replace(/\\D/g,'')))"><i class="ti ti-message"></i> Text</button>`:''}
+          ${safeUrl(c.hubspotUrl)?`<button class="btn bsm btnb" onclick="window.open('${jsStr(safeUrl(c.hubspotUrl))}','_blank')"><i class="ti ti-brand-hubspot"></i> HubSpot</button>`:''}
+          <button class="btn bsm btnb" onclick="sendCardSetupLink('${jsStr(c.id)}')"><i class="ti ti-credit-card"></i> Send card setup</button>
+          <button class="btn bsm btnr" onclick="deleteCust('${jsStr(c.id)}')"><i class="ti ti-trash"></i> Delete</button>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          ${c.sched==='paused'?`<button class="btn bsm btng" onclick="resumeCust('${c.id}')"><i class="ti ti-player-play"></i> Resume schedule</button>`:`<button class="btn bsm" onclick="pauseCust('${c.id}')"><i class="ti ti-player-pause"></i> Pause schedule</button>`}
-          <button class="btn bsm" onclick="skipNextWeek('${c.id}')"><i class="ti ti-calendar-off"></i> Skip next visit</button>
+          ${c.sched==='paused'?`<button class="btn bsm btng" onclick="resumeCust('${jsStr(c.id)}')"><i class="ti ti-player-play"></i> Resume schedule</button>`:`<button class="btn bsm" onclick="pauseCust('${jsStr(c.id)}')"><i class="ti ti-player-pause"></i> Pause schedule</button>`}
+          <button class="btn bsm" onclick="skipNextWeek('${jsStr(c.id)}')"><i class="ti ti-calendar-off"></i> Skip next visit</button>
         </div>
         ${renderCustHistory(c.id)}
       </div>
@@ -2701,11 +2821,11 @@ function handleImportFile(file){
       document.getElementById('import-preview').style.display='';
       document.getElementById('import-tbody').innerHTML=importRows.map(r=>`
         <tr>
-          <td style="padding:6px 8px"><input type="checkbox" class="imp-cb" data-i="${r._i}" checked></td>
-          <td style="padding:6px 8px;font-weight:500;white-space:nowrap">${r.fn} ${r.ln}</td>
-          <td style="padding:6px 8px;font-size:12px;color:var(--ink3)">${r.addr||'—'}</td>
-          <td style="padding:6px 8px;font-size:12px;color:var(--ink3)">${r.phone||'—'}</td>
-          <td style="padding:6px 8px;font-size:12px;color:${r.hubspotId?'var(--green)':'var(--ink3)'}">${r.hubspotId||'—'}</td>
+          <td style="padding:6px 8px"><input type="checkbox" class="imp-cb" data-i="${attr(r._i)}" checked></td>
+          <td style="padding:6px 8px;font-weight:500;white-space:nowrap">${esc(r.fn)} ${esc(r.ln)}</td>
+          <td style="padding:6px 8px;font-size:12px;color:var(--ink3)">${esc(r.addr||'—')}</td>
+          <td style="padding:6px 8px;font-size:12px;color:var(--ink3)">${esc(r.phone||'—')}</td>
+          <td style="padding:6px 8px;font-size:12px;color:${r.hubspotId?'var(--green)':'var(--ink3)'}">${esc(r.hubspotId||'—')}</td>
         </tr>`).join('');
     }catch(err){alert('Could not read file.');}
   };
@@ -2790,8 +2910,8 @@ function renderCustHistory(custId){
         </div>
         <span class="tag ${j.paid?'tag-green':'tag-red'}">${j.paid?'Paid':'Unpaid'}</span>
       </div>
-      ${allPhotos.length?`<div class="hist-photo-strip">${allPhotos.map(p=>`<img class="hist-thumb" src="${p}" onclick="openHistPhoto('${encodeURIComponent(p)}')" onerror="this.style.display='none'">`).join('')}</div>`:''}
-      ${j.notes?`<div style="font-size:11px;color:var(--ink3);margin-top:3px">${j.notes}</div>`:''}
+      ${allPhotos.length?`<div class="hist-photo-strip">${allPhotos.map(p=>`<img class="hist-thumb" src="${attr(p)}" onclick="openHistPhoto('${jsStr(encodeURIComponent(p))}')" onerror="this.style.display='none'">`).join('')}</div>`:''}
+      ${j.notes?`<div style="font-size:11px;color:var(--ink3);margin-top:3px">${esc(j.notes)}</div>`:''}
     </div>`;
   });
   h+='</div>';
@@ -2811,7 +2931,7 @@ function openQuickJobModal(){
   // Populate customer dropdown
   const sel=document.getElementById('qj-cust');
   sel.innerHTML='<option value="">— select customer —</option>'+
-    DB.customers.filter(c=>c.sched!=='inactive').map(c=>`<option value="${c.id}">${custFullName(c)}</option>`).join('');
+    DB.customers.filter(c=>c.sched!=='inactive').map(c=>`<option value="${attr(c.id)}">${esc(custFullName(c))}</option>`).join('');
   document.getElementById('qj-date').value=todayStr();
   document.getElementById('qj-mins').value=45;
   document.getElementById('qj-price').value='';
@@ -2864,8 +2984,8 @@ function loadServicesUI(){
     row.style.marginBottom='.5rem';
     row.dataset.idx=idx;
     row.innerHTML=`
-      <div class="f" style="flex:1"><label>Service name</label><input class="svc-name" type="text" value="${svc.name}" placeholder="Mow"></div>
-      <div class="f" style="flex:0 0 90px"><label>Price ($)</label><input class="svc-price" type="number" value="${svc.price}" min="0" step="0.01" placeholder="0"></div>
+      <div class="f" style="flex:1"><label>Service name</label><input class="svc-name" type="text" value="${attr(svc.name)}" placeholder="Mow"></div>
+      <div class="f" style="flex:0 0 90px"><label>Price ($)</label><input class="svc-price" type="number" value="${attr(svc.price)}" min="0" step="0.01" placeholder="0"></div>
       <button class="btn bxsm btnr" style="margin-top:auto" onclick="removeServiceRow(this)"><i class="ti ti-x"></i></button>`;
     container.appendChild(row);
   });
@@ -2902,8 +3022,14 @@ function saveServicesSettings(){
 }
 
 function loadHubSpotKeyUI(){
+  // SECURITY: never repopulate the token field. If an older version persisted a
+  // token, remove it from local + synced storage now.
   const el=document.getElementById('hs-key');
-  if(el&&DB.settings.hubspotKey)el.value=DB.settings.hubspotKey;
+  if(el)el.value='';
+  if(DB.settings&&DB.settings.hubspotKey){
+    delete DB.settings.hubspotKey;
+    try{localStorage.setItem('ros_db',JSON.stringify(DB));}catch(e){}
+  }
 }
 
 async function shortenUrl(url){
@@ -2956,28 +3082,23 @@ async function sendCardSetupLink(custId){
 }
 
 // ── HUBSPOT SYNC ─────
+// SECURITY: The HubSpot Private App token is a full-access CRM credential and
+// must NEVER live in the browser. It is stored as a Netlify environment
+// variable (HUBSPOT_TOKEN) and used only inside the serverless function below.
+// The client sends just the contact id + payment details; the function adds
+// the token server-side. See SECURITY_CHECKLIST for the function source.
 async function syncPaymentToHubSpot(custId,amount,method,jobDate){
   const c=DB.customers.find(x=>x.id===custId);
   if(!c||!c.hubspotContactId)return;
-  const hsKey=DB.settings.hubspotKey||'';
-  if(!hsKey)return;
   try{
-    // Update contact properties with last payment info
-    // Uses crm.objects.contacts.write scope (available on Starter)
-    await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${c.hubspotContactId}`,{
-      method:'PATCH',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':'Bearer '+hsKey
-      },
+    await fetch('https://effervescent-pie-af6453.netlify.app/.netlify/functions/hubspot-sync',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        properties:{
-          hs_lead_status:'Connected',
-          notes_last_contacted:new Date(jobDate).getTime().toString(),
-          // Store payment info in the contact's "about" notes field
-          // since custom properties require Sales Hub
-          hs_content_membership_notes:`Last payment: $${parseFloat(amount).toFixed(2)} via ${method==='cash'?'Cash/Check':method} on ${jobDate}`
-        }
+        contactId:c.hubspotContactId,
+        amount:parseFloat(amount)||0,
+        method:method,
+        jobDate:jobDate
       })
     });
   }catch(e){console.log('HubSpot sync error',e);}
@@ -3090,8 +3211,8 @@ async function runDedup(){
     const keep=DB.customers[op.keepIdx];
     const discard=DB.customers[op.discardIdx];
     preview+=`<div style="background:var(--s);border:1px solid var(--bd);border-radius:8px;padding:.625rem .875rem;margin-bottom:.5rem;font-size:12px">
-      <div style="color:var(--green);font-weight:700">KEEP: ${custFullName(keep)} · ${custAddr(keep)||'no address'} · ${keep.phone||'no phone'}</div>
-      <div style="color:var(--red);font-weight:700;margin-top:2px">REMOVE: ${custFullName(discard)} · ${custAddr(discard)||'no address'} · ${discard.phone||'no phone'}</div>
+      <div style="color:var(--green);font-weight:700">KEEP: ${esc(custFullName(keep))} · ${esc(custAddr(keep)||'no address')} · ${esc(keep.phone||'no phone')}</div>
+      <div style="color:var(--red);font-weight:700;margin-top:2px">REMOVE: ${esc(custFullName(discard))} · ${esc(custAddr(discard)||'no address')} · ${esc(discard.phone||'no phone')}</div>
       <div style="color:var(--ink3);margin-top:3px">Merges: addr, phone, email from the more complete record</div>
     </div>`;
   });
@@ -3160,7 +3281,7 @@ function openEditJobModal(jobId){
   document.getElementById('ej-id').value=jobId;
   // Populate customer dropdown
   const sel=document.getElementById('ej-cust');
-  sel.innerHTML=DB.customers.map(c=>`<option value="${c.id}" ${c.id===j.custId?'selected':''}>${custFullName(c)}</option>`).join('');
+  sel.innerHTML=DB.customers.map(c=>`<option value="${attr(c.id)}" ${c.id===j.custId?'selected':''}>${esc(custFullName(c))}</option>`).join('');
   document.getElementById('ej-date').value=j.date||todayStr();
   const c=DB.customers.find(x=>x.id===j.custId);
   document.getElementById('ej-amount').value=parseFloat(j.chargedAmount||c&&c.price||0).toFixed(2);
@@ -3260,7 +3381,7 @@ function renderReports(){
       ${catEntries.map(([name,data])=>`
         <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--s3)">
           <div>
-            <div style="font-weight:600;font-size:13px">${name}</div>
+            <div style="font-weight:600;font-size:13px">${esc(name)}</div>
             <div style="font-size:11px;color:var(--ink3)">${data.count} job${data.count!==1?'s':''}</div>
           </div>
           <div style="font-weight:700;font-size:14px;color:var(--green)">$${data.revenue.toFixed(0)}</div>
@@ -3277,14 +3398,14 @@ function renderReports(){
         const desc=j.serviceDesc||({mow:'Mow',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'}[c&&c.serviceType]||'Lawn service');
         return `<div style="display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)">
           <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:13px">${c?custFullName(c):'Unknown'}</div>
-            <div style="font-size:11px;color:var(--ink3)">${fmtDate(j.date)} · ${desc}</div>
-            ${j.notes?`<div style="font-size:11px;color:var(--ink3)">${j.notes}</div>`:''}
+            <div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):'Unknown'}</div>
+            <div style="font-size:11px;color:var(--ink3)">${esc(fmtDate(j.date))} · ${esc(desc)}</div>
+            ${j.notes?`<div style="font-size:11px;color:var(--ink3)">${esc(j.notes)}</div>`:''}
           </div>
           <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
             <span style="font-weight:700;font-size:13px;color:${j.paid?'var(--green)':'var(--red)'}">$${amt.toFixed(2)}</span>
             <span class="tag ${j.paid?'tag-green':'tag-red'}" style="font-size:9px">${j.paid?(j.paidMethod==='card'?'Card':(j.paidMethod==='invoice'?'Invoice':'Cash')):'Unpaid'}</span>
-            <button class="btn bxsm" onclick="openEditJobModal('${j.id}')" style="font-size:10px;height:22px;padding:0 7px"><i class="ti ti-edit" style="font-size:10px"></i></button>
+            <button class="btn bxsm" onclick="openEditJobModal('${jsStr(j.id)}')" style="font-size:10px;height:22px;padding:0 7px"><i class="ti ti-edit" style="font-size:10px"></i></button>
           </div>
         </div>`;
       }).join(''):'<div style="color:var(--ink3);font-size:13px;text-align:center;padding:1rem">No jobs recorded yet</div>'}
@@ -3308,8 +3429,8 @@ function renderReports(){
         const cRev=cJobs.filter(j=>j.paid).reduce((a,j)=>a+parseFloat(j.chargedAmount||c.price||0),0);
         const avgTime=cJobs.filter(j=>j.actualMin>0).reduce((a,j,_,arr)=>a+j.actualMin/arr.length,0);
         return `<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)">
-          <div style="width:32px;height:32px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0">${initials(c)}</div>
-          <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${custFullName(c)}</div><div style="font-size:11px;color:var(--ink3)">${cJobs.length} job${cJobs.length!==1?'s':''} · ${avgTime>0?Math.round(avgTime)+'m avg':fmtMins(c.mowTime)+' est'}</div></div>
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0">${esc(initials(c))}</div>
+          <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${esc(custFullName(c))}</div><div style="font-size:11px;color:var(--ink3)">${cJobs.length} job${cJobs.length!==1?'s':''} · ${avgTime>0?Math.round(avgTime)+'m avg':esc(fmtMins(c.mowTime))+' est'}</div></div>
           <div style="text-align:right;flex-shrink:0"><div style="font-weight:600;font-size:13px;color:var(--green)">$${cRev.toFixed(0)}</div><div style="font-size:10px;color:var(--ink3)">${cPaid} paid</div></div>
         </div>`;
       }).join('')||'<div style="color:var(--ink3);font-size:13px;text-align:center;padding:1rem">No data yet</div>'}
@@ -3341,10 +3462,17 @@ function updateBackupStats(){
 }
 
 function backupData(){
+  // SECURITY: never write secrets into an exported backup file. Deep-clone DB
+  // and remove any credential fields before serializing.
+  const cleanDB=JSON.parse(JSON.stringify(DB));
+  if(cleanDB.settings){
+    delete cleanDB.settings.hubspotKey;
+    delete cleanDB.settings.mapsKey;
+  }
   const payload={
     version:2,
     exportedAt:new Date().toISOString(),
-    db:DB
+    db:cleanDB
   };
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const a=document.createElement('a');
@@ -3371,6 +3499,7 @@ function restoreData(input){
         input.value='';return;
       }
       DB=Object.assign({customers:[],jobHistory:[],settings:{mapsKey:'',homeBase:'',startTime:'07:00',hours:8}},payload.db);
+      if(DB.settings)delete DB.settings.hubspotKey;
       saveDB();
       if(DB.settings.homeBase)document.getElementById('plan-home').value=DB.settings.homeBase;
       if(DB.settings.startTime)document.getElementById('plan-start').value=DB.settings.startTime;
@@ -3398,7 +3527,10 @@ function showRestoreMsg(msg,bg,color){
 }
 
 // ══ INIT ══════════════════════════════════════════════════════════
-(async function initApp(){
+let _appStarted=false;
+async function startApp(){
+  if(_appStarted)return;        // run the app body only once per page load
+  _appStarted=true;
   await loadDB();
 
   if(DB.settings.homeBase)document.getElementById('plan-home').value=DB.settings.homeBase;
@@ -3425,6 +3557,100 @@ function showRestoreMsg(msg,bg,color){
   updateBackupStats();
   loadStripeSettingsUI();
   loadHubSpotKeyUI();
+
+  // Show signed-in email in the Account card
+  try{
+    const {data}=await supabaseClient.auth.getUser();
+    if(data&&data.user&&data.user.email){
+      const el=document.getElementById('account-email');
+      if(el)el.textContent='Signed in as '+data.user.email;
+    }
+  }catch(e){}
+}
+
+// ══ AUTH ══════════════════════════════════════════════════════════
+function showAuthError(msg){
+  const el=document.getElementById('auth-err');
+  el.textContent=msg;
+  el.classList.add('show');
+}
+function clearAuthError(){
+  document.getElementById('auth-err').classList.remove('show');
+}
+function showLoginGate(){
+  document.getElementById('auth-loading').classList.add('hidden');
+  document.getElementById('auth-gate').classList.remove('hidden');
+}
+function hideLoginGate(){
+  document.getElementById('auth-loading').classList.add('hidden');
+  document.getElementById('auth-gate').classList.add('hidden');
+}
+
+async function doLogin(){
+  clearAuthError();
+  const email=document.getElementById('auth-email').value.trim();
+  const password=document.getElementById('auth-password').value;
+  if(!email||!password){showAuthError('Enter your email and password.');return;}
+  const btn=document.getElementById('auth-submit');
+  btn.disabled=true;btn.innerHTML='<span class="spin" style="border-top-color:#fff"></span> Signing in…';
+  try{
+    const {error}=await supabaseClient.auth.signInWithPassword({email,password});
+    if(error){
+      showAuthError(error.message||'Sign in failed. Check your email and password.');
+      btn.disabled=false;btn.innerHTML='<i class="ti ti-login"></i> Sign in';
+      return;
+    }
+    // Success — onAuthStateChange will hide the gate and start the app.
+    document.getElementById('auth-password').value='';
+  }catch(e){
+    showAuthError('Connection error. Check your internet and try again.');
+    btn.disabled=false;btn.innerHTML='<i class="ti ti-login"></i> Sign in';
+  }
+}
+
+async function doLogout(){
+  if(!confirm('Sign out of Richardson Outdoor Solutions?'))return;
+  try{await supabaseClient.auth.signOut();}catch(e){}
+  // Simplest reliable reset: reload so all in-memory state is cleared.
+  location.reload();
+}
+
+// Allow Enter key to submit from either auth field.
+['auth-email','auth-password'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+});
+
+// Drive everything off auth state.
+supabaseClient.auth.onAuthStateChange((event,session)=>{
+  if(session){
+    hideLoginGate();
+    startApp();
+  }else{
+    // No session (initial load with no login, or after sign-out)
+    if(_appStarted){
+      // Was signed in, now isn't — send back to a clean login screen.
+      location.reload();
+    }else{
+      showLoginGate();
+    }
+  }
+});
+
+// On page load, check for an existing session so returning users skip login.
+(async function bootAuth(){
+  try{
+    const {data}=await supabaseClient.auth.getSession();
+    if(data&&data.session){
+      hideLoginGate();
+      startApp();
+    }else{
+      showLoginGate();
+    }
+  }catch(e){
+    // If the session check fails (e.g. offline), fall back to the login gate.
+    showLoginGate();
+  }
 })();
 // ══ PWA SERVICE WORKER ═══════════════════════════════════════════
 // Only register if browser supports it properly (not blob URL approach)
