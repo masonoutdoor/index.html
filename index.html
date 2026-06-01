@@ -2792,10 +2792,22 @@ function saveCust(){
   saveDB();closeModal('cust-modal');renderCustomers();
 }
 
-function deleteCust(id){
+async function deleteCust(id){
   if(!confirm('Delete this customer? Their job history will be kept.'))return;
+  // Remove locally first so the UI updates immediately.
   DB.customers=DB.customers.filter(c=>c.id!==id);
-  saveDB();renderCustomers();
+  // Clear its synced signature so a re-add later isn't skipped.
+  if(_syncedSig&&_syncedSig.customers)delete _syncedSig.customers[id];
+  renderCustomers();
+  // Delete the row from Supabase so it doesn't reappear on refresh.
+  try{
+    const {error}=await supabaseClient.from('customers').delete().eq('id',id);
+    if(error)console.log('Customer delete error',error);
+  }catch(e){
+    console.log('Customer delete error',e);
+  }
+  // Persist the local list (and any other pending changes) too.
+  saveDB();
 }
 
 // ══ IMPORT ════════════════════════════════════════════════════════
@@ -3317,14 +3329,22 @@ function saveEditJob(){
   renderReports();
 }
 
-function deleteJob(){
+async function deleteJob(){
   const id=document.getElementById('ej-id').value;
   if(!confirm('Delete this job record? This cannot be undone.'))return;
   DB.jobHistory=DB.jobHistory.filter(x=>x.id!==id);
-  saveDB();
+  if(_syncedSig&&_syncedSig.jobs)delete _syncedSig.jobs[id];
   closeModal('editjob-modal');
   renderDash();
   renderReports();
+  // Delete the row from Supabase so it doesn't reappear on refresh.
+  try{
+    const {error}=await supabaseClient.from('job_history').delete().eq('id',id);
+    if(error&&error.code!=='42P01')console.log('Job delete error',error);
+  }catch(e){
+    console.log('Job delete error',e);
+  }
+  saveDB();
 }
 
 function renderReports(){
