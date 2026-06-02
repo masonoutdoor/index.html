@@ -28,11 +28,23 @@
 body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-height:100vh;padding-bottom:70px}
 
 /* ── Nav ── */
-.nav{position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--bd);display:flex;z-index:50;max-width:600px;margin:0 auto}
-.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.5rem .25rem .6rem;gap:3px;cursor:pointer;border:none;background:none;color:var(--ink3);font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:.02em;transition:color .15s}
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--bd);display:flex;z-index:50;max-width:600px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom,0)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.55rem .25rem .65rem;gap:4px;cursor:pointer;border:none;background:none;color:var(--ink3);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:.01em;transition:color .15s}
 .nav-btn.active{color:var(--green)}
-.nav-btn i{font-size:22px}
+.nav-btn i{font-size:23px}
 .nav-indicator{width:4px;height:4px;border-radius:50%;background:var(--green);margin:0 auto;opacity:0}
+.nav-btn.active .nav-indicator{opacity:1}
+
+/* ── More sheet ── */
+.more-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:60;opacity:0;pointer-events:none;transition:opacity .2s}
+.more-overlay.open{opacity:1;pointer-events:auto}
+.more-sheet{position:fixed;left:50%;transform:translateX(-50%) translateY(110%);bottom:0;width:100%;max-width:600px;background:var(--s);border-radius:18px 18px 0 0;z-index:61;padding:.5rem .75rem calc(1rem + env(safe-area-inset-bottom,0));box-shadow:0 -4px 24px rgba(0,0,0,.15);transition:transform .25s ease}
+.more-sheet.open{transform:translateX(-50%) translateY(0)}
+.more-grip{width:38px;height:4px;border-radius:99px;background:var(--bd);margin:.5rem auto .75rem}
+.more-item{display:flex;align-items:center;gap:14px;width:100%;border:none;background:none;padding:.9rem .5rem;border-radius:var(--r);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:var(--ink);text-align:left}
+.more-item:active{background:var(--s2)}
+.more-item i{font-size:22px;color:var(--green);width:24px;text-align:center}
+.more-item.active{background:var(--gp);color:var(--green)}
 .nav-btn.active .nav-indicator{opacity:1}
 
 /* ── Page ── */
@@ -592,11 +604,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <button class="nav-btn active" onclick="goTab('dash')" id="nav-dash"><i class="ti ti-home"></i><span>Home</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="goTab('plan')" id="nav-plan"><i class="ti ti-route"></i><span>Route</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="goTab('track')" id="nav-track"><i class="ti ti-device-mobile"></i><span>Field</span><div class="nav-indicator"></div></button>
-  <button class="nav-btn" onclick="goTab('cal')" id="nav-cal"><i class="ti ti-calendar"></i><span>Calendar</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="goTab('customers')" id="nav-customers"><i class="ti ti-users"></i><span>Clients</span><div class="nav-indicator"></div></button>
-  <button class="nav-btn" onclick="goTab('reports')" id="nav-reports"><i class="ti ti-chart-bar"></i><span>Reports</span><div class="nav-indicator"></div></button>
-  <button class="nav-btn" onclick="goTab('biz')" id="nav-biz"><i class="ti ti-calculator"></i><span>Business</span><div class="nav-indicator"></div></button>
+  <button class="nav-btn" onclick="openMore()" id="nav-more"><i class="ti ti-dots"></i><span>More</span><div class="nav-indicator"></div></button>
 </nav>
+
+<!-- More sheet: secondary screens -->
+<div class="more-overlay" id="more-overlay" onclick="closeMore()"></div>
+<div class="more-sheet" id="more-sheet">
+  <div class="more-grip"></div>
+  <button class="more-item" id="more-cal" onclick="goTabFromMore('cal')"><i class="ti ti-calendar"></i> Calendar</button>
+  <button class="more-item" id="more-reports" onclick="goTabFromMore('reports')"><i class="ti ti-chart-bar"></i> Reports</button>
+  <button class="more-item" id="more-biz" onclick="goTabFromMore('biz')"><i class="ti ti-calculator"></i> Business</button>
+</div>
+
 
 <!-- ══ MODALS ══════════════════════════════════════════════════════ -->
 <!-- Customer modal -->
@@ -790,7 +810,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.06.01-2';
+const APP_VERSION='2026.06.01-4';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Shared secret sent to the Netlify serverless functions (charge/setup/hubspot-sync).
@@ -1099,16 +1119,46 @@ async function loadDB(){
 
 // ══ NAVIGATION ════════════════════════════════════════════════════
 const TABS=['dash','plan','track','cal','customers','reports','biz'];
+// Which tabs live in the bottom bar vs. the More sheet.
+const BOTTOM_TABS=['dash','plan','track','customers'];
+const MORE_TABS=['cal','reports','biz'];
 function goTab(t){
+  // Show the right page
   TABS.forEach(id=>{
-    document.getElementById('pg-'+id).classList.toggle('active',id===t);
-    document.getElementById('nav-'+id).classList.toggle('active',id===t);
+    const pg=document.getElementById('pg-'+id);
+    if(pg)pg.classList.toggle('active',id===t);
   });
+  // Highlight the right bottom-nav button (More stays lit if the active tab is in the sheet)
+  BOTTOM_TABS.forEach(id=>{
+    const btn=document.getElementById('nav-'+id);
+    if(btn)btn.classList.toggle('active',id===t);
+  });
+  const moreBtn=document.getElementById('nav-more');
+  if(moreBtn)moreBtn.classList.toggle('active',MORE_TABS.includes(t));
+  // Highlight the active item inside the More sheet
+  MORE_TABS.forEach(id=>{
+    const mi=document.getElementById('more-'+id);
+    if(mi)mi.classList.toggle('active',id===t);
+  });
+
   if(t==='dash')renderDash();
   if(t==='cal')renderCalendar();
   if(t==='customers')renderCustomers();
   if(t==='reports'){renderReports();updateBackupStats();loadStripeSettingsUI();loadHubSpotKeyUI();loadServicesUI();}
   if(t==='biz')renderBiz();
+}
+
+function openMore(){
+  document.getElementById('more-overlay').classList.add('open');
+  document.getElementById('more-sheet').classList.add('open');
+}
+function closeMore(){
+  document.getElementById('more-overlay').classList.remove('open');
+  document.getElementById('more-sheet').classList.remove('open');
+}
+function goTabFromMore(t){
+  closeMore();
+  goTab(t);
 }
 
 // ══ HELPERS ═══════════════════════════════════════════════════════
@@ -3464,17 +3514,57 @@ async function deleteJob(){
 }
 
 // ══ BUSINESS CALCULATOR ══════════════════════════════════════════
+// Business inputs are cached locally for speed/offline, and synced to the
+// Supabase `app_settings` table so they follow you across devices and are
+// included in cloud data. Local is written immediately; cloud is debounced.
 function getBizInputs(){
   try{return JSON.parse(localStorage.getItem('ros_business')||'{}');}catch(e){return {};}
 }
 function saveBizInputs(obj){
   localStorage.setItem('ros_business',JSON.stringify(obj));
 }
+let _bizCloudTimer=null;
 function setBizInput(key,val){
   const obj=getBizInputs();
   obj[key]=val;
-  saveBizInputs(obj);
-  renderBizCalcs(); // recompute without rebuilding the input fields (keeps focus)
+  saveBizInputs(obj);              // instant local save
+  renderBizCalcs();                // recompute without rebuilding inputs (keeps focus)
+  // Debounced cloud save: wait until typing pauses so we don't spam the DB.
+  clearTimeout(_bizCloudTimer);
+  _bizCloudTimer=setTimeout(()=>syncBizInputsToCloud(obj),700);
+}
+
+async function syncBizInputsToCloud(obj){
+  try{
+    setSaveStatus('saving');
+    const {error}=await supabaseClient
+      .from('app_settings')
+      .upsert({key:'business_inputs',value:JSON.stringify(obj)});
+    if(error){setSaveStatus('error');console.log('Biz settings sync error',error);}
+    else setSaveStatus('saved');
+  }catch(e){
+    setSaveStatus('error');
+    console.log('Biz settings sync error',e);
+  }
+}
+
+// Pull business inputs from the cloud (called on load). Cloud wins over local
+// so a fresh device gets your saved numbers.
+async function loadBizInputsFromCloud(){
+  try{
+    const {data,error}=await supabaseClient
+      .from('app_settings')
+      .select('value')
+      .eq('key','business_inputs')
+      .maybeSingle();
+    if(error){console.log('Biz settings load error',error);return;}
+    if(data&&data.value){
+      const obj=JSON.parse(data.value);
+      if(obj&&typeof obj==='object')saveBizInputs(obj); // refresh local cache
+    }
+  }catch(e){
+    console.log('Biz settings load error',e);
+  }
 }
 
 // Numbers the app knows, for the chosen period.
@@ -3834,6 +3924,12 @@ async function startApp(){
   if(_appStarted)return;        // run the app body only once per page load
   _appStarted=true;
   await loadDB();
+
+  // Pull synced business calculator inputs (non-blocking; refresh tab if showing).
+  loadBizInputsFromCloud().then(()=>{
+    const bizPage=document.getElementById('pg-biz');
+    if(bizPage&&bizPage.classList.contains('active'))renderBiz();
+  });
 
   if(DB.settings.homeBase)document.getElementById('plan-home').value=DB.settings.homeBase;
   if(DB.settings.startTime)document.getElementById('plan-start').value=DB.settings.startTime;
