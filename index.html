@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<!-- Discourage stale cached copies so deploys show up without manual cache-clearing -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Richardson Outdoor Solutions</title>
 <!-- PWA -->
 <meta name="application-name" content="ROS Field App">
@@ -296,6 +300,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 </div>
 
 <!-- ══ DASHBOARD ══════════════════════════════════════════════════ -->
+
+<!-- Save status indicator -->
+<div id="save-status" style="display:none;position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:200;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.12);font-family:'DM Sans',sans-serif"></div>
 <div class="page active" id="pg-dash">
   <div style="max-width:600px;margin:0 auto;padding:1rem 1rem 0">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
@@ -516,6 +523,41 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
       <div style="font-size:13px;color:var(--ink3)" id="account-email">Signed in</div>
       <button class="btn bsm btnr" onclick="doLogout()"><i class="ti ti-logout"></i> Sign out</button>
     </div>
+    <div id="app-version" style="font-size:10px;color:var(--ink3);margin-top:.5rem;text-align:right"></div>
+  </div>
+</div>
+
+<!-- ══ BUSINESS ════════════════════════════════════════════════════ -->
+<div class="page" id="pg-biz">
+  <div class="page-hdr">
+    <div><div class="page-title">Business</div><div class="page-sub">Profitability &amp; KPIs</div></div>
+    <select id="biz-period" onchange="renderBiz()" style="height:32px;border-radius:var(--r);border:1px solid var(--bd);background:var(--s);font-size:13px;padding:0 8px;font-family:'DM Sans',sans-serif">
+      <option value="month">This month</option>
+      <option value="year">This year</option>
+      <option value="all">All time</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="card-title">From your data</div>
+    <p style="font-size:12px;color:var(--ink3);margin-bottom:.75rem">Pulled automatically from paid jobs for the selected period.</p>
+    <div class="detail-grid" id="biz-auto"></div>
+  </div>
+
+  <div class="card" style="margin-top:.5rem">
+    <div class="card-title">Your costs &amp; inputs</div>
+    <p style="font-size:12px;color:var(--ink3);margin-bottom:.75rem">Enter the things the app can't know. These are saved automatically.</p>
+    <div id="biz-inputs"></div>
+  </div>
+
+  <div class="card" style="margin-top:.5rem">
+    <div class="card-title">Calculations</div>
+    <div id="biz-calcs"></div>
+  </div>
+
+  <div class="card" style="margin-top:.5rem">
+    <div class="card-title">KPI dashboard</div>
+    <div id="biz-kpis"></div>
   </div>
 </div>
 
@@ -553,6 +595,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <button class="nav-btn" onclick="goTab('cal')" id="nav-cal"><i class="ti ti-calendar"></i><span>Calendar</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="goTab('customers')" id="nav-customers"><i class="ti ti-users"></i><span>Clients</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="goTab('reports')" id="nav-reports"><i class="ti ti-chart-bar"></i><span>Reports</span><div class="nav-indicator"></div></button>
+  <button class="nav-btn" onclick="goTab('biz')" id="nav-biz"><i class="ti ti-calculator"></i><span>Business</span><div class="nav-indicator"></div></button>
 </nav>
 
 <!-- ══ MODALS ══════════════════════════════════════════════════════ -->
@@ -746,6 +789,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 // ══ SUPABASE CONFIG ══════════════════════════════════════════════
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
+// App version — bump this string each deploy so you can confirm the new copy loaded.
+const APP_VERSION='2026.06.01-2';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Shared secret sent to the Netlify serverless functions (charge/setup/hubspot-sync).
@@ -871,11 +916,15 @@ function _jobRow(job){
 
 async function saveDB(){
   // Local save first — always succeeds offline and is the source of truth.
+  let localOk=true;
   try{
     localStorage.setItem('ros_db',JSON.stringify(DB));
   }catch(e){
+    localOk=false;
     console.log('Local save error',e);
   }
+
+  setSaveStatus('saving');
 
   // Assign UUIDs to any new records before building rows.
   for(const customer of DB.customers){
@@ -884,6 +933,8 @@ async function saveDB(){
   for(const job of DB.jobHistory){
     if(!isUuid(job.id))job.id=makeUuid();
   }
+
+  let cloudError=false;
 
   // Only push records whose content changed since the last successful sync,
   // and send them in a single batched upsert per table.
@@ -896,10 +947,11 @@ async function saveDB(){
     }
     if(changed.length){
       const {error}=await supabaseClient.from('customers').upsert(changed.map(c=>c.row));
-      if(error){console.log('Supabase save error',error);}
+      if(error){cloudError=true;console.log('Supabase save error',error);}
       else{changed.forEach(c=>{_syncedSig.customers[c.id]=c.sig;});}
     }
   }catch(err){
+    cloudError=true;
     console.log('Supabase sync error',err);
   }
 
@@ -912,11 +964,43 @@ async function saveDB(){
     }
     if(changed.length){
       const {error}=await supabaseClient.from('job_history').upsert(changed.map(c=>c.row));
-      if(error&&error.code!=='42P01'){console.log('Job history sync error',error);}
+      if(error&&error.code!=='42P01'){cloudError=true;console.log('Job history sync error',error);}
       else if(!error){changed.forEach(c=>{_syncedSig.jobs[c.id]=c.sig;});}
     }
   }catch(err){
+    cloudError=true;
     console.log('Job history sync error',err);
+  }
+
+  if(cloudError||!localOk)setSaveStatus('error');
+  else setSaveStatus('saved');
+}
+
+// ── Save status indicator ──
+let _saveStatusTimer=null;
+function setSaveStatus(state){
+  const el=document.getElementById('save-status');
+  if(!el)return;
+  clearTimeout(_saveStatusTimer);
+  if(state==='saving'){
+    el.style.display='flex';
+    el.style.background='var(--s2)';
+    el.style.color='var(--ink2)';
+    el.innerHTML='<span class="spin" style="width:11px;height:11px;border-width:2px"></span> Saving…';
+  }else if(state==='saved'){
+    el.style.display='flex';
+    el.style.background='var(--gp)';
+    el.style.color='var(--green)';
+    el.innerHTML='<i class="ti ti-check" style="font-size:13px"></i> Saved';
+    // Fade out after a moment
+    _saveStatusTimer=setTimeout(()=>{if(el)el.style.display='none';},1800);
+  }else if(state==='error'){
+    el.style.display='flex';
+    el.style.background='var(--rp)';
+    el.style.color='var(--red)';
+    el.innerHTML='<i class="ti ti-cloud-off" style="font-size:13px"></i> Saved on device — cloud sync failed';
+    // Leave it visible longer so the user notices
+    _saveStatusTimer=setTimeout(()=>{if(el)el.style.display='none';},6000);
   }
 }
 
@@ -1014,7 +1098,7 @@ async function loadDB(){
 }
 
 // ══ NAVIGATION ════════════════════════════════════════════════════
-const TABS=['dash','plan','track','cal','customers','reports'];
+const TABS=['dash','plan','track','cal','customers','reports','biz'];
 function goTab(t){
   TABS.forEach(id=>{
     document.getElementById('pg-'+id).classList.toggle('active',id===t);
@@ -1024,6 +1108,7 @@ function goTab(t){
   if(t==='cal')renderCalendar();
   if(t==='customers')renderCustomers();
   if(t==='reports'){renderReports();updateBackupStats();loadStripeSettingsUI();loadHubSpotKeyUI();loadServicesUI();}
+  if(t==='biz')renderBiz();
 }
 
 // ══ HELPERS ═══════════════════════════════════════════════════════
@@ -1039,6 +1124,11 @@ function custAddr(c){return c.addr+(c.zip?', '+c.zip:'');}
 function initials(c){return (((c.first||'')[0]||'')+((c.last||'')[0]||'')).toUpperCase();}
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const DAYS_FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+// Shared service-type label maps (used in several places).
+const SVC_LABELS={mow:'Mow only',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'};
+const SVC_SHORT={mow:'Mow',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'};
+function svcLabel(t){return SVC_LABELS[t]||t||'';}
+function svcShort(t){return SVC_SHORT[t]||'Lawn service';}
 
 // ══ DASHBOARD ════════════════════════════════════════════════════
 let selectedDayOffset=0;
@@ -1725,6 +1815,13 @@ function saveTrackerStates(){
     localStorage.setItem('ros_tracker_states',JSON.stringify(toSave));
   }catch(e){
     console.log('saveTrackerStates error',e);
+    // If we hit the storage limit (usually from offline photos piling up),
+    // tell the user instead of failing silently.
+    if(e&&(e.name==='QuotaExceededError'||/quota/i.test(e.message||''))){
+      setSaveStatus('error');
+      const el=document.getElementById('save-status');
+      if(el)el.innerHTML='<i class="ti ti-cloud-off" style="font-size:13px"></i> Storage full — finish & sync this job soon';
+    }
   }
 }
 
@@ -1822,7 +1919,7 @@ function buildJobCard(j,i){
       <span><i class="ti ti-clock" style="font-size:11px"></i> Est. ${fmtMins(j.estMin)}</span>
       <span><i class="ti ti-flag" style="font-size:11px"></i> Arrive ${fmtClock(j.arr)}</span>
       ${j.notes?`<span><i class="ti ti-note" style="font-size:11px"></i> ${esc(j.notes)}</span>`:''}
-      ${j.serviceType&&j.serviceType!=='mow'?`<span><i class="ti ti-list-check" style="font-size:11px"></i> ${esc({mow:'Mow only',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'}[j.serviceType]||j.serviceType)}</span>`:''}
+      ${j.serviceType&&j.serviceType!=='mow'?`<span><i class="ti ti-list-check" style="font-size:11px"></i> ${esc(svcLabel(j.serviceType))}</span>`:''}
     </div>
 
     <!-- Before photos -->
@@ -2536,12 +2633,31 @@ function navTo(addr){window.open('https://maps.google.com/?q='+encodeURIComponen
 function addPhoto(i,type,input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
-  reader.onload=e=>{
+  reader.onload=async e=>{
     const s=getTS(i);
-    if(type==='before')s.beforePhotos.push(e.target.result);
-    else if(type==='after')s.afterPhotos.push(e.target.result);
-    else s.extraPhotos.push(e.target.result);
+    const base64=e.target.result;
+    const arr=type==='before'?s.beforePhotos:type==='after'?s.afterPhotos:s.extraPhotos;
+    const urlArr=type==='before'?s.beforePhotoUrls:type==='after'?s.afterPhotoUrls:s.extraPhotoUrls;
+    // Add the photo immediately (base64) so it shows right away.
+    const idx=arr.length;
+    arr.push(base64);
     input.value='';
+    rerenderJCard(i);
+    // Upload to cloud storage right away, then drop the heavy base64 from local
+    // storage so we don't blow past the ~5MB localStorage limit mid-route.
+    const job=trackerRoute&&trackerRoute.jobs[i];
+    const jobId=(job&&job.id)||('tmp-'+i);
+    let url=null;
+    try{url=await uploadPhotoToStorage(base64,jobId,type,idx);}catch(err){url=null;}
+    if(url){
+      // Replace the base64 with the lightweight URL everywhere.
+      arr[idx]=url;
+      urlArr[idx]=url;
+    }else{
+      // Offline / upload failed: keep base64 as a fallback so the photo isn't lost.
+      // It will be retried when the job is finalized.
+      console.log('Photo upload deferred (offline?) — kept locally');
+    }
     saveTrackerStates();
     rerenderJCard(i);
   };
@@ -2696,7 +2812,7 @@ function renderCustomers(){
         ${c.gate?`<div style="background:var(--ambp);border-radius:8px;padding:.625rem .75rem;font-size:13px;color:var(--amb);margin-bottom:.75rem"><i class="ti ti-key" style="font-size:13px"></i> ${esc(c.gate)}</div>`:''}
         ${c.sched==='paused'?`<div style="background:var(--ambp);border:1px solid #f0c070;border-radius:8px;padding:.625rem .75rem;font-size:13px;color:var(--amb);margin-bottom:.75rem"><i class="ti ti-player-pause" style="font-size:13px"></i> <strong>Paused</strong>${c.resumeDate?' · Resumes '+esc(fmtDate(c.resumeDate)):''}${c.pauseReason?' · '+esc(c.pauseReason):''}</div>`:''}
         ${c.notes?`<div style="background:var(--s2);border-radius:8px;padding:.625rem .75rem;font-size:13px;color:var(--ink2);margin-bottom:.75rem">${esc(c.notes)}</div>`:''}
-        ${c.serviceType&&c.serviceType!=='mow'?`<div style="font-size:11px;color:var(--ink3);margin-bottom:.75rem"><i class="ti ti-list-check" style="font-size:11px"></i> Service: <strong>${esc({mow:'Mow only',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'}[c.serviceType]||c.serviceType)}</strong></div>`:''}
+        ${c.serviceType&&c.serviceType!=='mow'?`<div style="font-size:11px;color:var(--ink3);margin-bottom:.75rem"><i class="ti ti-list-check" style="font-size:11px"></i> Service: <strong>${esc(svcLabel(c.serviceType))}</strong></div>`:''}
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.5rem">
           <button class="btn bsm btng" onclick="openCustModal('${jsStr(c.id)}')"><i class="ti ti-edit"></i> Edit</button>
           ${c.phone?`<button class="btn bsm" onclick="window.open('tel:'+('${jsStr(c.phone)}'.replace(/\\D/g,'')))"><i class="ti ti-phone"></i> Call</button>`:''}
@@ -3347,6 +3463,165 @@ async function deleteJob(){
   saveDB();
 }
 
+// ══ BUSINESS CALCULATOR ══════════════════════════════════════════
+function getBizInputs(){
+  try{return JSON.parse(localStorage.getItem('ros_business')||'{}');}catch(e){return {};}
+}
+function saveBizInputs(obj){
+  localStorage.setItem('ros_business',JSON.stringify(obj));
+}
+function setBizInput(key,val){
+  const obj=getBizInputs();
+  obj[key]=val;
+  saveBizInputs(obj);
+  renderBizCalcs(); // recompute without rebuilding the input fields (keeps focus)
+}
+
+// Numbers the app knows, for the chosen period.
+function getBizAutoData(){
+  const period=(document.getElementById('biz-period')||{}).value||'month';
+  const now=new Date();
+  let jobs=DB.jobHistory;
+  if(period==='month'){const start=new Date(now.getFullYear(),now.getMonth(),1);jobs=jobs.filter(j=>new Date(j.date)>=start);}
+  else if(period==='year'){const start=new Date(now.getFullYear(),0,1);jobs=jobs.filter(j=>new Date(j.date)>=start);}
+  const paid=jobs.filter(j=>j.paid);
+  const revenue=paid.reduce((a,j)=>{
+    const c=DB.customers.find(x=>x.id===j.custId);
+    return a+parseFloat(j.chargedAmount||c&&c.price||0);
+  },0);
+  // Recurring = revenue from customers on a recurring schedule (not one-off / inactive)
+  const recurringRevenue=paid.reduce((a,j)=>{
+    const c=DB.customers.find(x=>x.id===j.custId);
+    if(!c)return a;
+    const recurring=['weekly','biweekly','monthly'].includes(c.sched);
+    return a+(recurring?parseFloat(j.chargedAmount||c.price||0):0);
+  },0);
+  // Distinct clients served (paid) in the period
+  const clientsServed=new Set(paid.map(j=>j.custId)).size;
+  // Active recurring clients overall (for ratios that want current roster)
+  const activeClients=DB.customers.filter(c=>c.sched!=='inactive').length;
+  return {revenue,recurringRevenue,clientsServed,activeClients,period};
+}
+
+// Field definitions for the manual inputs (key, label, prefix, default)
+const BIZ_FIELDS=[
+  {k:'laborCost',label:'Labor cost',pre:'$',def:0},
+  {k:'fuelCost',label:'Fuel cost',pre:'$',def:0},
+  {k:'equipmentWear',label:'Equipment wear',pre:'$',def:0},
+  {k:'fixedCosts',label:'Fixed costs',pre:'$',def:0},
+  {k:'laborHours',label:'Labor hours worked',pre:'',def:0},
+  {k:'budgetedHours',label:'Budgeted hours',pre:'',def:0},
+  {k:'neighborhoods',label:'Neighborhoods',pre:'',def:1},
+  {k:'marketingSpend',label:'Marketing spend',pre:'$',def:0},
+  {k:'newClients',label:'New clients',pre:'',def:0},
+  {k:'yearlyNewClients',label:'Yearly new clients',pre:'',def:0},
+  {k:'yearlyTotalClients',label:'Yearly total clients',pre:'',def:0}
+];
+
+function renderBiz(){
+  const inputs=getBizInputs();
+  // Build the manual input fields (only once per render of the tab)
+  document.getElementById('biz-inputs').innerHTML=`
+    <div class="detail-grid">
+      ${BIZ_FIELDS.map(f=>{
+        const v=inputs[f.k]!=null?inputs[f.k]:'';
+        return `<div class="f" style="margin:0">
+          <label>${f.label}</label>
+          <input type="number" inputmode="decimal" step="any" min="0"
+            value="${attr(v)}" placeholder="${f.def}"
+            oninput="setBizInput('${f.k}',this.value===''?null:parseFloat(this.value))">
+        </div>`;
+      }).join('')}
+    </div>`;
+  renderBizCalcs();
+}
+
+function renderBizCalcs(){
+  const a=getBizAutoData();
+  const inp=getBizInputs();
+  const n=(k)=>{const v=inp[k];return (v==null||isNaN(v))?0:parseFloat(v);};
+
+  // Auto panel
+  const totalRevenue=a.revenue;
+  const totalClients=a.clientsServed||a.activeClients||0;
+  document.getElementById('biz-auto').innerHTML=`
+    <div class="detail-item"><div class="dl">Total revenue</div><div class="dv" style="color:var(--green)">$${totalRevenue.toFixed(2)}</div></div>
+    <div class="detail-item"><div class="dl">Recurring revenue</div><div class="dv">$${a.recurringRevenue.toFixed(2)}</div></div>
+    <div class="detail-item"><div class="dl">Clients served</div><div class="dv">${a.clientsServed}</div></div>
+    <div class="detail-item"><div class="dl">Active clients</div><div class="dv">${a.activeClients}</div></div>`;
+
+  // Safe division helper
+  const div=(x,y)=>y?x/y:0;
+
+  const directCosts=n('laborCost')+n('fuelCost')+n('equipmentWear');
+  const grossProfit=totalRevenue-directCosts;
+  const grossMargin=div(grossProfit,totalRevenue); // fraction
+  const laborPctRev=div(n('laborCost'),totalRevenue);
+  const avgRevPerClient=div(totalRevenue,totalClients);
+  const avgProfitPerClient=div(grossProfit,totalClients);
+  const revPerLaborHour=div(totalRevenue,n('laborHours'));
+  const laborEfficiency=div(n('budgetedHours'),n('laborHours'));
+  const routeDensity=div(totalClients,n('neighborhoods'));
+  const cac=div(n('marketingSpend'),n('newClients'));
+  const churnYearly=div(n('yearlyNewClients'),n('yearlyTotalClients')); // fraction
+  const custLifetimeMths=churnYearly?(1/churnYearly)*12:0;
+  const ltv=avgProfitPerClient*(custLifetimeMths/12); // profit per client × lifetime in years
+  const ltvCac=div(ltv,cac);
+  const recurringPct=div(a.recurringRevenue,totalRevenue);
+  const breakEvenRev=grossMargin?n('fixedCosts')/grossMargin:0;
+
+  const money=(x)=>'$'+x.toFixed(2);
+  const pct=(x)=>(x*100).toFixed(2)+'%';
+  const num=(x,d=2)=>x.toFixed(d);
+
+  document.getElementById('biz-calcs').innerHTML=`
+    <div class="detail-grid">
+      <div class="detail-item"><div class="dl">Direct costs</div><div class="dv">${money(directCosts)}</div></div>
+      <div class="detail-item"><div class="dl">Gross profit</div><div class="dv" style="color:${grossProfit>=0?'var(--green)':'var(--red)'}">${money(grossProfit)}</div></div>
+      <div class="detail-item"><div class="dl">Gross margin</div><div class="dv">${pct(grossMargin)}</div></div>
+      <div class="detail-item"><div class="dl">Labor % revenue</div><div class="dv">${pct(laborPctRev)}</div></div>
+      <div class="detail-item"><div class="dl">Avg revenue / client</div><div class="dv">${money(avgRevPerClient)}</div></div>
+      <div class="detail-item"><div class="dl">Avg profit / client</div><div class="dv">${money(avgProfitPerClient)}</div></div>
+      <div class="detail-item"><div class="dl">Revenue / labor hour</div><div class="dv">${money(revPerLaborHour)}</div></div>
+      <div class="detail-item"><div class="dl">Labor efficiency</div><div class="dv">${pct(laborEfficiency)}</div></div>
+      <div class="detail-item"><div class="dl">Route density</div><div class="dv">${num(routeDensity)}</div></div>
+      <div class="detail-item"><div class="dl">CAC</div><div class="dv">${money(cac)}</div></div>
+      <div class="detail-item"><div class="dl">LTV</div><div class="dv">${money(ltv)}</div></div>
+      <div class="detail-item"><div class="dl">LTV : CAC</div><div class="dv">${num(ltvCac)}</div></div>
+      <div class="detail-item"><div class="dl">Recurring revenue %</div><div class="dv">${pct(recurringPct)}</div></div>
+      <div class="detail-item"><div class="dl">Break-even revenue</div><div class="dv">${money(breakEvenRev)}</div></div>
+      <div class="detail-item"><div class="dl">Churn (yearly)</div><div class="dv">${pct(churnYearly)}</div></div>
+      <div class="detail-item"><div class="dl">Avg customer lifetime</div><div class="dv">${num(custLifetimeMths,1)} mo</div></div>
+    </div>`;
+
+  // KPI dashboard with benchmark coloring. status: 'good' | 'warn' | 'bad'
+  const kpis=[
+    {name:'Revenue',val:money(totalRevenue),bench:'Positive',status:totalRevenue>0?'good':'bad'},
+    {name:'Gross margin',val:pct(grossMargin),bench:'45–60%',status:grossMargin>=0.45&&grossMargin<=0.60?'good':(grossMargin>=0.35?'warn':'bad')},
+    {name:'Labor % of revenue',val:pct(laborPctRev),bench:'<40%',status:n('laborCost')===0?'warn':(laborPctRev<0.40?'good':'bad')},
+    {name:'Recurring revenue %',val:pct(recurringPct),bench:'≥30%',status:recurringPct>=0.30?'good':(recurringPct>=0.20?'warn':'bad')},
+    {name:'Revenue / labor hour',val:money(revPerLaborHour),bench:'$60–80',status:n('laborHours')===0?'warn':(revPerLaborHour>=60?'good':'bad')},
+    {name:'Labor efficiency',val:pct(laborEfficiency),bench:'70–90%',status:n('laborHours')===0?'warn':(laborEfficiency>=0.70&&laborEfficiency<=0.90?'good':'warn')},
+    {name:'Route density',val:num(routeDensity),bench:'6–12',status:routeDensity>=6&&routeDensity<=12?'good':'warn'},
+    {name:'CAC',val:money(cac),bench:'$50–250',status:n('newClients')===0?'warn':(cac<=250?'good':'bad')},
+    {name:'LTV',val:money(ltv),bench:'Lifetime value',status:ltv>0?'good':'warn'},
+    {name:'LTV : CAC',val:num(ltvCac),bench:'>3',status:ltvCac>3?'good':(ltvCac>=1?'warn':'bad')},
+    {name:'Break-even revenue',val:money(breakEvenRev),bench:'Below revenue',status:(breakEvenRev>0&&breakEvenRev<totalRevenue)?'good':'warn'}
+  ];
+  const dot={good:'var(--green)',warn:'#e0a020',bad:'var(--red)'};
+  document.getElementById('biz-kpis').innerHTML=kpis.map(k=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:.55rem 0;border-bottom:1px solid var(--s3)">
+      <div style="display:flex;align-items:center;gap:8px;min-width:0">
+        <span style="width:9px;height:9px;border-radius:50%;background:${dot[k.status]};flex-shrink:0"></span>
+        <span style="font-size:13px;font-weight:600">${esc(k.name)}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        <span style="font-size:13px;font-weight:700">${k.val}</span>
+        <span style="font-size:11px;color:var(--ink3);min-width:64px;text-align:right">${esc(k.bench)}</span>
+      </div>
+    </div>`).join('');
+}
+
 function renderReports(){
   const period=document.getElementById('report-period').value;
   const now=new Date();
@@ -3384,7 +3659,7 @@ function renderReports(){
         }
       });
     } else {
-      const key={mow:'Mow',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'}[svcType]||'Lawn service';
+      const key=svcShort(svcType);
       if(!catMap[key])catMap[key]={count:0,revenue:0};
       catMap[key].count++;
       catMap[key].revenue+=amt;
@@ -3422,7 +3697,7 @@ function renderReports(){
       ${sortedJobs.length?sortedJobs.map(j=>{
         const c=DB.customers.find(x=>x.id===j.custId);
         const amt=parseFloat(j.chargedAmount||c&&c.price||0);
-        const desc=j.serviceDesc||({mow:'Mow',mow_edge:'Mow + Edge',full:'Mow + Edge + Blow',cleanup:'Full cleanup'}[c&&c.serviceType]||'Lawn service');
+        const desc=j.serviceDesc||svcShort(c&&c.serviceType);
         return `<div style="display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)">
           <div style="flex:1;min-width:0">
             <div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):'Unknown'}</div>
@@ -3593,6 +3868,8 @@ async function startApp(){
       if(el)el.textContent='Signed in as '+data.user.email;
     }
   }catch(e){}
+  const vEl=document.getElementById('app-version');
+  if(vEl)vEl.textContent='Version '+APP_VERSION;
 }
 
 // ══ AUTH ══════════════════════════════════════════════════════════
