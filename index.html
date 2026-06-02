@@ -558,7 +558,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 
   <div class="card" style="margin-top:.5rem">
     <div class="card-title">Your costs &amp; inputs</div>
-    <p style="font-size:12px;color:var(--ink3);margin-bottom:.75rem">Enter the things the app can't know. These are saved automatically.</p>
+    <p style="font-size:12px;color:var(--ink3);margin-bottom:.75rem">Enter the things the app can't know. Leave the two revenue fields blank to use your app's auto totals, or type a figure (e.g. from your books) to override them. All inputs save automatically and sync across devices.</p>
     <div id="biz-inputs"></div>
   </div>
 
@@ -810,7 +810,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.06.01-4';
+const APP_VERSION='2026.06.01-5';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Shared secret sent to the Netlify serverless functions (charge/setup/hubspot-sync).
@@ -3595,6 +3595,8 @@ function getBizAutoData(){
 
 // Field definitions for the manual inputs (key, label, prefix, default)
 const BIZ_FIELDS=[
+  {k:'revenueOverride',label:'Total revenue (manual — overrides app data)',pre:'$',def:0},
+  {k:'recurringOverride',label:'Recurring revenue (manual)',pre:'$',def:0},
   {k:'laborCost',label:'Labor cost',pre:'$',def:0},
   {k:'fuelCost',label:'Fuel cost',pre:'$',def:0},
   {k:'equipmentWear',label:'Equipment wear',pre:'$',def:0},
@@ -3631,12 +3633,15 @@ function renderBizCalcs(){
   const inp=getBizInputs();
   const n=(k)=>{const v=inp[k];return (v==null||isNaN(v))?0:parseFloat(v);};
 
-  // Auto panel
-  const totalRevenue=a.revenue;
+  // Revenue: use the manual override when entered, otherwise the app's auto total.
+  const hasRevOverride=inp.revenueOverride!=null&&!isNaN(inp.revenueOverride);
+  const hasRecOverride=inp.recurringOverride!=null&&!isNaN(inp.recurringOverride);
+  const totalRevenue=hasRevOverride?parseFloat(inp.revenueOverride):a.revenue;
+  const recurringRevenue=hasRecOverride?parseFloat(inp.recurringOverride):a.recurringRevenue;
   const totalClients=a.clientsServed||a.activeClients||0;
   document.getElementById('biz-auto').innerHTML=`
-    <div class="detail-item"><div class="dl">Total revenue</div><div class="dv" style="color:var(--green)">$${totalRevenue.toFixed(2)}</div></div>
-    <div class="detail-item"><div class="dl">Recurring revenue</div><div class="dv">$${a.recurringRevenue.toFixed(2)}</div></div>
+    <div class="detail-item"><div class="dl">Total revenue${hasRevOverride?' (manual)':''}</div><div class="dv" style="color:var(--green)">$${totalRevenue.toFixed(2)}</div></div>
+    <div class="detail-item"><div class="dl">Recurring revenue${hasRecOverride?' (manual)':''}</div><div class="dv">$${recurringRevenue.toFixed(2)}</div></div>
     <div class="detail-item"><div class="dl">Clients served</div><div class="dv">${a.clientsServed}</div></div>
     <div class="detail-item"><div class="dl">Active clients</div><div class="dv">${a.activeClients}</div></div>`;
 
@@ -3657,7 +3662,7 @@ function renderBizCalcs(){
   const custLifetimeMths=churnYearly?(1/churnYearly)*12:0;
   const ltv=avgProfitPerClient*(custLifetimeMths/12); // profit per client × lifetime in years
   const ltvCac=div(ltv,cac);
-  const recurringPct=div(a.recurringRevenue,totalRevenue);
+  const recurringPct=div(recurringRevenue,totalRevenue);
   const breakEvenRev=grossMargin?n('fixedCosts')/grossMargin:0;
 
   const money=(x)=>'$'+x.toFixed(2);
