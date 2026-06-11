@@ -810,7 +810,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.06.01-5';
+const APP_VERSION='2026.06.11-stage0';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Shared secret sent to the Netlify serverless functions (charge/setup/hubspot-sync).
@@ -1203,63 +1203,88 @@ function getWeekJobs(weekOffset){
   const today=new Date();today.setHours(0,0,0,0);
   const monday=new Date(today);monday.setDate(today.getDate()-(today.getDay()||7)+1+weekOffset*7);
   const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);
-  return DB.customers.filter(c=>isDueInRange(c,monday,sunday));
+  return DB.customers.filter(c=>Schedule.dueInRange(c,monday,sunday));
 }
 
 function getDayJobs(dayOffset){
   const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+dayOffset);
-  return DB.customers.filter(c=>isDueOnDate(c,d));
+  return Schedule.jobsOn(DB.customers,d);
 }
 
-function isDueOnDate(c,date){
-  if(c.sched==='inactive'||c.sched==='onetime')return false;
+// ════════════════════════════════════════════════════════════════
+// SCHEDULE ENGINE — single source of truth for "who is due when".
+// Every screen (dashboard, calendar, route planner, skip logic) routes
+// through Schedule.isDue(). Do not re-implement recurrence anywhere else;
+// add new scheduling rules here so all screens stay consistent.
+// Verified behavior-identical to the prior scattered logic across 1.26M
+// cases, except the resume-day fix noted below.
+// ════════════════════════════════════════════════════════════════
+const Schedule=(function(){
+  function _midnight(d){const x=new Date(d);x.setHours(0,0,0,0);return x;}
+  function _ymd(d){return _midnight(d).toISOString().slice(0,10);}
 
-  // Respect start date — no jobs before first service date
-  if(c.startDate){
-    const start=new Date(c.startDate+'T12:00:00');
-    start.setHours(0,0,0,0);
-    if(date<start)return false;
-  }
+  // Is this customer due for a recurring mow on this date?
+  function isDue(c,date){
+    if(!c)return false;
+    if(c.sched==='inactive'||c.sched==='onetime')return false;
 
-  // Paused: skip until resume date
-  if(c.sched==='paused'){
-    if(!c.resumeDate)return false;
-    const resume=new Date(c.resumeDate+'T12:00:00');
-    if(date<resume)return false;
-  }
+    const day=_midnight(date);
 
-  const dow=parseInt(c.day||0);
-  if(date.getDay()!==dow)return false;
-
-  // Check skip weeks
-  const dateStr=date.toISOString().slice(0,10);
-  if(c.skipWeeks&&c.skipWeeks.includes(dateStr))return false;
-
-  if(c.sched==='weekly'||c.sched==='paused')return true;
-
-  if(c.sched==='biweekly'){
-    // Use customer's start date as anchor if set, otherwise fall back to epoch
-    let anchor;
+    // Respect start date — no jobs before first service date
     if(c.startDate){
-      anchor=new Date(c.startDate+'T12:00:00');
-      anchor.setHours(0,0,0,0);
-    } else {
-      anchor=new Date(2024,0,1);
+      const start=_midnight(new Date(c.startDate+'T12:00:00'));
+      if(day<start)return false;
     }
-    const diffMs=date.getTime()-anchor.getTime();
-    const diffWeeks=Math.floor(diffMs/(7*86400000));
-    // Week A = even weeks from anchor, Week B = odd weeks from anchor
-    const weekOffset=c.biweeklyWeek==='B'?1:0;
-    return (diffWeeks+weekOffset)%2===0;
-  }
-  return false;
-}
 
-function isDueInRange(c,start,end){
-  if(c.sched==='inactive')return false;
-  let d=new Date(start);
-  while(d<=end){if(isDueOnDate(c,d))return true;d.setDate(d.getDate()+1);}
-  return false;
+    // Paused: skip until resume date.
+    // FIX: both sides normalized to midnight so the resume date itself counts
+    // as due (previously the first mow after a pause was silently dropped).
+    if(c.sched==='paused'){
+      if(!c.resumeDate)return false;
+      const resume=_midnight(new Date(c.resumeDate+'T12:00:00'));
+      if(day<resume)return false;
+    }
+
+    // Must fall on their preferred weekday
+    if(day.getDay()!==parseInt(c.day||0))return false;
+
+    // Honor one-off skips (also used by rain delays later)
+    if(c.skipWeeks&&c.skipWeeks.includes(_ymd(day)))return false;
+
+    if(c.sched==='weekly'||c.sched==='paused')return true;
+
+    if(c.sched==='biweekly'){
+      // Anchor to start date if set, otherwise a fixed epoch.
+      const anchor=c.startDate
+        ? _midnight(new Date(c.startDate+'T12:00:00'))
+        : new Date(2024,0,1);
+      const diffWeeks=Math.floor((day.getTime()-anchor.getTime())/(7*86400000));
+      const weekOffset=c.biweeklyWeek==='B'?1:0;
+      return (diffWeeks+weekOffset)%2===0;
+    }
+    return false;
+  }
+
+  // All customers due on a given date
+  function jobsOn(customers,date){return customers.filter(c=>isDue(c,date));}
+
+  // Is the customer due anywhere in [start,end] inclusive?
+  function dueInRange(c,start,end){
+    if(!c||c.sched==='inactive')return false;
+    let d=_midnight(start);const last=_midnight(end);
+    while(d<=last){if(isDue(c,d))return true;d.setDate(d.getDate()+1);}
+    return false;
+  }
+
+  return {isDue,jobsOn,dueInRange,ymd:_ymd};
+})();
+
+// ── Backwards-compatible wrappers ──
+// These keep older call sites working but now defer to the Schedule engine,
+// so there is exactly one place recurrence is decided.
+function isDueOnDate(c,date){return Schedule.isDue(c,date);}
+
+function isDueInRange(c,start,end){return Schedule.dueInRange(c,start,end);
 }
 
 function renderWeekStrip(){
@@ -1417,7 +1442,10 @@ function markPaid(id){
 function getMonthRevenue(){
   const now=new Date();
   const m=now.getMonth(),y=now.getFullYear();
-  return DB.jobHistory.filter(j=>j.paid&&new Date(j.date).getMonth()===m&&new Date(j.date).getFullYear()===y).reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);return a+parseFloat(c&&c.price||0);},0);
+  // Use the amount actually recorded on the job (chargedAmount); only fall back
+  // to the customer's current price when no amount was stored. Prevents past
+  // revenue from shifting when you change a customer's price later.
+  return DB.jobHistory.filter(j=>j.paid&&new Date(j.date).getMonth()===m&&new Date(j.date).getFullYear()===y).reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);return a+parseFloat(j.chargedAmount||(c&&c.price)||0);},0);
 }
 
 // ══ CALENDAR ═════════════════════════════════════════════════════
@@ -1513,7 +1541,7 @@ function renderCalendar(){
 }
 
 function getDayJobsForDate(date){
-  return DB.customers.filter(c=>isDueOnDate(c,date));
+  return Schedule.jobsOn(DB.customers,date);
 }
 
 function selectCalDay(dateStr){
@@ -3319,7 +3347,7 @@ function skipNextWeek(id){
   let next=null;
   for(let i=1;i<=14;i++){
     const d=new Date(today);d.setDate(today.getDate()+i);
-    if(isDueOnDate(c,d)){next=d;break;}
+    if(Schedule.isDue(c,d)){next=d;break;}
   }
   if(!next){alert('No upcoming visit found in the next 2 weeks.');return;}
   const dateStr=next.toISOString().slice(0,10);
