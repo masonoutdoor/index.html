@@ -468,38 +468,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <!-- Services Settings -->
   <div class="card" style="margin-top:.5rem">
     <div class="card-title">Services & pricing</div>
-    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">Edit your service names and prices. These appear as tap-to-select buttons in the payment screen so Stripe gets a proper description.</p>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">Edit your service names and prices. These appear as tap-to-select buttons in the field tracker so each completed job records what was done.</p>
     <div id="services-list"></div>
     <button class="btn bsm btng" onclick="addServiceRow()" style="margin-bottom:.875rem"><i class="ti ti-plus"></i> Add service</button>
     <button class="btn btng" onclick="saveServicesSettings()" style="width:100%"><i class="ti ti-check"></i> Save services</button>
     <div id="svc-save-msg" style="display:none;margin-top:.625rem;font-size:13px;color:var(--green);text-align:center"></div>
   </div>
 
-  <!-- Stripe & Payment Settings -->
+  <!-- Business name (used in texts) -->
   <div class="card" style="margin-top:.5rem">
-    <div class="card-title">Payment settings</div>
-    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">Configure Stripe payment links. Create these once in your <a href="https://dashboard.stripe.com/payment-links" target="_blank" style="color:var(--blue)">Stripe dashboard</a> and paste the links here.</p>
+    <div class="card-title">Business name</div>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">Used in the texts you send customers ("on my way", "service finished"). Payments are collected in your Stripe app — this app only tracks who's settled up.</p>
     <div class="fr">
-      <div class="f"><label>Default payment link (any amount)</label><input type="url" id="st-default-link" placeholder="https://buy.stripe.com/..."></div>
+      <div class="f"><label>Business name</label><input type="text" id="st-biz-name" placeholder="Richardson Outdoor Solutions"></div>
     </div>
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem;margin-top:.25rem">Price-specific links (optional — faster for common amounts)</div>
-    <div id="stripe-price-links"></div>
-    <button class="btn bsm" onclick="addStripePriceLink()" style="margin-bottom:.875rem"><i class="ti ti-plus"></i> Add price link</button>
-    <div class="fr">
-      <div class="f"><label>Business name (for texts)</label><input type="text" id="st-biz-name" placeholder="Richardson Outdoor Solutions"></div>
-    </div>
-    <button class="btn btng" onclick="saveStripeSettings()" style="width:100%"><i class="ti ti-check"></i> Save payment settings</button>
+    <button class="btn btng" onclick="saveBizName()" style="width:100%"><i class="ti ti-check"></i> Save business name</button>
     <div id="stripe-save-msg" style="display:none;margin-top:.625rem;font-size:13px;color:var(--green);text-align:center"></div>
   </div>
 
   <!-- HubSpot Settings -->
   <div class="card" style="margin-top:.5rem">
-    <div class="card-title">HubSpot integration</div>
-    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">When a cash/check payment is recorded, the app updates the customer's HubSpot contact with the last payment date and amount.</p>
-    <div style="background:var(--bp);border:1px solid #b3c8f0;border-radius:var(--r);padding:.75rem .875rem;font-size:13px;color:var(--blue);line-height:1.6">
-      <strong>Token stored server-side.</strong> For security, your HubSpot Private App token is set as the <code>HUBSPOT_TOKEN</code> environment variable on your Netlify deployment — never in this app. The token is a full-access CRM credential, so it must not live in the browser.
+    <div class="card-title">HubSpot</div>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">HubSpot is your CRM for leads and contacts. This app imports your client list from a HubSpot export (Customers → Import). No live connection, no token, nothing is sent back to HubSpot — your CRM stays separate and secure.</p>
+    <div style="background:var(--gp);border:1px solid var(--gl);border-radius:var(--r);padding:.75rem .875rem;font-size:13px;color:var(--green);line-height:1.6">
+      <strong>Nothing to configure.</strong> Payment records live in your Stripe app. This app only tracks who's settled up for your routes.
     </div>
-    <button class="btn bsm" onclick="saveHubSpotKey()" style="width:100%;margin-top:.625rem">Clear any token saved by older versions</button>
     <input type="hidden" id="hs-key">
     <div id="hs-save-msg" style="display:none;margin-top:.625rem;font-size:13px;color:var(--blue);text-align:center"></div>
   </div>
@@ -672,17 +665,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   </div>
   <div class="fr">
     <div class="f" style="flex:0 0 150px"><label>HubSpot contact ID</label><input type="text" id="cf-hubspot-id" placeholder="12345678"></div>
-    <div class="f" style="flex:0 0 170px"><label>Stripe customer ID</label><input type="text" id="cf-stripe-id" placeholder="cus_ABC123..."></div>
-  </div>
-  <div class="fr">
-    <div class="f" style="flex:0 0 150px"><label>Payment method</label>
-      <select id="cf-paymethod">
-        <option value="cash">Cash / Check</option>
-        <option value="card">Charge card (Stripe)</option>
-        <option value="invoice">Send invoice link</option>
-      </select>
-    </div>
-    <div class="f"><label>Custom payment link (overrides default)</label><input type="url" id="cf-paylink" placeholder="https://buy.stripe.com/..."></div>
   </div>
   <div class="fr" style="margin-bottom:1rem">
     <div class="f"><label>Additional notes</label><textarea id="cf-notes" rows="2" placeholder="Anything else to know..."></textarea></div>
@@ -810,15 +792,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.06.11-stage0';
+const APP_VERSION='2026.06.11-stage1';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// Shared secret sent to the Netlify serverless functions (charge/setup/hubspot-sync).
-// This is a first layer that blocks anonymous calls to those endpoints. Note it is
-// visible in page source, so the functions also lock to this app's origin; the
-// strongest protection (verifying the Supabase session server-side) can be added later.
-const APP_SHARED_SECRET = 'a7f3K9mQ2pX8vL4nR6wB1cY5tH0jD3sZ9eU7gN2kF8aW4qM6rT1xP5oV3iC0bL';
-const FN_HEADERS = {'Content-Type':'application/json','x-app-secret':APP_SHARED_SECRET};
 
 function isUuid(value){
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''));
@@ -1347,8 +1322,6 @@ function renderUnpaid(){
   document.getElementById('unpaid-list').innerHTML=unpaid.map(j=>{
     const c=DB.customers.find(x=>x.id===j.custId);
     const price=parseFloat(j.chargedAmount||c&&c.price||0);
-    const hasStripeId=c&&c.stripeCustomerId&&c.stripeCustomerId.startsWith('cus_');
-    const link=c?(c.payLink||getBestPayLink(price)):'';
     const desc=j.serviceDesc||'';
     return `<div id="unpaid-job-${attr(j.id)}" style="padding:.75rem 0;border-bottom:1px solid var(--s3)">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.5rem;gap:8px">
@@ -1361,17 +1334,14 @@ function renderUnpaid(){
           <button class="btn bxsm" onclick="openEditJobModal('${jsStr(j.id)}')" style="font-size:10px"><i class="ti ti-edit" style="font-size:10px"></i></button>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
         <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:10px" onclick="markPaidDash('${jsStr(j.id)}','cash')">
           <i class="ti ti-cash" style="font-size:10px"></i> Cash
         </button>
-        <button class="btn bxsm" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0;font-size:10px" onclick="${hasStripeId?`chargeDash('${jsStr(j.id)}','${jsStr(c.stripeCustomerId)}',${price})`:`openPayLinkDash('${jsStr(safeUrl(link))}')`}">
-          <i class="ti ti-credit-card" style="font-size:10px"></i> Card
+        <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:10px" onclick="markPaidDash('${jsStr(j.id)}','check')">
+          <i class="ti ti-receipt" style="font-size:10px"></i> Check
         </button>
-        <button class="btn bxsm" style="background:var(--ambp);color:var(--amb);border-color:#f0d9a0;font-size:10px" onclick="invoiceDash('${jsStr(j.id)}','${jsStr(j.custId)}',${price})">
-          <i class="ti ti-send" style="font-size:10px"></i> Invoice
-        </button>
-        <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:10px" onclick="markPaidDash('${jsStr(j.id)}','paid')">
+        <button class="btn bxsm" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0;font-size:10px" onclick="markPaidDash('${jsStr(j.id)}','paid')">
           <i class="ti ti-check" style="font-size:10px"></i> Paid
         </button>
       </div>
@@ -1385,53 +1355,8 @@ function markPaidDash(jobId,method){
     j.paid=true;
     j.paidMethod=method;
     saveDB();
-    // Sync to HubSpot if cash
-    if(method==='cash'){
-      const c=DB.customers.find(x=>x.id===j.custId);
-      if(c)syncPaymentToHubSpot(j.custId,c.price||0,'Cash/Check',j.date);
-    }
     renderDash();
   }
-}
-
-async function chargeDash(jobId,stripeCustomerId,price){
-  const j=DB.jobHistory.find(x=>x.id===jobId);
-  const c=DB.customers.find(x=>x.id===j.custId);
-  if(!confirm(`Charge $${price.toFixed(2)} to ${c?custFullName(c):'customer'}'s card on file?`))return;
-  try{
-    const res=await fetch('https://effervescent-pie-af6453.netlify.app/.netlify/functions/charge',{
-      method:'POST',
-      headers:FN_HEADERS,
-      body:JSON.stringify({stripeCustomerId,amount:price,description:`Lawn service — ${c?custFullName(c):''} — ${j.date}`,customerName:c?custFullName(c):''})
-    });
-    const data=await res.json();
-    if(data.success){
-      markPaidDash(jobId,'card');
-      alert(`✓ $${price.toFixed(2)} charged successfully!`);
-    } else {
-      alert('Charge failed: '+(data.error||'Unknown error'));
-    }
-  }catch(e){
-    alert('Connection error. Try again.');
-  }
-}
-
-function openPayLinkDash(link){
-  if(!link){alert('No payment link set up. Go to Reports → Payment settings.');return;}
-  window.open(link,'_blank');
-}
-
-function invoiceDash(jobId,custId,price){
-  const c=DB.customers.find(x=>x.id===custId);
-  if(!c){alert('Customer not found.');return;}
-  const link=c.payLink||getBestPayLink(price);
-  if(!link){alert('No payment link set up. Go to Reports → Payment settings.');return;}
-  const settings=getStripeSettings();
-  const bizName=settings.bizName||'Richardson Outdoor Solutions';
-  const msg=`Hi ${c.first}! You have an outstanding balance of $${price.toFixed(2)} for lawn service on ${fmtDate(DB.jobHistory.find(x=>x.id===jobId)?.date||'')}. Pay securely here: ${link} — Thanks, ${bizName}`;
-  if(c.phone){window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));}
-  else if(c.email){window.open('mailto:'+c.email+'?subject=Invoice — '+bizName+'&body='+encodeURIComponent(msg));}
-  else{alert('No phone or email for this customer.');}
 }
 
 function markPaid(id){
@@ -2068,60 +1993,29 @@ function buildJobCard(j,i){
 function getJobRecord(custId){return DB.jobHistory.find(j=>j.custId===custId&&j.date===todayStr());}
 
 // ══ PAYMENT UI ════════════════════════════════════════════════════
-function getStripeSettings(){
-  try{return JSON.parse(localStorage.getItem('ros_stripe')||'{}');}catch(e){return {};}
+// Business name used in outgoing texts. Stored in a small local setting and
+// editable from Reports → Business name. Replaces the old Stripe settings blob.
+function getBizName(){
+  try{
+    const v=(DB.settings&&DB.settings.bizName)||localStorage.getItem('ros_biz_name');
+    return v||'Richardson Outdoor Solutions';
+  }catch(e){return 'Richardson Outdoor Solutions';}
 }
 
-function saveStripeSettings(){
-  const defaultLink=document.getElementById('st-default-link').value.trim();
-  const bizName=document.getElementById('st-biz-name').value.trim();
-  // Collect price links
-  const priceLinks=[];
-  document.querySelectorAll('.stripe-price-row').forEach(row=>{
-    const price=row.querySelector('.spl-price').value.trim();
-    const link=row.querySelector('.spl-link').value.trim();
-    if(price&&link)priceLinks.push({price,link});
-  });
-  const settings={defaultLink,bizName,priceLinks};
-  localStorage.setItem('ros_stripe',JSON.stringify(settings));
-  DB.settings.stripeDefaultLink=defaultLink;
-  DB.settings.stripeBizName=bizName;
+function saveBizName(){
+  const el=document.getElementById('st-biz-name');
+  const name=el?el.value.trim():'';
+  DB.settings.bizName=name;
+  try{localStorage.setItem('ros_biz_name',name);}catch(e){}
   saveDB();
   const msg=document.getElementById('stripe-save-msg');
-  msg.textContent='✓ Saved';msg.style.display='';
-  setTimeout(()=>msg.style.display='none',2000);
-}
-
-function addStripePriceLink(price='',link=''){
-  const container=document.getElementById('stripe-price-links');
-  const row=document.createElement('div');
-  row.className='stripe-price-row fr';
-  row.style.marginBottom='.5rem';
-  row.innerHTML=`<div class="f" style="flex:0 0 90px"><label>Price ($)</label><input class="spl-price" type="number" placeholder="65" value="${price}" min="0" step="0.01"></div><div class="f"><label>Stripe link</label><input class="spl-link" type="url" placeholder="https://buy.stripe.com/..." value="${link}"></div><button class="btn bxsm btnr" style="margin-top:auto" onclick="this.closest('.stripe-price-row').remove()"><i class="ti ti-x"></i></button>`;
-  container.appendChild(row);
+  if(msg){msg.textContent='✓ Saved';msg.style.display='';setTimeout(()=>msg.style.display='none',2000);}
 }
 
 function loadStripeSettingsUI(){
-  const s=getStripeSettings();
-  const dl=document.getElementById('st-default-link');
+  // Only the business-name field remains in the (now slimmed) settings card.
   const bn=document.getElementById('st-biz-name');
-  if(dl)dl.value=s.defaultLink||'';
-  if(bn)bn.value=s.bizName||'Richardson Outdoor Solutions';
-  const container=document.getElementById('stripe-price-links');
-  if(container){
-    container.innerHTML='';
-    (s.priceLinks||[]).forEach(pl=>addStripePriceLink(pl.price,pl.link));
-  }
-}
-
-function getBestPayLink(price){
-  const s=getStripeSettings();
-  // Try to find a price-specific link first
-  if(s.priceLinks&&price){
-    const match=s.priceLinks.find(pl=>parseFloat(pl.price)===parseFloat(price));
-    if(match&&match.link)return match.link;
-  }
-  return s.defaultLink||'';
+  if(bn)bn.value=getBizName();
 }
 
 function getServices(){
@@ -2188,23 +2082,21 @@ function buildPaymentUI(j,i,s){
   const rec=getJobRecord(j.id);
   const c=DB.customers.find(x=>x.id===j.id);
   const price=parseFloat(c&&c.price||0);
-  const stripeSettings=getStripeSettings();
-  const hasStripe=!!(stripeSettings.defaultLink||(stripeSettings.priceLinks&&stripeSettings.priceLinks.length));
   const services=getServices().filter(svc=>svc.active);
 
-  // Already paid
+  // Already recorded
   if(rec&&rec.paid){
+    const methodLabel={cash:'Cash',check:'Check',paid:'Paid'}[rec.paidMethod]||'Paid';
     return `<div class="pay-done-badge">
       <i class="ti ti-circle-check-filled" style="font-size:24px;color:var(--green);flex-shrink:0"></i>
       <div><div style="font-weight:700;font-size:14px;color:var(--green)">Payment recorded</div>
-      <div style="font-size:12px;color:var(--ink3)">${rec.paidMethod==='cash'?'Cash / Check':rec.paidMethod==='card'?'Charged via Stripe':rec.paidMethod==='invoice'?'Invoice sent':'Paid'} · $${parseFloat(rec.chargedAmount||price).toFixed(2)}${rec.serviceDesc?' · '+esc(rec.serviceDesc):''}</div></div>
+      <div style="font-size:12px;color:var(--ink3)">${methodLabel} · $${parseFloat(rec.chargedAmount||price).toFixed(2)}${rec.serviceDesc?' · '+esc(rec.serviceDesc):''}</div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:2px">Recorded here — collect in Stripe app. <button class="btn bxsm" style="font-size:10px;height:22px;padding:0 7px;margin-left:4px" onclick="unmarkPaid('${jsStr(j.id)}','${i}')">Undo</button></div></div>
     </div>
     <button class="btn bsm" onclick="textCustomer('${jsStr(j.id)}')" style="margin-bottom:.875rem;width:100%"><i class="ti ti-message"></i> Text job summary</button>`;
   }
 
-  const stripeNote=hasStripe?'':`<div style="font-size:11px;color:var(--amb);margin-top:4px">⚠ Set up Stripe links in Reports → Payment settings</div>`;
-
-  // Build service buttons
+  // Build service buttons (kept — records what was done as structured data)
   const svcButtons=services.map(svc=>`
     <button id="svc-btn-${i}-${attr(svc.id)}"
       onclick="toggleService(${i},'${jsStr(svc.id)}',${parseFloat(svc.price)||0},${price})"
@@ -2236,39 +2128,13 @@ function buildPaymentUI(j,i,s){
       </div>
     </div>
 
-    <div class="pay-box pay-cash" onclick="payByCash('${jsStr(j.id)}','${i}',getPayAmount(${i}))">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="font-size:26px">💵</div>
-        <div>
-          <div class="pay-box-title">Cash / Check</div>
-          <div class="pay-box-sub">Mark as received on the spot</div>
-        </div>
-        <i class="ti ti-chevron-right" style="margin-left:auto;color:var(--ink3)"></i>
-      </div>
-    </div>
+    <div style="font-size:11px;color:var(--ink3);margin-bottom:.5rem;line-height:1.5"><i class="ti ti-info-circle" style="font-size:11px"></i> Record how you got paid. Money is collected in your Stripe app — this just tracks who's settled up.</div>
 
-    <div class="pay-box pay-card" onclick="payByCard('${jsStr(j.id)}','${i}',getPayAmount(${i}))">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="font-size:26px">💳</div>
-        <div>
-          <div class="pay-box-title">Charge card</div>
-          <div class="pay-box-sub" id="pay-card-sub-${i}">Charge $${price.toFixed(2)} to card on file</div>
-          ${stripeNote}
-        </div>
-        <i class="ti ti-chevron-right" style="margin-left:auto;color:var(--ink3)"></i>
-      </div>
-    </div>
-
-    <div class="pay-box pay-invoice" onclick="payByInvoice('${jsStr(j.id)}','${i}',getPayAmount(${i}))">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="font-size:26px">📨</div>
-        <div>
-          <div class="pay-box-title">Send invoice</div>
-          <div class="pay-box-sub" id="pay-inv-sub-${i}">Text them a payment link for $${price.toFixed(2)}</div>
-          ${stripeNote}
-        </div>
-        <i class="ti ti-chevron-right" style="margin-left:auto;color:var(--ink3)"></i>
-      </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn btng" style="height:46px" onclick="confirmPayment('${jsStr(j.id)}','${i}','cash')"><i class="ti ti-cash"></i> Cash</button>
+      <button class="btn btng" style="height:46px" onclick="confirmPayment('${jsStr(j.id)}','${i}','check')"><i class="ti ti-receipt"></i> Check</button>
+      <button class="btn" style="height:46px;background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="confirmPayment('${jsStr(j.id)}','${i}','paid')"><i class="ti ti-circle-check"></i> Paid (other)</button>
+      <button class="btn" style="height:46px" onclick="leaveUnpaid('${jsStr(j.id)}','${i}')"><i class="ti ti-clock-pause"></i> Leave unpaid</button>
     </div>
   </div>`;
 }
@@ -2279,13 +2145,8 @@ function getPayAmount(i){
 }
 
 function updatePayAmount(i,basePrice,sel){
-  const el=document.getElementById('pay-amount-'+i);
-  if(!el)return;
-  const amt=parseFloat(el.value)||0;
-  const cardSub=document.getElementById('pay-card-sub-'+i);
-  const invSub=document.getElementById('pay-inv-sub-'+i);
-  if(cardSub)cardSub.textContent=`Charge $${amt.toFixed(2)} to card on file`;
-  if(invSub)invSub.textContent=`Text them a payment link for $${amt.toFixed(2)}`;
+  // Total field drives nothing else now that charge/invoice subtitles are gone.
+  // Kept as a hook so service-toggle calls remain valid.
 }
 
 function resetPayJobServices(i,basePrice){
@@ -2306,202 +2167,46 @@ function getServiceDescription(i){
   return sel.length?sel.map(s=>s.name).join(' + '):'Lawn service';
 }
 
-function payByCash(custId,i,price){
-  const c=DB.customers.find(x=>x.id===custId);
-  const desc=getServiceDescription(i);
-  if(!confirm(`Mark $${parseFloat(price).toFixed(2)} cash/check payment received from ${c?custFullName(c):'customer'}?\n\nServices: ${desc}`))return;
-  recordPayment(custId,i,'cash',price,desc);
+// ── Confirm-only payment handlers ──
+// Money is collected in the Stripe app; these only record how you got paid so
+// the operational "who owes me" view stays accurate. No charging, no links.
+function confirmPayment(custId,i,method){
+  const price=getPayAmount(i);
+  recordPayment(custId,i,method,price);
 }
 
-function payByCard(custId,i,price){
-  const c=DB.customers.find(x=>x.id===custId);
-  const name=c?custFullName(c):'customer';
-  const amount=parseFloat(price).toFixed(2);
-  const hasStripeId=c&&c.stripeCustomerId&&c.stripeCustomerId.startsWith('cus_');
-  const link=c&&c.payLink?c.payLink:getBestPayLink(price);
-
-  const card=document.getElementById('jcard-'+i);
-  if(!card)return;
-  const paySection=card.querySelector('.pay-box.pay-card');
-  if(!paySection)return;
-  const parent=paySection.closest('div[style*="margin-bottom"]');
-  if(!parent)return;
-
-  if(hasStripeId){
-    // Charge card on file via Netlify backend
-    parent.innerHTML=`
-      <div class="pay-confirm-card" style="background:var(--bp);border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
-        <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.75rem"><i class="ti ti-credit-card"></i> Charge card on file — ${esc(name)}</div>
-        <div class="pay-amount">$${amount}</div>
-        <p style="font-size:13px;color:var(--ink3);text-align:center;margin:.75rem 0">Charges the card saved in Stripe for this customer.</p>
-        <button class="btn btng" style="width:100%;margin-bottom:.5rem" id="charge-btn-${i}" onclick="executeCardCharge('${jsStr(custId)}','${i}',${price})">
-          <i class="ti ti-credit-card"></i> Charge $${amount} now
-        </button>
-        <button class="btn btn-ghost bsm" style="width:100%" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
-      </div>`;
-  } else if(link){
-    // No Stripe ID — fall back to payment link
-    parent.innerHTML=`
-      <div class="pay-confirm-card" style="background:var(--bp);border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
-        <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.75rem"><i class="ti ti-credit-card"></i> Charge card — ${esc(name)}</div>
-        <div class="pay-amount">$${amount}</div>
-        <div style="background:#fff3cd;border-radius:8px;padding:.625rem;font-size:12px;color:#856404;margin-bottom:.875rem">No Stripe Customer ID set — using payment link instead. Add their Stripe ID in Edit customer to enable one-tap charging.</div>
-        <button class="btn btng" style="width:100%;margin-bottom:.5rem" onclick="window.open('${jsStr(safeUrl(link))}','_blank')"><i class="ti ti-external-link"></i> Open payment page — $${amount}</button>
-        <button class="btn btng" style="width:100%;margin-bottom:.5rem" onclick="recordPayment('${jsStr(custId)}','${i}','card')"><i class="ti ti-check"></i> Confirm charged</button>
-        <button class="btn btn-ghost bsm" style="width:100%" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
-      </div>`;
-  } else {
-    parent.innerHTML=`
-      <div class="pay-confirm-card" style="background:var(--bp);border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
-        <div style="font-weight:700;font-size:15px;color:var(--blue);margin-bottom:.75rem"><i class="ti ti-credit-card"></i> Charge card — ${esc(name)}</div>
-        <div class="pay-amount">$${amount}</div>
-        <div style="background:var(--rp);border-radius:8px;padding:.625rem;font-size:12px;color:var(--red);margin-bottom:.875rem">No Stripe Customer ID or payment link set up. Edit this customer to add one.</div>
-        <button class="btn btng" style="width:100%;margin-bottom:.5rem" onclick="openCustModal('${jsStr(custId)}')"><i class="ti ti-edit"></i> Edit customer</button>
-        <button class="btn btn-ghost bsm" style="width:100%" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
-      </div>`;
-  }
+function leaveUnpaid(custId,i){
+  // Records the completed job as unpaid so it shows in the unpaid list.
+  recordPayment(custId,i,'unpaid',getPayAmount(i));
 }
 
-async function executeCardCharge(custId,i,price){
-  const c=DB.customers.find(x=>x.id===custId);
-  const btn=document.getElementById('charge-btn-'+i);
-  const desc=getServiceDescription(i);
-  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span> Charging...';}
-  try{
-    const res=await fetch('https://effervescent-pie-af6453.netlify.app/.netlify/functions/charge',{
-      method:'POST',
-      headers:FN_HEADERS,
-      body:JSON.stringify({
-        stripeCustomerId:c.stripeCustomerId,
-        amount:parseFloat(price),
-        description:`${desc} — ${custFullName(c)} — ${todayStr()}`,
-        customerName:custFullName(c)
-      })
-    });
-    const data=await res.json();
-    if(data.success){
-      recordPayment(custId,i,'card',parseFloat(price),desc);
-      alert(`✓ $${parseFloat(price).toFixed(2)} charged successfully!`);
-    } else {
-      if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-credit-card"></i> Retry charge';}
-      alert('Charge failed: '+(data.error||'Unknown error')+'\n\nCheck that this customer has a card saved in Stripe.');
-    }
-  }catch(e){
-    if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-credit-card"></i> Retry charge';}
-    alert('Connection error. Check your internet and try again.');
-  }
-}
-
-function payByInvoice(custId,i,price){
-  const c=DB.customers.find(x=>x.id===custId);
-  if(!c){alert('Customer not found.');return;}
-  const amount=parseFloat(price).toFixed(2);
-  // Use customer-specific link, or price-matched, or default
-  const link=c.payLink||getBestPayLink(price);
-  const settings=getStripeSettings();
-  const bizName=settings.bizName||'Richardson Outdoor Solutions';
-
-  if(!link){
-    alert('No payment link set up yet. Go to Reports → Payment settings and add your Stripe link first.');
-    goTab('reports');
-    return;
-  }
-
-  if(!c.phone&&!c.email){
-    alert('No phone or email on file for this customer. Edit their record to add contact info.');
-    return;
-  }
-
-  const card=document.getElementById('jcard-'+i);
-  if(!card)return;
-  const paySection=card.querySelector('.pay-box.pay-invoice');
-  if(!paySection)return;
-  const parent=paySection.closest('div[style*="margin-bottom"]');
-  if(!parent)return;
-
-  const msgBody=`Hi ${c.first}! Your lawn service is complete. Amount due: $${amount}. Pay securely here: ${link} — Thanks, ${bizName}`;
-
-  parent.innerHTML=`
-    <div style="background:var(--ambp);border:1px solid #f0c070;border-radius:var(--rl);padding:1rem;margin-bottom:.875rem">
-      <div style="font-weight:700;font-size:15px;color:var(--amb);margin-bottom:.75rem"><i class="ti ti-send" style="font-size:16px"></i> Send invoice — ${esc(custFullName(c))}</div>
-      <div style="background:var(--s);border-radius:var(--r);padding:.75rem;font-size:13px;line-height:1.6;color:var(--ink2);margin-bottom:.875rem;border:1px solid var(--bd)">${esc(msgBody)}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        ${c.phone?`<button class="btn btna" onclick="sendInvoiceText('${jsStr(custId)}','${i}',${price})"><i class="ti ti-message"></i> Send text</button>`:'<div></div>'}
-        ${c.email?`<button class="btn btna" onclick="sendInvoiceEmail('${jsStr(custId)}','${i}',${price})"><i class="ti ti-mail"></i> Send email</button>`:'<div></div>'}
-      </div>
-      <button class="btn btn-ghost bsm" style="width:100%;margin-top:.5rem" onclick="rerenderJCard(${i})"><i class="ti ti-arrow-left"></i> Back</button>
-    </div>`;
-}
-
-async function sendInvoiceText(custId,i,price){
-  const c=DB.customers.find(x=>x.id===custId);
-  if(!c||!c.phone){alert('No phone number.');return;}
-  const amount=parseFloat(price).toFixed(2);
-  const rawLink=c.payLink||getBestPayLink(price)||'';
-  const link=rawLink?await shortenUrl(rawLink):rawLink;
-  const settings=getStripeSettings();
-  const bizName=settings.bizName||'Richardson Outdoor Solutions';
-  const msg=`Hi ${c.first}! Your lawn service is complete. Amount due: $${amount}. Pay securely here: ${link} — Thanks, ${bizName}`;
-  window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg),'_blank');
-  // Mark invoice as sent after opening SMS
-  setTimeout(()=>{recordPayment(custId,i,'invoice');},1500);
-}
-
-function sendInvoiceEmail(custId,i,price){
-  const c=DB.customers.find(x=>x.id===custId);
-  if(!c||!c.email){alert('No email address.');return;}
-  const amount=parseFloat(price).toFixed(2);
-  const link=c.payLink||getBestPayLink(price)||'';
-  const settings=getStripeSettings();
-  const bizName=settings.bizName||'Richardson Outdoor Solutions';
-  const subject=`${bizName} — Invoice $${amount}`;
-  const body=`Hi ${c.first},\n\nYour lawn service is complete. Amount due: $${amount}.\n\nPay securely here: ${link}\n\nThank you!\n${bizName}`;
-  window.open('mailto:'+c.email+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body),'_blank');
-  setTimeout(()=>{recordPayment(custId,i,'invoice');},1500);
-}
-
-function sendPaymentConfirmationText(custId,amount,method,serviceDesc){
-  const c=DB.customers.find(x=>x.id===custId);
-  if(!c||!c.phone)return;
-  const settings=getStripeSettings();
-  const bizName=settings.bizName||'Richardson Outdoor Solutions';
-  const amtStr=`$${parseFloat(amount).toFixed(2)}`;
-  // Build service phrase
-  const services=getJobServices&&getJobServices._lastI!==undefined?null:null;
-  const svcPhrase=serviceDesc&&serviceDesc!=='Lawn service'?serviceDesc.toLowerCase()+' service':'lawn service';
-  let msg='';
-  if(method==='card'){
-    msg=`Hi ${c.first}! Your ${svcPhrase} is complete. ${amtStr} has been charged to your card on file. Thanks for your business! — ${bizName}`;
-  } else if(method==='cash'){
-    msg=`Hi ${c.first}! Your ${svcPhrase} is complete. Payment of ${amtStr} has been received. Thanks for your business! — ${bizName}`;
-  } else if(method==='invoice'){
-    msg=`Hi ${c.first}! Your ${svcPhrase} is complete. An invoice for ${amtStr} has been sent to you. Thanks for your business! — ${bizName}`;
-  }
-  if(msg){
-    window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));
-  }
+function unmarkPaid(custId,i){
+  const existing=DB.jobHistory.find(x=>x.custId===custId&&x.date===todayStr());
+  if(existing){existing.paid=false;existing.paidMethod=null;saveDB();}
+  rerenderJCard(parseInt(i));
 }
 
 function recordPayment(custId,i,method,chargedAmount,serviceDesc){
   const j=trackerRoute&&trackerRoute.jobs[parseInt(i)];
   const c=DB.customers.find(x=>x.id===custId);
-  const price=chargedAmount||parseFloat(c&&c.price||0);
+  const price=(chargedAmount!=null?chargedAmount:parseFloat(c&&c.price||0));
   const desc=serviceDesc||getServiceDescription(i);
+  // Capture the itemized services as structured data (name/price each), so
+  // later budgeted-hours and pay-for-performance work has real line items,
+  // not just a text label. Falls back to empty array if none selected.
+  const lineItems=(getJobServices(parseInt(i))||[]).map(s=>({id:s.id,name:s.name,price:s.price}));
+  const isPaid=method!=='unpaid';
   const existing=DB.jobHistory.findIndex(x=>x.custId===custId&&x.date===todayStr());
   if(existing>=0){
-    DB.jobHistory[existing].paid=method!=='invoice';
-    DB.jobHistory[existing].paidMethod=method;
+    DB.jobHistory[existing].paid=isPaid;
+    DB.jobHistory[existing].paidMethod=isPaid?method:null;
     DB.jobHistory[existing].chargedAmount=price;
     DB.jobHistory[existing].serviceDesc=desc;
+    DB.jobHistory[existing].lineItems=lineItems;
   } else {
-    DB.jobHistory.push({id:uid(),custId,date:todayStr(),actualMin:0,estMin:j?j.estMin:0,paid:method!=='invoice',paidMethod:method,chargedAmount:price,serviceDesc:desc,beforePhotos:[],afterPhotos:[],extraPhotos:[],notes:''});
+    DB.jobHistory.push({id:uid(),custId,date:todayStr(),actualMin:0,estMin:j?j.estMin:0,paid:isPaid,paidMethod:isPaid?method:null,chargedAmount:price,serviceDesc:desc,lineItems:lineItems,beforePhotos:[],afterPhotos:[],extraPhotos:[],notes:''});
   }
   saveDB();
-  if(method==='cash'){
-    syncPaymentToHubSpot(custId,price,'Cash/Check',todayStr());
-  }
-  // Auto-send confirmation text if customer has a phone
-  sendPaymentConfirmationText(custId,price,method,desc);
   rerenderJCard(parseInt(i));
 }
 
@@ -2693,8 +2398,7 @@ function saveHubSpotKey(){
 function textCustomer(custId){
   const c=DB.customers.find(x=>x.id===custId);
   if(!c||!c.phone){alert('No phone number for this customer.');return;}
-  const settings=getStripeSettings();
-  const bizName=settings.bizName||'Richardson Outdoor Solutions';
+  const bizName=getBizName();
   const serviceLabel={mow:'lawn mowing',mow_edge:'lawn mowing and edging',full:'lawn mowing, edging and blowing',cleanup:'full lawn cleanup'}[c.serviceType||'mow']||'lawn service';
   const msg=`Hi ${c.first}! Your ${serviceLabel} is complete for today. Thanks for your business! — ${bizName}`;
   window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));
@@ -2897,7 +2601,6 @@ function renderCustomers(){
           ${c.phone?`<button class="btn bsm" onclick="sendOnMyWay('${jsStr(c.id)}')"><i class="ti ti-navigation"></i> On my way</button>`:''}
           ${c.phone?`<button class="btn bsm" onclick="window.open('sms:'+('${jsStr(c.phone)}'.replace(/\\D/g,'')))"><i class="ti ti-message"></i> Text</button>`:''}
           ${safeUrl(c.hubspotUrl)?`<button class="btn bsm btnb" onclick="window.open('${jsStr(safeUrl(c.hubspotUrl))}','_blank')"><i class="ti ti-brand-hubspot"></i> HubSpot</button>`:''}
-          <button class="btn bsm btnb" onclick="sendCardSetupLink('${jsStr(c.id)}')"><i class="ti ti-credit-card"></i> Send card setup</button>
           <button class="btn bsm btnr" onclick="deleteCust('${jsStr(c.id)}')"><i class="ti ti-trash"></i> Delete</button>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -2926,9 +2629,6 @@ function openCustModal(id){
   });
   document.getElementById('cf-hubspot').value=c?c.hubspotUrl||'':'';
   document.getElementById('cf-hubspot-id').value=c?c.hubspotContactId||'':'';
-  document.getElementById('cf-stripe-id').value=c?c.stripeCustomerId||'':'';
-  document.getElementById('cf-paymethod').value=c?c.payMethod||'cash':'cash';
-  document.getElementById('cf-paylink').value=c?c.payLink||'':'';
   document.getElementById('cf-service').value=c?c.serviceType||'mow':'mow';
   document.getElementById('cf-resume').value=c?c.resumeDate||'':'';
   document.getElementById('cf-pause-reason').value=c?c.pauseReason||'':'';
@@ -2970,9 +2670,6 @@ function saveCust(){
     notes:document.getElementById('cf-notes').value.trim(),
     hubspotUrl:document.getElementById('cf-hubspot').value.trim(),
     hubspotContactId:document.getElementById('cf-hubspot-id').value.trim(),
-    stripeCustomerId:document.getElementById('cf-stripe-id').value.trim(),
-    payMethod:document.getElementById('cf-paymethod').value,
-    payLink:document.getElementById('cf-paylink').value.trim(),
     serviceType:document.getElementById('cf-service').value,
     resumeDate:document.getElementById('cf-resume').value||null,
     pauseReason:document.getElementById('cf-pause-reason').value.trim(),
@@ -3254,69 +2951,6 @@ async function shortenUrl(url){
 }
 
 // ══ CARD SETUP LINK ══════════════════════════════════════════════
-async function sendCardSetupLink(custId){
-  const c=DB.customers.find(x=>x.id===custId);
-  if(!c){alert('Customer not found.');return;}
-  if(!c.phone&&!c.email){alert('No phone or email on file for this customer.');return;}
-
-  try{
-    const res=await fetch('https://effervescent-pie-af6453.netlify.app/.netlify/functions/setup',{
-      method:'POST',
-      headers:FN_HEADERS,
-      body:JSON.stringify({
-        stripeCustomerId:c.stripeCustomerId||null,
-        customerName:custFullName(c),
-        customerEmail:c.email||''
-      })
-    });
-    const data=await res.json();
-    if(!data.success){alert('Error: '+data.error);return;}
-
-    // Save Stripe customer ID if it was just created
-    if(data.stripeCustomerId&&!c.stripeCustomerId){
-      c.stripeCustomerId=data.stripeCustomerId;
-      saveDB();
-    }
-
-    const setupUrl=await shortenUrl(data.setupUrl);
-    const settings=getStripeSettings();
-    const bizName=settings.bizName||'Richardson Outdoor Solutions';
-    const msg=`Hi ${c.first}! Please save your card on file for future lawn service payments. It only takes a minute: ${setupUrl} — Thanks, ${bizName}`;
-
-    // Send via SMS or email
-    if(c.phone){
-      window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));
-    } else if(c.email){
-      window.open('mailto:'+c.email+'?subject=Save your card — '+bizName+'&body='+encodeURIComponent(msg));
-    }
-  }catch(e){
-    alert('Connection error. Check internet and try again.');
-  }
-}
-
-// ── HUBSPOT SYNC ─────
-// SECURITY: The HubSpot Private App token is a full-access CRM credential and
-// must NEVER live in the browser. It is stored as a Netlify environment
-// variable (HUBSPOT_TOKEN) and used only inside the serverless function below.
-// The client sends just the contact id + payment details; the function adds
-// the token server-side. See SECURITY_CHECKLIST for the function source.
-async function syncPaymentToHubSpot(custId,amount,method,jobDate){
-  const c=DB.customers.find(x=>x.id===custId);
-  if(!c||!c.hubspotContactId)return;
-  try{
-    await fetch('https://effervescent-pie-af6453.netlify.app/.netlify/functions/hubspot-sync',{
-      method:'POST',
-      headers:FN_HEADERS,
-      body:JSON.stringify({
-        contactId:c.hubspotContactId,
-        amount:parseFloat(amount)||0,
-        method:method,
-        jobDate:jobDate
-      })
-    });
-  }catch(e){console.log('HubSpot sync error',e);}
-}
-
 // ══ PAUSE / RESUME / SKIP ════════════════════════════════════════
 function pauseCust(id){
   const c=DB.customers.find(x=>x.id===id);
@@ -3367,8 +3001,7 @@ function skipNextWeek(id){
 function sendOnMyWay(custId){
   const c=DB.customers.find(x=>x.id===custId);
   if(!c||!c.phone){alert('No phone number for this customer.');return;}
-  const settings=getStripeSettings();
-  const bizName=settings.bizName||'Richardson Outdoor Solutions';
+  const bizName=getBizName();
   const msg=`Hi ${c.first}! I'm on my way for your lawn service today. See you soon! — ${bizName}`;
   window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));
 }
