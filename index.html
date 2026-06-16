@@ -243,6 +243,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .cal-stripe{position:absolute;left:0;top:0;bottom:0;width:5px;display:flex;flex-direction:column}
 /* Job-count badge in the cell corner */
 .cal-count{position:absolute;right:4px;bottom:3px;font-size:10px;font-weight:700;color:var(--green);background:rgba(255,255,255,.7);border-radius:99px;min-width:15px;height:15px;line-height:15px;text-align:center;padding:0 3px}
+.cal-rain{position:absolute;right:3px;top:2px;font-size:10px;line-height:1}
 .cal-cell.selected .cal-count{background:rgba(255,255,255,.25);color:#fff}
 .cal-dots{display:flex;flex-wrap:wrap;gap:2px;margin-top:3px}
 .cal-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
@@ -822,6 +823,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 </div>
 </div>
 
+<!-- Rain result modal -->
+<div class="modal-bg" id="rain-result-modal" onclick="handleModalBg(event,'rain-result-modal')">
+<div class="modal">
+  <div class="modal-title"><i class="ti ti-cloud-rain"></i> Rain Delay Applied</div>
+  <div id="rain-result-content"></div>
+  <button class="btn btng" onclick="closeModal('rain-result-modal')" style="width:100%;margin-top:1rem"><i class="ti ti-check"></i> Done</button>
+</div>
+</div>
+
 <!-- Photo viewer -->
 <div class="pviewer" id="pviewer">
   <div class="pv-close" onclick="closePV()"><i class="ti ti-x"></i></div>
@@ -842,7 +852,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.06.16-stage2c';
+const APP_VERSION='2026.06.16-stage3';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function isUuid(value){
@@ -902,6 +912,7 @@ let DB = {
   customers: [],
   jobHistory: [],
   scheduledJobs: [],   // future-dated landscaping jobs (mulch, cleanup, hedge, quote, other)
+  rainShifts: [],      // active rain-delay date redirects: [{id,rainDate,redirects:[{from,to}],createdAt}]
   settings: {mapsKey:'',homeBase:'',startTime:'07:00',hours:8}
 };
 
@@ -1102,7 +1113,7 @@ async function loadDB(){
     const d=localStorage.getItem('ros_db');
     if(d){
       const p=JSON.parse(d);
-      DB=Object.assign({customers:[],jobHistory:[],scheduledJobs:[],settings:{mapsKey:'',homeBase:'',startTime:'07:00',hours:8}},p);if(!DB.scheduledJobs)DB.scheduledJobs=[];
+      DB=Object.assign({customers:[],jobHistory:[],scheduledJobs:[],rainShifts:[],settings:{mapsKey:'',homeBase:'',startTime:'07:00',hours:8}},p);if(!DB.scheduledJobs)DB.scheduledJobs=[];if(!DB.rainShifts)DB.rainShifts=[];
     }
   }catch(e){
     console.log('Local load error',e);
@@ -1369,14 +1380,47 @@ const Schedule=(function(){
     return false;
   }
 
-  // All customers due on a given date
-  function jobsOn(customers,date){return customers.filter(c=>isDue(c,date));}
+  // All customers due on a given date — accounting for rain shifts.
+  // Model: a rain shift moves every affected work day's jobs forward by exactly
+  // one calendar day (stored as {from,to} redirects). To answer "who works on
+  // date X" we therefore:
+  //   - DROP X's natural jobs if X is a shifted origin (they moved to X+1), and
+  //   - ADD the natural jobs of the origin day that redirects INTO X.
+  // This correctly handles a day that is both an origin and a target (the middle
+  // of a cascade chain): its own jobs leave, and the prior day's jobs arrive.
+  function jobsOn(customers,date){
+    const target=_ymd(date);
+    const shifts=(typeof DB!=='undefined'&&DB.rainShifts)?DB.rainShifts:[];
 
-  // Is the customer due anywhere in [start,end] inclusive?
+    let shiftedAway=false;      // target is an origin → its natural jobs left
+    const incomingOrigins=[];   // origin dates that redirect INTO target
+    for(const sh of shifts){
+      for(const r of (sh.redirects||[])){
+        if(r.from===target)shiftedAway=true;
+        if(r.to===target)incomingOrigins.push(r.from);
+      }
+    }
+
+    const out=[];
+    // Natural jobs on this date stay only if this date wasn't shifted away.
+    if(!shiftedAway){
+      customers.forEach(c=>{if(isDue(c,date))out.push(c);});
+    }
+    // Jobs that were naturally due on an origin date now land here.
+    for(const originYmd of incomingOrigins){
+      const originDate=new Date(originYmd+'T12:00:00');
+      customers.forEach(c=>{
+        if(isDue(c,originDate)&&!out.includes(c))out.push(c);
+      });
+    }
+    return out;
+  }
+
+  // Is the customer due anywhere in [start,end] inclusive? (rain-aware)
   function dueInRange(c,start,end){
     if(!c||c.sched==='inactive')return false;
     let d=_midnight(start);const last=_midnight(end);
-    while(d<=last){if(isDue(c,d))return true;d.setDate(d.getDate()+1);}
+    while(d<=last){if(jobsOn([c],d).length)return true;d.setDate(d.getDate()+1);}
     return false;
   }
 
@@ -1567,6 +1611,7 @@ function renderCalendar(){
     }
 
     const hasAnything=jobs.length||sched.length;
+    const rainedOut=rainDateAlreadyShifted(dateStr);
     const cls=[
       'cal-cell',
       isToday?'today':'',
@@ -1578,6 +1623,7 @@ function renderCalendar(){
     cells+=`<div class="${cls}" onclick="selectCalDay('${dateStr}')">
       ${stripe}
       <span class="cal-num">${d}</span>
+      ${rainedOut?`<span class="cal-rain" title="Rained out">🌧️</span>`:''}
       ${jobCount?`<span class="cal-count">${jobCount}</span>`:''}
     </div>`;
   }
@@ -1629,6 +1675,187 @@ function selectCalDay(dateStr){
   renderCalendar();
 }
 
+// ══ RAIN DELAY ════════════════════════════════════════════════════
+// Work days Mon(1)..Fri(5); Friday is the buffer. Sat/Sun never auto-filled.
+const RAIN_WORK_DAYS=[1,2,3,4,5];
+const _DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function _rainYmd(d){const x=new Date(d);x.setHours(0,0,0,0);return x.toISOString().slice(0,10);}
+function _rainParse(s){return new Date(s+'T12:00:00');}
+function _rainAdd(s,n){const d=_rainParse(s);d.setDate(d.getDate()+n);return _rainYmd(d);}
+
+// Compute the cascade for a rained-out date: each work day from the rain date
+// through Friday shifts to the next calendar day. Friday's tail is the overflow.
+function rainComputeCascade(rainDateStr){
+  const rainDow=_rainParse(rainDateStr).getDay();
+  if(!RAIN_WORK_DAYS.includes(rainDow))return null;
+  const chain=[];
+  let cur=rainDateStr;
+  while(RAIN_WORK_DAYS.includes(_rainParse(cur).getDay())){
+    chain.push(cur);
+    cur=_rainAdd(cur,1);
+  }
+  const redirects=chain.map(from=>({from,to:_rainAdd(from,1)}));
+  return {redirects,overflowFrom:chain[chain.length-1],chain};
+}
+
+// Is a date already part of an active rain shift?
+function rainDateAlreadyShifted(dateStr){
+  return (DB.rainShifts||[]).some(sh=>sh.redirects.some(r=>r.from===dateStr));
+}
+
+// Count the mow load (minutes) that ends up on a given date after shifts.
+function rainDayLoadMinutes(dateStr){
+  const date=_rainParse(dateStr);
+  const mows=Schedule.jobsOn(DB.customers,date);
+  const mowMin=mows.reduce((a,c)=>a+parseInt(c.mowTime||45),0);
+  const sched=scheduledJobsOn(dateStr).reduce((a,s)=>a+parseInt(s.durationMin||0),0);
+  return {mowMin,schedMin:sched,total:mowMin+sched,stops:mows.length};
+}
+
+// Confirm before applying a rain delay
+function confirmRainDelay(rainDateStr){
+  const d=_rainParse(rainDateStr);
+  const cascade=rainComputeCascade(rainDateStr);
+  if(!cascade){alert('Rain delay applies to work days (Mon–Fri).');return;}
+  const lastDay=cascade.chain[cascade.chain.length-1];
+  const msg=`Mark ${_DOW[d.getDay()]} ${fmtDate(rainDateStr)} as rained out?\n\nThis pushes that day's jobs — and the rest of the week — forward by one day. ${_DOW[_rainParse(lastDay).getDay()]} is your buffer day and catches the tail. Everyone snaps back to their normal day next week.`;
+  if(confirm(msg))applyRainDelay(rainDateStr);
+}
+
+// Apply a rain delay for the given date: store the shift, prompt for landscaping
+// jobs, warn on overflow, snap back automatically next week.
+function applyRainDelay(rainDateStr){
+  if(rainDateAlreadyShifted(rainDateStr)){
+    alert(_DOW[_rainParse(rainDateStr).getDay()]+' '+fmtDate(rainDateStr)+' is already marked as rained out.');
+    return;
+  }
+  const cascade=rainComputeCascade(rainDateStr);
+  if(!cascade){
+    alert('Rain delay applies to work days (Mon–Fri). For weekend work, move jobs manually.');
+    return;
+  }
+
+  // Find scheduled landscaping jobs on the shifted days and ask per job
+  const shiftedDates=cascade.redirects.map(r=>r.from);
+  const affectedSched=(DB.scheduledJobs||[]).filter(s=>shiftedDates.includes(s.date)&&!s.done);
+
+  // Build the shift record
+  const shift={
+    id:uid(),
+    rainDate:rainDateStr,
+    redirects:cascade.redirects,
+    createdAt:new Date().toISOString()
+  };
+  if(!DB.rainShifts)DB.rainShifts=[];
+  DB.rainShifts.push(shift);
+
+  // Move landscaping jobs that are set to move with rain; collect the ones to ask about
+  const askAbout=[];
+  affectedSched.forEach(s=>{
+    if(s.movesWithRain){
+      const newDate=_rainAdd(s.date,1);
+      s._rainPrevDate=s.date; // remember for undo
+      s.date=newDate;
+      askAbout.push({job:s,moved:true});
+    } else {
+      askAbout.push({job:s,moved:false});
+    }
+  });
+
+  saveDB();
+  renderCalendar();
+
+  // Show the result + overflow warning + landscaping summary
+  showRainResult(shift,cascade,askAbout);
+}
+
+// Undo a rain shift (snap everything back)
+function undoRainDelay(shiftId){
+  const idx=(DB.rainShifts||[]).findIndex(s=>s.id===shiftId);
+  if(idx<0)return;
+  const shift=DB.rainShifts[idx];
+  // Move any landscaping jobs back that we moved
+  const shiftedTargets=shift.redirects.map(r=>r.to);
+  (DB.scheduledJobs||[]).forEach(s=>{
+    if(s._rainPrevDate&&shift.redirects.some(r=>r.from===s._rainPrevDate)){
+      s.date=s._rainPrevDate;
+      delete s._rainPrevDate;
+    }
+  });
+  DB.rainShifts.splice(idx,1);
+  saveDB();
+  renderCalendar();
+  if(calSelectedDate)renderCalDayPanel(calSelectedDate);
+}
+
+// Auto-clean rain shifts whose whole week is in the past (housekeeping).
+function cleanupOldRainShifts(){
+  const cutoff=_rainYmd(new Date());
+  const before=(DB.rainShifts||[]).length;
+  DB.rainShifts=(DB.rainShifts||[]).filter(sh=>{
+    // keep if any target date is today or later
+    return sh.redirects.some(r=>r.to>=cutoff);
+  });
+  if((DB.rainShifts||[]).length!==before)saveDB();
+}
+
+// Show the rain result modal: overflow warning + landscaping job summary
+function showRainResult(shift,cascade,askAbout){
+  const hours=parseFloat((DB.settings&&DB.settings.hours)||8);
+  const budgetMin=hours*60;
+  // Check each target day for overflow
+  const targetDays=[...new Set(cascade.redirects.map(r=>r.to))];
+  let overflowRows='';
+  targetDays.forEach(t=>{
+    const load=rainDayLoadMinutes(t);
+    const over=load.total>budgetMin;
+    overflowRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--s3);font-size:13px">
+      <span>${_DOW[_rainParse(t).getDay()]} ${esc(fmtDate(t))}</span>
+      <span style="font-weight:700;color:${over?'var(--red)':'var(--green)'}">${load.stops} stop${load.stops!==1?'s':''} · ${fmtMins(load.total)}${over?' ⚠':''}</span>
+    </div>`;
+  });
+  const anyOverflow=targetDays.some(t=>rainDayLoadMinutes(t).total>budgetMin);
+
+  let schedSummary='';
+  if(askAbout.length){
+    schedSummary=`<div style="margin-top:1rem"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">Landscaping jobs on shifted days</div>`;
+    askAbout.forEach(a=>{
+      const c=a.job.custId?DB.customers.find(x=>x.id===a.job.custId):null;
+      schedSummary+=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--s3)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">${esc(jobTypeLabel(a.job.jobType))}${c?' · '+esc(custFullName(c)):''}</div>
+          <div style="font-size:11px;color:${a.moved?'var(--amb)':'var(--ink3)'}">${a.moved?'Moved to '+fmtDate(a.job.date)+' — review & notify':'Kept on '+fmtDate(a.job.date)+' (locked to date)'}</div>
+        </div>
+        ${a.moved&&c&&c.phone?`<button class="btn bxsm" onclick="textRescheduled('${jsStr(a.job.custId)}','${jsStr(a.job.date)}','${jsStr(a.job.time||'')}')"><i class="ti ti-message" style="font-size:10px"></i> Notify</button>`:''}
+      </div>`;
+    });
+    schedSummary+='</div>';
+  }
+
+  const body=`
+    <div style="background:${anyOverflow?'#fff3cd':'var(--gp)'};border:1px solid ${anyOverflow?'#ffc107':'var(--gl)'};border-radius:var(--r);padding:.75rem .875rem;font-size:13px;color:${anyOverflow?'#856404':'var(--green)'};line-height:1.5;margin-bottom:.875rem">
+      ${anyOverflow
+        ? '⚠ One or more days now run over your '+hours+'-hour day. Drag overflow onto your buffer day or the weekend from the day view.'
+        : '✓ Your week shifted forward by one day. Everyone snaps back to their normal day next week automatically.'}
+    </div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">Shifted week load</div>
+    ${overflowRows}
+    ${schedSummary}`;
+  document.getElementById('rain-result-content').innerHTML=body;
+  document.getElementById('rain-result-modal').classList.add('open');
+}
+
+// Text a customer that their landscaping appointment moved
+function textRescheduled(custId,newDate,newTime){
+  const c=DB.customers.find(x=>x.id===custId);
+  if(!c||!c.phone){alert('No phone number for this customer.');return;}
+  const bizName=getBizName();
+  const whenTime=newTime?' at '+fmtTime12(newTime):'';
+  const msg=`Hi ${c.first}! Due to weather, we've moved your service to ${fmtDate(newDate)}${whenTime}. Sorry for the change and thanks for your patience! — ${bizName}`;
+  window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));
+}
+
 function renderCalDayPanel(dateStr){
   const date=new Date(dateStr+'T12:00:00');
   const dayLabel=date.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
@@ -1652,6 +1879,23 @@ function renderCalDayPanel(dateStr){
       <button class="btn bxsm btng" onclick="openScheduledJobModal(null,'${jsStr(dateStr)}')"><i class="ti ti-plus" style="font-size:11px"></i> Add job</button>
     </div>
   </div>`;
+
+  // Rain delay controls
+  const dowNum=date.getDay();
+  const isWorkDay=RAIN_WORK_DAYS.includes(dowNum);
+  const alreadyShifted=rainDateAlreadyShifted(dateStr);
+  // Find a shift that this date belongs to (as origin), for the undo control
+  const owningShift=(DB.rainShifts||[]).find(sh=>sh.redirects.some(r=>r.from===dateStr));
+  if(alreadyShifted&&owningShift){
+    h+=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bp);border:1px solid #b3c8f0;border-radius:var(--r);padding:.6rem .75rem;margin-bottom:.625rem">
+      <div style="font-size:12px;color:var(--blue);line-height:1.4"><i class="ti ti-cloud-rain" style="font-size:13px"></i> <strong>Rained out</strong> — jobs shifted forward. Snaps back next week.</div>
+      <button class="btn bxsm" onclick="undoRainDelay('${jsStr(owningShift.id)}')"><i class="ti ti-arrow-back-up" style="font-size:11px"></i> Undo</button>
+    </div>`;
+  } else if(isWorkDay&&(mows.length||sched.length)){
+    h+=`<div style="margin-bottom:.625rem">
+      <button class="btn bsm" style="width:100%;background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="confirmRainDelay('${jsStr(dateStr)}')"><i class="ti ti-cloud-rain"></i> Mark rained out — push week forward</button>
+    </div>`;
+  }
 
   if(!mows.length&&!sched.length){
     h+=`<div style="color:var(--ink3);font-size:13px;padding:.25rem 0">No jobs scheduled. Tap "Add job" to schedule landscaping work for this day.</div>`;
@@ -3791,7 +4035,7 @@ function restoreData(input){
       if(!confirm('Restore this backup? This will replace all current data.\n\nBackup date: '+new Date(payload.exportedAt).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+'\nCustomers: '+payload.db.customers.length+'\nJobs: '+payload.db.jobHistory.length)){
         input.value='';return;
       }
-      DB=Object.assign({customers:[],jobHistory:[],scheduledJobs:[],settings:{mapsKey:'',homeBase:'',startTime:'07:00',hours:8}},payload.db);if(!DB.scheduledJobs)DB.scheduledJobs=[];
+      DB=Object.assign({customers:[],jobHistory:[],scheduledJobs:[],rainShifts:[],settings:{mapsKey:'',homeBase:'',startTime:'07:00',hours:8}},payload.db);if(!DB.scheduledJobs)DB.scheduledJobs=[];if(!DB.rainShifts)DB.rainShifts=[];
       if(DB.settings)delete DB.settings.hubspotKey;
       saveDB();
       if(DB.settings.homeBase)document.getElementById('plan-home').value=DB.settings.homeBase;
@@ -3831,6 +4075,7 @@ async function startApp(){
   const pv=document.getElementById('pviewer'); if(pv)pv.classList.remove('open');
 
   await loadDB();
+  cleanupOldRainShifts();
 
   // Pull synced business calculator inputs (non-blocking; refresh tab if showing).
   loadBizInputsFromCloud().then(()=>{
