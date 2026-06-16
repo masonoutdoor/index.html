@@ -570,7 +570,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 <div class="page" id="pg-cal">
   <div class="page-hdr">
     <div><div class="page-title">Calendar</div><div class="page-sub" id="cal-sub">Monthly schedule</div></div>
-    <button class="btn bsm btng" onclick="goTab('plan');buildTodayRoute()"><i class="ti ti-route"></i> Plan today</button>
+    <button class="btn bsm btng" onclick="openScheduledJobModal(null,null)"><i class="ti ti-calendar-plus"></i> Schedule job</button>
   </div>
   <div class="cal-month-nav">
     <button class="btn bsm" onclick="calPrevMonth()"><i class="ti ti-chevron-left"></i></button>
@@ -581,6 +581,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <div class="cal-grid" id="cal-dow-row"></div>
   <!-- Calendar cells -->
   <div class="cal-grid" id="cal-cells"></div>
+  <!-- Color legend -->
+  <div id="cal-legend" style="display:flex;flex-wrap:wrap;gap:8px 14px;padding:.625rem .25rem .25rem;margin-bottom:.5rem"></div>
   <!-- Selected day panel -->
   <div class="cal-day-panel" id="cal-day-panel">
     <div style="color:var(--ink3);font-size:13px;text-align:center;padding:1rem 0">Tap a day to see jobs</div>
@@ -772,8 +774,48 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 </div>
 </div>
 
-<!-- Photo viewer -->
-<div class="pviewer" id="pviewer">
+<!-- Scheduled landscaping job modal -->
+<div class="modal-bg" id="scheduledjob-modal" onclick="handleModalBg(event,'scheduledjob-modal')">
+<div class="modal">
+  <div class="modal-title" id="sj-modal-title">Schedule a Job</div>
+  <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">Schedule landscaping work — mulch, cleanup, hedge trim, a quote — for a specific day and time. These show on your calendar alongside your mow routes.</p>
+  <input type="hidden" id="sj-id">
+  <div class="fr">
+    <div class="f" style="flex:0 0 150px"><label>Job type</label>
+      <select id="sj-type">
+        <option value="cleanup">Cleanup</option>
+        <option value="mulch">Mulch</option>
+        <option value="hedge">Hedge/trim</option>
+        <option value="quote">Quote/estimate</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="f"><label>Customer</label>
+      <select id="sj-cust"><option value="">— select customer —</option></select>
+    </div>
+  </div>
+  <div class="fr">
+    <div class="f" style="flex:0 0 140px"><label>Date</label><input type="date" id="sj-date"></div>
+    <div class="f" style="flex:0 0 110px"><label>Time</label><input type="time" id="sj-time"></div>
+    <div class="f" style="flex:0 0 110px"><label>Duration (min)</label><input type="number" id="sj-duration" value="60" min="5" max="600" step="5"></div>
+    <div class="f" style="flex:0 0 100px"><label>Price ($)</label><input type="number" id="sj-price" placeholder="0" min="0" step="0.01"></div>
+  </div>
+  <div class="fr">
+    <div class="toggle-row" style="width:100%">
+      <div><div style="font-size:13px;font-weight:600">Move this job when it rains</div><div style="font-size:11px;color:var(--ink3)">If off, it stays locked to this date during a rain shift (e.g. a mulch delivery)</div></div>
+      <label class="toggle"><input type="checkbox" id="sj-moves-rain" checked><span class="toggle-slider"></span></label>
+    </div>
+  </div>
+  <div class="fr" style="margin-bottom:1rem">
+    <div class="f"><label>Notes</label><textarea id="sj-notes" rows="2" placeholder="What's the job, any details..."></textarea></div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btng" onclick="saveScheduledJob()" style="flex:1"><i class="ti ti-check"></i> Save</button>
+    <button class="btn btnr" id="sj-delete-btn" onclick="deleteScheduledJob()" style="display:none"><i class="ti ti-trash"></i></button>
+    <button class="btn" onclick="closeModal('scheduledjob-modal')">Cancel</button>
+  </div>
+</div>
+</div>
   <div class="pv-close" onclick="closePV()"><i class="ti ti-x"></i></div>
   <img id="pv-img" src="" alt="">
   <div class="pv-lbl" id="pv-lbl"></div>
@@ -792,7 +834,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.06.11-stage1';
+const APP_VERSION='2026.06.15-stage2';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function isUuid(value){
@@ -851,12 +893,26 @@ function safeUrl(u){
 let DB = {
   customers: [],
   jobHistory: [],
+  scheduledJobs: [],   // future-dated landscaping jobs (mulch, cleanup, hedge, quote, other)
   settings: {mapsKey:'',homeBase:'',startTime:'07:00',hours:8}
 };
 
 // Tracks the last-synced signature of each record so we only push changes.
-const _syncedSig = {customers:{}, jobs:{}};
+const _syncedSig = {customers:{}, jobs:{}, scheduled:{}};
 function _sig(obj){return JSON.stringify(obj);}
+
+// Job-type catalog for scheduled landscaping jobs. One source of truth for
+// labels and calendar colors so the legend, dots, and panel all stay in sync.
+const JOB_TYPES={
+  mow:      {label:'Mowing',         color:'#2d5a27'},
+  cleanup:  {label:'Cleanup',        color:'#c0392b'},
+  mulch:    {label:'Mulch',          color:'#8a5a2b'},
+  hedge:    {label:'Hedge/trim',     color:'#1565c0'},
+  quote:    {label:'Quote/estimate', color:'#c8860a'},
+  other:    {label:'Other',          color:'#6a1b9a'}
+};
+function jobTypeLabel(t){return (JOB_TYPES[t]||JOB_TYPES.other).label;}
+function jobTypeColor(t){return (JOB_TYPES[t]||JOB_TYPES.other).color;}
 
 function _customerRow(customer){
   return {
@@ -906,6 +962,21 @@ function _jobRow(job){
     before_photos: JSON.stringify((job.beforePhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p)),
     after_photos: JSON.stringify((job.afterPhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p)),
     extra_photos: JSON.stringify((job.extraPhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p))
+  };
+}
+
+function _scheduledJobRow(sj){
+  return {
+    id: sj.id,
+    cust_id: sj.custId||null,
+    job_type: sj.jobType||'other',
+    date: sj.date,
+    time: sj.time||null,            // 'HH:MM' 24h, or null
+    duration_min: sj.durationMin||60,
+    price: sj.price===''||sj.price==null?0:parseFloat(sj.price),
+    notes: sj.notes||'',
+    done: sj.done||false,
+    moves_with_rain: sj.movesWithRain==null?true:!!sj.movesWithRain
   };
 }
 
@@ -967,6 +1038,25 @@ async function saveDB(){
     console.log('Job history sync error',err);
   }
 
+  try{
+    const changed=[];
+    for(const sj of DB.scheduledJobs){
+      const row=_scheduledJobRow(sj);
+      const sig=_sig(row);
+      if(_syncedSig.scheduled[sj.id]!==sig)changed.push({row,id:sj.id,sig});
+    }
+    if(changed.length){
+      const {error}=await supabaseClient.from('scheduled_jobs').upsert(changed.map(c=>c.row));
+      // 42P01 = table doesn't exist yet; ignore so the app still works until the
+      // user runs the scheduled_jobs SQL. Local save already succeeded.
+      if(error&&error.code!=='42P01'){cloudError=true;console.log('Scheduled jobs sync error',error);}
+      else if(!error){changed.forEach(c=>{_syncedSig.scheduled[c.id]=c.sig;});}
+    }
+  }catch(err){
+    cloudError=true;
+    console.log('Scheduled jobs sync error',err);
+  }
+
   if(cloudError||!localOk)setSaveStatus('error');
   else setSaveStatus('saved');
 }
@@ -1004,7 +1094,7 @@ async function loadDB(){
     const d=localStorage.getItem('ros_db');
     if(d){
       const p=JSON.parse(d);
-      DB=Object.assign({customers:[],jobHistory:[],settings:{mapsKey:'',homeBase:'',startTime:'07:00',hours:8}},p);
+      DB=Object.assign({customers:[],jobHistory:[],scheduledJobs:[],settings:{mapsKey:'',homeBase:'',startTime:'07:00',hours:8}},p);if(!DB.scheduledJobs)DB.scheduledJobs=[];
     }
   }catch(e){
     console.log('Local load error',e);
@@ -1089,6 +1179,37 @@ async function loadDB(){
     }
   }catch(err){
     console.log('Job history load error',err);
+  }
+
+  // Load scheduled (future-dated) landscaping jobs. Non-blocking; if the table
+  // doesn't exist yet (user hasn't run the SQL), this quietly does nothing.
+  try{
+    const sjPromise=supabaseClient
+      .from('scheduled_jobs')
+      .select('*')
+      .order('date',{ascending:true});
+    const timeoutPromise=new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),5000));
+    const {data:sdata,error:serror}=await Promise.race([sjPromise,timeoutPromise]);
+    if(!serror&&sdata){
+      const cloudSched=sdata.map(s=>({
+        id:s.id,
+        custId:s.cust_id||null,
+        jobType:s.job_type||'other',
+        date:s.date,
+        time:s.time||null,
+        durationMin:s.duration_min||60,
+        price:s.price??'',
+        notes:s.notes||'',
+        done:s.done||false,
+        movesWithRain:s.moves_with_rain==null?true:!!s.moves_with_rain
+      }));
+      const cloudIds=new Set(cloudSched.map(s=>s.id));
+      const localOnly=(DB.scheduledJobs||[]).filter(s=>!cloudIds.has(s.id));
+      DB.scheduledJobs=[...cloudSched,...localOnly];
+      localStorage.setItem('ros_db',JSON.stringify(DB));
+    }
+  }catch(err){
+    console.log('Scheduled jobs load error',err);
   }
 }
 
@@ -1416,27 +1537,27 @@ function renderCalendar(){
     const isPast=date<today;
     const isSel=calSelectedDate===dateStr;
 
-    // Get jobs for this day
+    // Get jobs for this day: recurring mows + scheduled landscaping jobs
     const dayOffset=Math.round((date-today)/86400000);
     const jobs=getDayJobsForDate(date);
+    const sched=scheduledJobsOn(dateStr);
     const histJobs=DB.jobHistory.filter(j=>j.date===dateStr);
-    const paidCount=histJobs.filter(j=>j.paid).length;
-    const unpaidCount=histJobs.filter(j=>!j.paid).length;
 
-    // Dots: green for scheduled, filled for completed
+    // Dots: one green dot for the mow route (if any mows), plus a colored dot
+    // per scheduled job in its type color.
     let dots='';
     if(jobs.length){
-      jobs.forEach(j=>{
-        const done=histJobs.find(h=>h.custId===j.id);
-        const dotCls=done?(done.paid?'paid':'unpaid'):'';
-        dots+=`<div class="cal-dot ${dotCls}"></div>`;
-      });
+      dots+=`<div class="cal-dot" style="background:${jobTypeColor('mow')}"></div>`;
     }
+    sched.forEach(s=>{
+      dots+=`<div class="cal-dot" style="background:${jobTypeColor(s.jobType)}"></div>`;
+    });
 
+    const hasAnything=jobs.length||sched.length;
     const cls=[
       'cal-cell',
       isToday?'today':'',
-      jobs.length?'has-jobs':'',
+      hasAnything?'has-jobs':'',
       isSel?'selected':'',
       isPast&&!isToday?'past':''
     ].filter(Boolean).join(' ');
@@ -1454,6 +1575,15 @@ function renderCalendar(){
 
   document.getElementById('cal-cells').innerHTML=cells;
 
+  // Color legend
+  const legendEl=document.getElementById('cal-legend');
+  if(legendEl){
+    legendEl.innerHTML=Object.keys(JOB_TYPES).map(k=>
+      `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ink3)">
+        <span style="width:9px;height:9px;border-radius:50%;background:${JOB_TYPES[k].color};display:inline-block"></span>${esc(JOB_TYPES[k].label)}
+      </span>`).join('');
+  }
+
   // Month summary
   renderCalMonthSummary();
 
@@ -1469,6 +1599,17 @@ function getDayJobsForDate(date){
   return Schedule.jobsOn(DB.customers,date);
 }
 
+// Scheduled landscaping jobs on a given date string (YYYY-MM-DD), sorted by
+// time of day (untimed jobs sort to the end).
+function scheduledJobsOn(dateStr){
+  return (DB.scheduledJobs||[])
+    .filter(s=>s.date===dateStr)
+    .sort((a,b)=>{
+      const ta=a.time||'99:99', tb=b.time||'99:99';
+      return ta.localeCompare(tb);
+    });
+}
+
 function selectCalDay(dateStr){
   calSelectedDate=calSelectedDate===dateStr?null:dateStr;
   renderCalendar();
@@ -1477,56 +1618,136 @@ function selectCalDay(dateStr){
 function renderCalDayPanel(dateStr){
   const date=new Date(dateStr+'T12:00:00');
   const dayLabel=date.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  const jobs=getDayJobsForDate(date);
+  const mows=getDayJobsForDate(date);
+  const sched=scheduledJobsOn(dateStr);
   const histJobs=DB.jobHistory.filter(j=>j.date===dateStr);
   const panel=document.getElementById('cal-day-panel');
 
-  if(!jobs.length){
-    panel.innerHTML=`<div class="cal-day-title">${dayLabel}</div>
-      <div style="color:var(--ink3);font-size:13px;padding:.25rem 0">No jobs scheduled</div>`;
-    return;
-  }
+  const totalMow=mows.reduce((a,c)=>a+parseInt(c.mowTime||45),0);
+  const mowRev=mows.reduce((a,c)=>a+parseFloat(c.price||0),0);
+  const schedMin=sched.reduce((a,s)=>a+parseInt(s.durationMin||0),0);
+  const schedRev=sched.reduce((a,s)=>a+parseFloat(s.price||0),0);
+  const totalRev=mowRev+schedRev;
 
-  const totalMow=jobs.reduce((a,c)=>a+parseInt(c.mowTime||45),0);
-  const totalRev=jobs.reduce((a,c)=>a+parseFloat(c.price||0),0);
-
+  // Header with totals + an add-job button for this day
   let h=`<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:6px">
     <div class="cal-day-title" style="margin:0">${dayLabel}</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <span class="cal-rev-badge"><i class="ti ti-clock" style="font-size:10px"></i> ${fmtMins(totalMow)}</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <span class="cal-rev-badge"><i class="ti ti-clock" style="font-size:10px"></i> ${fmtMins(totalMow+schedMin)}</span>
       <span class="cal-rev-badge"><i class="ti ti-currency-dollar" style="font-size:10px"></i> $${totalRev.toFixed(0)}</span>
+      <button class="btn bxsm btng" onclick="openScheduledJobModal(null,'${jsStr(dateStr)}')"><i class="ti ti-plus" style="font-size:11px"></i> Add job</button>
     </div>
   </div>`;
 
-  jobs.forEach((c,i)=>{
-    const hist=histJobs.find(h=>h.custId===c.id);
-    const statusDot=hist
-      ?(hist.paid
-        ?`<span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0"></span>`
-        :`<span style="width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block;flex-shrink:0"></span>`)
-      :`<span style="width:8px;height:8px;border-radius:50%;background:var(--bd);border:1px solid var(--bd);display:inline-block;flex-shrink:0"></span>`;
+  if(!mows.length&&!sched.length){
+    h+=`<div style="color:var(--ink3);font-size:13px;padding:.25rem 0">No jobs scheduled. Tap "Add job" to schedule landscaping work for this day.</div>`;
+    panel.innerHTML=h;
+    return;
+  }
 
-    const payBadge=hist
-      ?(hist.paid
-        ?`<span class="tag tag-green" style="font-size:9px">Paid</span>`
-        :`<span class="tag tag-red" style="font-size:9px">Unpaid</span>`)
-      :'';
-
-    h+=`<div class="cal-job-row">
-      ${statusDot}
+  // Mow route shown as a single block (mowing is a flexible route, not timed slots)
+  if(mows.length){
+    h+=`<div style="display:flex;align-items:center;gap:10px;padding:.6rem .75rem;margin-bottom:.5rem;border-radius:var(--r);background:var(--gp);border:1px solid #b8d5b4">
+      <span style="width:10px;height:10px;border-radius:50%;background:${jobTypeColor('mow')};flex-shrink:0"></span>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:13px">${esc(custFullName(c))}</div>
-        <div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(custAddr(c))}</div>
+        <div style="font-weight:700;font-size:13px;color:var(--green)">Mow route — ${mows.length} stop${mows.length!==1?'s':''}</div>
+        <div style="font-size:11px;color:var(--ink3)">~${fmtMins(totalMow)} · $${mowRev.toFixed(0)} · flexible order</div>
+      </div>
+    </div>`;
+  }
+
+  // Timed scheduled jobs, each in its type color, sorted by time
+  sched.forEach(s=>{
+    const c=s.custId?DB.customers.find(x=>x.id===s.custId):null;
+    const timeLabel=s.time?fmtTime12(s.time):'No time set';
+    const who=c?custFullName(c):'(no customer)';
+    h+=`<div class="cal-job-row" style="cursor:pointer" onclick="openScheduledJobModal('${jsStr(s.id)}',null)">
+      <span style="width:10px;height:10px;border-radius:50%;background:${jobTypeColor(s.jobType)};display:inline-block;flex-shrink:0"></span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${esc(jobTypeLabel(s.jobType))}${s.done?' <span class="tag tag-green" style="font-size:9px">Done</span>':''}</div>
+        <div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(who)}${s.notes?' · '+esc(s.notes):''}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px">
-        <span style="font-size:12px;font-weight:600;color:var(--green)">$${parseFloat(c.price||0).toFixed(0)}</span>
-        <span style="font-size:10px;color:var(--ink3)">${fmtMins(c.mowTime)}</span>
-        ${payBadge}
+        <span style="font-size:12px;font-weight:700;color:var(--ink2)">${esc(timeLabel)}</span>
+        <span style="font-size:11px;color:var(--ink3)">${fmtMins(s.durationMin)}${s.price?' · $'+parseFloat(s.price).toFixed(0):''}</span>
       </div>
     </div>`;
   });
 
   panel.innerHTML=h;
+}
+
+// 'HH:MM' 24h -> '1:30 PM'
+function fmtTime12(t){
+  if(!t)return '';
+  const [hh,mm]=t.split(':').map(Number);
+  const ap=hh>=12?'PM':'AM';
+  const h12=hh%12===0?12:hh%12;
+  return h12+':'+pad(mm)+' '+ap;
+}
+
+// ── Scheduled landscaping job modal ──
+function openScheduledJobModal(id,presetDate){
+  const sj=id?(DB.scheduledJobs||[]).find(x=>x.id===id):null;
+  document.getElementById('sj-modal-title').textContent=sj?'Edit Scheduled Job':'Schedule a Job';
+  document.getElementById('sj-id').value=sj?sj.id:'';
+  // Customer dropdown
+  const sel=document.getElementById('sj-cust');
+  sel.innerHTML='<option value="">— select customer —</option>'+
+    DB.customers.filter(c=>c.sched!=='inactive').map(c=>`<option value="${attr(c.id)}">${esc(custFullName(c))}</option>`).join('');
+  document.getElementById('sj-type').value=sj?sj.jobType||'cleanup':'cleanup';
+  document.getElementById('sj-cust').value=sj?sj.custId||'':'';
+  document.getElementById('sj-date').value=sj?sj.date:(presetDate||todayStr());
+  document.getElementById('sj-time').value=sj?sj.time||'':'';
+  document.getElementById('sj-duration').value=sj?sj.durationMin||60:60;
+  document.getElementById('sj-price').value=sj?(sj.price===0||sj.price?sj.price:''):'';
+  document.getElementById('sj-moves-rain').checked=sj?(sj.movesWithRain==null?true:!!sj.movesWithRain):true;
+  document.getElementById('sj-notes').value=sj?sj.notes||'':'';
+  document.getElementById('sj-delete-btn').style.display=sj?'':'none';
+  document.getElementById('scheduledjob-modal').classList.add('open');
+}
+
+function saveScheduledJob(){
+  const id=document.getElementById('sj-id').value||uid();
+  const date=document.getElementById('sj-date').value;
+  if(!date){alert('Pick a date for the job.');return;}
+  const sj={
+    id,
+    jobType:document.getElementById('sj-type').value,
+    custId:document.getElementById('sj-cust').value||null,
+    date,
+    time:document.getElementById('sj-time').value||null,
+    durationMin:parseInt(document.getElementById('sj-duration').value)||60,
+    price:document.getElementById('sj-price').value,
+    movesWithRain:document.getElementById('sj-moves-rain').checked,
+    notes:document.getElementById('sj-notes').value.trim(),
+    done:false
+  };
+  // Preserve 'done' if editing an existing job
+  const existingIdx=(DB.scheduledJobs||[]).findIndex(x=>x.id===id);
+  if(existingIdx>=0)sj.done=DB.scheduledJobs[existingIdx].done||false;
+  if(!DB.scheduledJobs)DB.scheduledJobs=[];
+  if(existingIdx>=0)DB.scheduledJobs[existingIdx]=sj;else DB.scheduledJobs.push(sj);
+  saveDB();
+  closeModal('scheduledjob-modal');
+  if(document.getElementById('pg-cal').classList.contains('active'))renderCalendar();
+  renderDash();
+}
+
+async function deleteScheduledJob(){
+  const id=document.getElementById('sj-id').value;
+  if(!id)return;
+  if(!confirm('Delete this scheduled job?'))return;
+  DB.scheduledJobs=(DB.scheduledJobs||[]).filter(x=>x.id!==id);
+  if(_syncedSig&&_syncedSig.scheduled)delete _syncedSig.scheduled[id];
+  closeModal('scheduledjob-modal');
+  if(document.getElementById('pg-cal').classList.contains('active'))renderCalendar();
+  renderDash();
+  try{
+    const {error}=await supabaseClient.from('scheduled_jobs').delete().eq('id',id);
+    if(error&&error.code!=='42P01')console.log('Scheduled job delete error',error);
+  }catch(e){console.log('Scheduled job delete error',e);}
+  saveDB();
 }
 
 function renderCalMonthSummary(){
@@ -3556,7 +3777,7 @@ function restoreData(input){
       if(!confirm('Restore this backup? This will replace all current data.\n\nBackup date: '+new Date(payload.exportedAt).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+'\nCustomers: '+payload.db.customers.length+'\nJobs: '+payload.db.jobHistory.length)){
         input.value='';return;
       }
-      DB=Object.assign({customers:[],jobHistory:[],settings:{mapsKey:'',homeBase:'',startTime:'07:00',hours:8}},payload.db);
+      DB=Object.assign({customers:[],jobHistory:[],scheduledJobs:[],settings:{mapsKey:'',homeBase:'',startTime:'07:00',hours:8}},payload.db);if(!DB.scheduledJobs)DB.scheduledJobs=[];
       if(DB.settings)delete DB.settings.hubspotKey;
       saveDB();
       if(DB.settings.homeBase)document.getElementById('plan-home').value=DB.settings.homeBase;
