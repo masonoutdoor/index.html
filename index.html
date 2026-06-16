@@ -821,6 +821,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   </div>
 </div>
 </div>
+
+<!-- Photo viewer -->
+<div class="pviewer" id="pviewer">
   <div class="pv-close" onclick="closePV()"><i class="ti ti-x"></i></div>
   <img id="pv-img" src="" alt="">
   <div class="pv-lbl" id="pv-lbl"></div>
@@ -839,7 +842,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.06.15-stage2b';
+const APP_VERSION='2026.06.16-stage2c';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function isUuid(value){
