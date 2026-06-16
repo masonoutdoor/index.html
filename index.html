@@ -231,14 +231,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 /* ── Calendar ── */
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:1rem}
 .cal-dow{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);text-align:center;padding:.375rem 0}
-.cal-cell{border-radius:8px;min-height:52px;padding:4px;cursor:pointer;border:1px solid transparent;transition:all .15s;position:relative;background:var(--s);border-color:var(--bd)}
+.cal-cell{border-radius:8px;min-height:52px;padding:4px 4px 4px 9px;cursor:pointer;border:1px solid transparent;transition:all .15s;position:relative;background:var(--s);border-color:var(--bd);overflow:hidden}
 .cal-cell.empty{background:transparent;border-color:transparent;cursor:default}
 .cal-cell.today{border-color:var(--amb);background:var(--ambp)}
 .cal-cell.has-jobs{border-color:var(--green);background:var(--gp)}
 .cal-cell.selected{background:var(--green);border-color:var(--green)}
-.cal-cell.selected .cal-num,.cal-cell.selected .cal-dots{color:#fff!important}
+.cal-cell.selected .cal-num,.cal-cell.selected .cal-count{color:#fff!important}
 .cal-cell.past{opacity:.5}
 .cal-num{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--ink);line-height:1;display:block}
+/* Colored left-edge stripe: stacked segments, one per job type that day */
+.cal-stripe{position:absolute;left:0;top:0;bottom:0;width:5px;display:flex;flex-direction:column}
+/* Job-count badge in the cell corner */
+.cal-count{position:absolute;right:4px;bottom:3px;font-size:10px;font-weight:700;color:var(--green);background:rgba(255,255,255,.7);border-radius:99px;min-width:15px;height:15px;line-height:15px;text-align:center;padding:0 3px}
+.cal-cell.selected .cal-count{background:rgba(255,255,255,.25);color:#fff}
 .cal-dots{display:flex;flex-wrap:wrap;gap:2px;margin-top:3px}
 .cal-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
 .cal-dot.paid{background:var(--gl)}
@@ -597,9 +602,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 <!-- ══ NAV ═════════════════════════════════════════════════════════ -->
 <nav class="nav" style="left:50%;transform:translateX(-50%);max-width:600px">
   <button class="nav-btn active" onclick="goTab('dash')" id="nav-dash"><i class="ti ti-home"></i><span>Home</span><div class="nav-indicator"></div></button>
+  <button class="nav-btn" onclick="goTab('cal')" id="nav-cal"><i class="ti ti-calendar"></i><span>Calendar</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="goTab('plan')" id="nav-plan"><i class="ti ti-route"></i><span>Route</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="goTab('track')" id="nav-track"><i class="ti ti-device-mobile"></i><span>Field</span><div class="nav-indicator"></div></button>
-  <button class="nav-btn" onclick="goTab('customers')" id="nav-customers"><i class="ti ti-users"></i><span>Clients</span><div class="nav-indicator"></div></button>
   <button class="nav-btn" onclick="openMore()" id="nav-more"><i class="ti ti-dots"></i><span>More</span><div class="nav-indicator"></div></button>
 </nav>
 
@@ -607,7 +612,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 <div class="more-overlay" id="more-overlay" onclick="closeMore()"></div>
 <div class="more-sheet" id="more-sheet">
   <div class="more-grip"></div>
-  <button class="more-item" id="more-cal" onclick="goTabFromMore('cal')"><i class="ti ti-calendar"></i> Calendar</button>
+  <button class="more-item" id="more-customers" onclick="goTabFromMore('customers')"><i class="ti ti-users"></i> Clients</button>
   <button class="more-item" id="more-reports" onclick="goTabFromMore('reports')"><i class="ti ti-chart-bar"></i> Reports</button>
   <button class="more-item" id="more-biz" onclick="goTabFromMore('biz')"><i class="ti ti-calculator"></i> Business</button>
 </div>
@@ -834,7 +839,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.06.15-stage2';
+const APP_VERSION='2026.06.15-stage2b';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function isUuid(value){
@@ -1216,8 +1221,8 @@ async function loadDB(){
 // ══ NAVIGATION ════════════════════════════════════════════════════
 const TABS=['dash','plan','track','cal','customers','reports','biz'];
 // Which tabs live in the bottom bar vs. the More sheet.
-const BOTTOM_TABS=['dash','plan','track','customers'];
-const MORE_TABS=['cal','reports','biz'];
+const BOTTOM_TABS=['dash','cal','plan','track'];
+const MORE_TABS=['customers','reports','biz'];
 function goTab(t){
   // Show the right page
   TABS.forEach(id=>{
@@ -1543,15 +1548,20 @@ function renderCalendar(){
     const sched=scheduledJobsOn(dateStr);
     const histJobs=DB.jobHistory.filter(j=>j.date===dateStr);
 
-    // Dots: one green dot for the mow route (if any mows), plus a colored dot
-    // per scheduled job in its type color.
-    let dots='';
-    if(jobs.length){
-      dots+=`<div class="cal-dot" style="background:${jobTypeColor('mow')}"></div>`;
+    // Build the left-edge stripe: stacked colored segments, one per job type
+    // present that day (green for the mow route, type-color for each scheduled job).
+    const stripeColors=[];
+    if(jobs.length)stripeColors.push(jobTypeColor('mow'));
+    sched.forEach(s=>stripeColors.push(jobTypeColor(s.jobType)));
+    const totalCount=(jobs.length?1:0)+sched.length; // mow route counts as one block
+    const jobCount=jobs.length+sched.length;          // total individual jobs for the number
+
+    let stripe='';
+    if(stripeColors.length){
+      // Vertical stacked stripe segments
+      const segs=stripeColors.map(col=>`<div style="flex:1;background:${col}"></div>`).join('');
+      stripe=`<div class="cal-stripe">${segs}</div>`;
     }
-    sched.forEach(s=>{
-      dots+=`<div class="cal-dot" style="background:${jobTypeColor(s.jobType)}"></div>`;
-    });
 
     const hasAnything=jobs.length||sched.length;
     const cls=[
@@ -1563,8 +1573,9 @@ function renderCalendar(){
     ].filter(Boolean).join(' ');
 
     cells+=`<div class="${cls}" onclick="selectCalDay('${dateStr}')">
+      ${stripe}
       <span class="cal-num">${d}</span>
-      ${dots?`<div class="cal-dots">${dots}</div>`:''}
+      ${jobCount?`<span class="cal-count">${jobCount}</span>`:''}
     </div>`;
   }
 
@@ -3810,6 +3821,12 @@ let _appStarted=false;
 async function startApp(){
   if(_appStarted)return;        // run the app body only once per page load
   _appStarted=true;
+
+  // Safety net: make sure no modal/popup is left open from a cached state or a
+  // previous session. Guarantees the app always boots to a clean screen.
+  document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open'));
+  const pv=document.getElementById('pviewer'); if(pv)pv.classList.remove('open');
+
   await loadDB();
 
   // Pull synced business calculator inputs (non-blocking; refresh tab if showing).
