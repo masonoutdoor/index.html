@@ -633,6 +633,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
       <select id="cf-sched">
         <option value="weekly">Weekly</option>
         <option value="biweekly">Biweekly</option>
+        <option value="monthly">Monthly</option>
         <option value="onetime">One-time</option>
         <option value="paused">Paused</option>
         <option value="inactive">Inactive</option>
@@ -654,6 +655,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <div id="cf-pause-row" class="fr" style="display:none">
     <div class="f" style="flex:0 0 140px"><label>Resume date</label><input type="date" id="cf-resume"></div>
     <div class="f"><label>Pause reason</label><input type="text" id="cf-pause-reason" placeholder="Vacation, construction..."></div>
+  </div>
+  <div id="cf-onetime-hint" class="fr" style="display:none">
+    <div style="flex:1;font-size:12px;color:var(--amb);background:var(--ambp);border-radius:var(--r);padding:.625rem .75rem;line-height:1.5"><i class="ti ti-info-circle"></i> <strong>Set the Start date above</strong> — that's the single day this one-time job appears on your calendar.</div>
+  </div>
+  <div id="cf-monthly-hint" class="fr" style="display:none">
+    <div style="flex:1;font-size:12px;color:var(--ink3);background:var(--s2);border-radius:var(--r);padding:.625rem .75rem;line-height:1.5"><i class="ti ti-info-circle"></i> Monthly = every 4 weeks on the preferred day, counting from the Start date. Set the Start date so the cycle lands where you want.</div>
   </div>
   <div class="fr">
     <div class="f" style="flex:0 0 100px"><label>Est. mow (min)</label><input type="number" id="cf-mow" value="45" min="5" max="300"></div>
@@ -852,7 +859,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.06.16-stage3';
+const APP_VERSION='2026.06.17-stage3c';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function isUuid(value){
@@ -1341,9 +1348,16 @@ const Schedule=(function(){
   // Is this customer due for a recurring mow on this date?
   function isDue(c,date){
     if(!c)return false;
-    if(c.sched==='inactive'||c.sched==='onetime')return false;
+    if(c.sched==='inactive')return false;
 
     const day=_midnight(date);
+
+    // One-time: due only on its single start date (the date the job happens).
+    if(c.sched==='onetime'){
+      if(!c.startDate)return false;
+      const start=_midnight(new Date(c.startDate+'T12:00:00'));
+      return day.getTime()===start.getTime();
+    }
 
     // Respect start date — no jobs before first service date
     if(c.startDate){
@@ -1376,6 +1390,16 @@ const Schedule=(function(){
       const diffWeeks=Math.floor((day.getTime()-anchor.getTime())/(7*86400000));
       const weekOffset=c.biweeklyWeek==='B'?1:0;
       return (diffWeeks+weekOffset)%2===0;
+    }
+
+    if(c.sched==='monthly'){
+      // Every 4 weeks from the start-date anchor, on the preferred weekday.
+      // Keeps routes even and predictable (vs. "the 15th" which drifts weekdays).
+      const anchor=c.startDate
+        ? _midnight(new Date(c.startDate+'T12:00:00'))
+        : new Date(2024,0,1);
+      const diffWeeks=Math.floor((day.getTime()-anchor.getTime())/(7*86400000));
+      return diffWeeks%4===0;
     }
     return false;
   }
@@ -1903,15 +1927,34 @@ function renderCalDayPanel(dateStr){
     return;
   }
 
-  // Mow route shown as a single block (mowing is a flexible route, not timed slots)
+  // Mow route shown as a header block, then each customer listed beneath so you
+  // can see WHO is scheduled (mowing stays a flexible route — no fixed times —
+  // but the names/addresses are visible for planning ahead).
   if(mows.length){
-    h+=`<div style="display:flex;align-items:center;gap:10px;padding:.6rem .75rem;margin-bottom:.5rem;border-radius:var(--r);background:var(--gp);border:1px solid #b8d5b4">
-      <span style="width:10px;height:10px;border-radius:50%;background:${jobTypeColor('mow')};flex-shrink:0"></span>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:13px;color:var(--green)">Mow route — ${mows.length} stop${mows.length!==1?'s':''}</div>
-        <div style="font-size:11px;color:var(--ink3)">~${fmtMins(totalMow)} · $${mowRev.toFixed(0)} · flexible order</div>
-      </div>
-    </div>`;
+    h+=`<div style="border-radius:var(--r);background:var(--gp);border:1px solid #b8d5b4;margin-bottom:.5rem;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:.6rem .75rem;border-bottom:1px solid #b8d5b4">
+        <span style="width:10px;height:10px;border-radius:50%;background:${jobTypeColor('mow')};flex-shrink:0"></span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px;color:var(--green)">Mow route — ${mows.length} stop${mows.length!==1?'s':''}</div>
+          <div style="font-size:11px;color:var(--ink3)">~${fmtMins(totalMow)} · $${mowRev.toFixed(0)} · flexible order</div>
+        </div>
+      </div>`;
+    mows.forEach((c,i)=>{
+      const histJob=histJobs.find(j=>j.custId===c.id);
+      const doneDot=histJob?(histJob.paid?'<span style="color:var(--green);font-size:10px">● paid</span>':'<span style="color:var(--red);font-size:10px">● unpaid</span>'):'';
+      h+=`<div style="display:flex;align-items:center;gap:10px;padding:.5rem .75rem;${i<mows.length-1?'border-bottom:1px solid #d4e8cf;':''}">
+        <span style="width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:12px;flex-shrink:0">${i+1}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:13px">${esc(custFullName(c))}</div>
+          <div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(custAddr(c))}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:12px;font-weight:600;color:var(--green)">$${parseFloat(c.price||0).toFixed(0)}</div>
+          <div style="font-size:10px;color:var(--ink3)">${fmtMins(c.mowTime)} ${doneDot}</div>
+        </div>
+      </div>`;
+    });
+    h+=`</div>`;
   }
 
   // Timed scheduled jobs, each in its type color, sorted by time
@@ -3042,8 +3085,8 @@ function renderCustomers(){
     document.getElementById('cust-list').innerHTML=`<div class="empty-state"><i class="ti ti-users"></i><p>No customers yet</p><small>Import from HubSpot or add manually</small></div>`;
     return;
   }
-  const schedBadge={weekly:'tag-green',biweekly:'tag-blue',onetime:'tag-amb',paused:'tag-amb',inactive:'tag-gray'};
-  const schedLbl={weekly:'Weekly',biweekly:'Biweekly',onetime:'One-time',paused:'Paused',inactive:'Inactive'};
+  const schedBadge={weekly:'tag-green',biweekly:'tag-blue',monthly:'tag-blue',onetime:'tag-amb',paused:'tag-amb',inactive:'tag-gray'};
+  const schedLbl={weekly:'Weekly',biweekly:'Biweekly',monthly:'Monthly',onetime:'One-time',paused:'Paused',inactive:'Inactive'};
   document.getElementById('cust-list').innerHTML=list.map(c=>{
     const jobs=DB.jobHistory.filter(j=>j.custId===c.id);
     const lastJob=jobs.length?jobs.sort((a,b)=>b.date.localeCompare(a.date))[0]:null;
@@ -3119,6 +3162,8 @@ function openCustModal(id){
     const v=document.getElementById('cf-sched').value;
     document.getElementById('cf-pause-row').style.display=v==='paused'?'':'none';
     document.getElementById('cf-biweekly-row').style.display=v==='biweekly'?'':'none';
+    const oh=document.getElementById('cf-onetime-hint');if(oh)oh.style.display=v==='onetime'?'':'none';
+    const mh=document.getElementById('cf-monthly-hint');if(mh)mh.style.display=v==='monthly'?'':'none';
   };
   updateSchedRows();
   document.getElementById('cf-sched').onchange=updateSchedRows;
