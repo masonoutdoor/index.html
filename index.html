@@ -314,6 +314,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 #auth-loading{position:fixed;inset:0;z-index:600;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em}
 #auth-loading.hidden{display:none}
 .signout-btn{background:none;border:none;color:var(--ink3);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:4px;padding:4px 6px}
+
+/* R8: safer touch targets for money/status actions on phones */
+.fin-action{min-height:44px}
+.sync-status-persistent{opacity:.96}
+@media (max-width:600px){
+  #pg-invoices .bxsm,.pay-done-badge + div .bxsm,.fin-action{min-height:44px;height:auto;padding:8px 10px;font-size:12px}
+  #invoice-list .btn{min-height:44px}
+}
+
 </style>
 </head>
 <body>
@@ -593,6 +602,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
       <button class="pill-tab" data-invoice-filter="needs_invoice" onclick="setInvoiceFilter('needs_invoice',this)">Needs Invoice</button>
       <button class="pill-tab" data-invoice-filter="invoice_sent" onclick="setInvoiceFilter('invoice_sent',this)">Invoice Sent</button>
       <button class="pill-tab" data-invoice-filter="paid" onclick="setInvoiceFilter('paid',this)">Paid</button>
+      <button class="pill-tab" data-invoice-filter="overdue" onclick="setInvoiceFilter('overdue',this)">7+ Days</button>
+      <button class="pill-tab" data-invoice-filter="not_billable" onclick="setInvoiceFilter('not_billable',this)">No Charge</button>
       <button class="pill-tab" data-invoice-filter="week" onclick="setInvoiceFilter('week',this)">This Week</button>
       <button class="pill-tab" data-invoice-filter="month" onclick="setInvoiceFilter('month',this)">This Month</button>
     </div>
@@ -662,7 +673,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
       <select id="cf-sched">
         <option value="weekly">Weekly</option>
         <option value="biweekly">Biweekly</option>
-        <option value="monthly">Monthly</option>
+        <option value="monthly">Every 4 Weeks</option>
         <option value="onetime">One-time</option>
         <option value="paused">Paused</option>
         <option value="inactive">Inactive</option>
@@ -689,7 +700,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
     <div style="flex:1;font-size:12px;color:var(--amb);background:var(--ambp);border-radius:var(--r);padding:.625rem .75rem;line-height:1.5"><i class="ti ti-info-circle"></i> <strong>Set the Start date above</strong> — that's the single day this one-time job appears on your calendar.</div>
   </div>
   <div id="cf-monthly-hint" class="fr" style="display:none">
-    <div style="flex:1;font-size:12px;color:var(--ink3);background:var(--s2);border-radius:var(--r);padding:.625rem .75rem;line-height:1.5"><i class="ti ti-info-circle"></i> Monthly = every 4 weeks on the preferred day, counting from the Start date. Set the Start date so the cycle lands where you want.</div>
+    <div style="flex:1;font-size:12px;color:var(--ink3);background:var(--s2);border-radius:var(--r);padding:.625rem .75rem;line-height:1.5"><i class="ti ti-info-circle"></i> Every 4 Weeks = service repeats every 28 days on the preferred weekday, counting from the Start date. Set the Start date so the cycle lands where you want.</div>
   </div>
   <div class="fr">
     <div class="f" style="flex:0 0 100px"><label>Est. mow (min)</label><input type="number" id="cf-mow" value="45" min="5" max="300"></div>
@@ -786,6 +797,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 </div>
 </div>
 
+<!-- End Day closeout modal -->
+<div class="modal-bg" id="endday-modal" onclick="handleModalBg(event,'endday-modal')">
+<div class="modal">
+  <div class="modal-title">End Day Summary</div>
+  <div id="endday-summary" style="margin-bottom:1rem"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" style="flex:1" onclick="closeModal('endday-modal')">Keep Day Open</button>
+    <button class="btn btnb" style="flex:1" id="endday-confirm-btn" onclick="confirmEndDayCloseout()"><i class="ti ti-sunset-2"></i> End Day</button>
+  </div>
+</div>
+</div>
+
 <!-- Quick-add job modal -->
 <div class="modal-bg" id="quickjob-modal" onclick="handleModalBg(event,'quickjob-modal')">
 <div class="modal">
@@ -809,10 +832,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <div class="fr">
     <div class="f" style="flex:0 0 130px"><label>Payment</label>
       <select id="qj-paid">
-        <option value="unpaid">Unpaid</option>
+        <option value="unpaid">Unpaid — Invoice Not Sent</option>
+        <option value="invoice_sent">Invoice Sent — Awaiting Payment</option>
         <option value="cash">Paid — Cash</option>
         <option value="check">Paid — Check</option>
-        <option value="other">Paid — Other</option>
+        <option value="paid">Paid — Other</option>
+        <option value="not_billable">No Charge / Not Billable</option>
       </select>
     </div>
   </div>
@@ -926,13 +951,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
 <script>
 // ══ SUPABASE CONFIG ══════════════════════════════════════════════
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.08.19-production-audit-r7-payment-field-sync';
+const APP_VERSION='2026.08.19-r8-critical-recommended';
 const supabaseClient = window.supabase&&window.supabase.createClient?window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY):null;
 
 function isUuid(value){
@@ -1030,14 +1055,16 @@ let DB = {
   customers: [],
   jobHistory: [],
   scheduledJobs: [],
+  mileageLog: [],
   rainShifts: [],
   jobTypes: JSON.parse(JSON.stringify(DEFAULT_JOB_TYPES)),
   pendingDeletes: [],
+  pendingStorageDeletes: [],
   settings: {mapsKey:'',homeBase:'',startTime:'07:00',hours:8,bizName:'Richardson Outdoor Solutions'}
 };
 
 // Tracks the last-synced signature of each record so we only push changes.
-const _syncedSig = {customers:{}, jobs:{}, scheduled:{}, appSettings:{}};
+const _syncedSig = {customers:{}, jobs:{}, scheduled:{}, mileage:{}, rain:{}, appSettings:{}};
 // Cloud tombstones prevent a deleted record from being resurrected by stale localStorage on another device.
 const _cloudTombstones = new Set();
 function tombstoneKey(table,id){return String(table||'')+':'+String(id||'');}
@@ -1093,7 +1120,8 @@ function _customerRow(customer){
     pause_reason: customer.pauseReason||'',
     start_date: customer.startDate||null,
     biweekly_week: customer.biweeklyWeek||'A',
-    skip_weeks: JSON.stringify(customer.skipWeeks||[])
+    skip_weeks: JSON.stringify(customer.skipWeeks||[]),
+    updated_at_ms: Number(customer.updatedAt)||0
   };
 }
 
@@ -1111,10 +1139,27 @@ function _jobRow(job){
     before_photo_urls: JSON.stringify(job.beforePhotoUrls||[]),
     after_photo_urls: JSON.stringify(job.afterPhotoUrls||[]),
     extra_photo_urls: JSON.stringify(job.extraPhotoUrls||[]),
-    // Keep base64 columns for backwards compatibility with old records
-    before_photos: JSON.stringify((job.beforePhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p)),
-    after_photos: JSON.stringify((job.afterPhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p)),
-    extra_photos: JSON.stringify((job.extraPhotos||[]).map(p=>isBase64Photo(p)?'[uploaded]':p))
+    before_photo_paths: JSON.stringify(job.beforePhotoPaths||[]),
+    after_photo_paths: JSON.stringify(job.afterPhotoPaths||[]),
+    extra_photo_paths: JSON.stringify(job.extraPhotoPaths||[]),
+    // Base64 stays local until Storage upload succeeds. The cloud row keeps a marker,
+    // and End Day will not clear the route while a photo is still unsynced.
+    before_photos: JSON.stringify((job.beforePhotos||[]).map(p=>isBase64Photo(p)?'[local-pending]':p)),
+    after_photos: JSON.stringify((job.afterPhotos||[]).map(p=>isBase64Photo(p)?'[local-pending]':p)),
+    extra_photos: JSON.stringify((job.extraPhotos||[]).map(p=>isBase64Photo(p)?'[local-pending]':p)),
+    job_type: job.jobType||job.typeId||'mow',
+    charged_amount: job.chargedAmount==null?null:Number(job.chargedAmount)||0,
+    service_desc: job.serviceDesc||'',
+    line_items: JSON.stringify(Array.isArray(job.lineItems)?job.lineItems:[]),
+    arrived_at_ms: job.arrivedAt||null,
+    departed_at_ms: job.departedAt||null,
+    drive_min: job.driveMin==null?null:Number(job.driveMin)||0,
+    sched_id: job.schedId||null,
+    price: job.price==null?null:Number(job.price)||0,
+    payment_status: paymentStatus(job),
+    invoice_sent_at_ms: job.invoiceSentAt||null,
+    paid_at_ms: job.paidAt||null,
+    updated_at_ms: Number(job.updatedAt)||0
   };
 }
 
@@ -1124,76 +1169,87 @@ function _scheduledJobRow(sj){
     cust_id: sj.custId||null,
     job_type: sj.jobType||'other',
     date: sj.date,
-    time: sj.time||null,            // 'HH:MM' 24h, or null
+    time: sj.time||null,
     duration_min: sj.durationMin||60,
     price: sj.price===''||sj.price==null?0:parseFloat(sj.price),
     notes: sj.notes||'',
     done: sj.done||false,
-    moves_with_rain: sj.movesWithRain==null?true:!!sj.movesWithRain
+    moves_with_rain: sj.movesWithRain==null?true:!!sj.movesWithRain,
+    rain_prev_date: sj.rainPrevDate||null,
+    rain_shift_id: sj.rainShiftId||null,
+    updated_at_ms: Number(sj.updatedAt)||0
   };
 }
 
-// Persist the last successful cloud signatures so an offline edit is not
-// mistaken for stale cache on the next launch.
+function _mileageRow(m){
+  return {date:m.date,miles:Number(m.miles)||0,stops:Number(m.stops)||0,source:m.source||'unknown',updated_at_ms:Number(m.updatedAt)||0};
+}
+function _rowContentSig(row){const copy=Object.assign({},row);delete copy.updated_at_ms;return _sig(copy);}
+function storagePathFromUrl(url){
+  const s=String(url||'');if(!s)return null;
+  const markers=['/storage/v1/object/public/job-photos/','/storage/v1/object/sign/job-photos/','/storage/v1/object/authenticated/job-photos/'];
+  for(const marker of markers){const i=s.indexOf(marker);if(i>=0){const rest=s.slice(i+marker.length).split('?')[0];try{return decodeURIComponent(rest);}catch(e){return rest;}}}
+  return null;
+}
+function getMileageLog(){return Array.isArray(DB.mileageLog)?DB.mileageLog:[];}
+function setMileageLog(log){DB.mileageLog=Array.isArray(log)?log:[];try{localStorage.setItem('ros_mileage_log',JSON.stringify(DB.mileageLog));}catch(e){}}
+
+// Persist successful cloud signatures so an offline edit remains distinguishable
+// from stale cache on the next launch.
 function loadSyncSignatures(){
   try{
     const saved=safeParseJSON(localStorage.getItem('ros_sync_signatures'),null);
     if(saved){
-      ['customers','jobs','scheduled','appSettings'].forEach(k=>{
+      ['customers','jobs','scheduled','mileage','rain','appSettings'].forEach(k=>{
         if(saved[k]&&typeof saved[k]==='object')Object.assign(_syncedSig[k],saved[k]);
       });
     }
   }catch(e){}
 }
-function persistSyncSignatures(){
-  try{localStorage.setItem('ros_sync_signatures',JSON.stringify(_syncedSig));}catch(e){}
-}
+function persistSyncSignatures(){try{localStorage.setItem('ros_sync_signatures',JSON.stringify(_syncedSig));}catch(e){}}
 function isPendingDelete(table,id){
-  const local=Array.isArray(DB.pendingDeletes)&&DB.pendingDeletes.some(x=>x.table===table&&x.id===id);
+  const local=Array.isArray(DB.pendingDeletes)&&DB.pendingDeletes.some(x=>x.table===table&&String(x.id)===String(id));
   return local||_cloudTombstones.has(tombstoneKey(table,id));
 }
 function queueDelete(table,id){
   if(!Array.isArray(DB.pendingDeletes))DB.pendingDeletes=[];
-  if(!DB.pendingDeletes.some(x=>x.table===table&&x.id===id))DB.pendingDeletes.push({table,id});
+  if(!DB.pendingDeletes.some(x=>x.table===table&&String(x.id)===String(id)))DB.pendingDeletes.push({table,id});
   try{localStorage.setItem('ros_db',JSON.stringify(DB));}catch(e){}
 }
 function applyCloudTombstones(){
   DB.customers=DB.customers.filter(x=>!_cloudTombstones.has(tombstoneKey('customers',x.id)));
   DB.jobHistory=DB.jobHistory.filter(x=>!_cloudTombstones.has(tombstoneKey('job_history',x.id)));
   DB.scheduledJobs=DB.scheduledJobs.filter(x=>!_cloudTombstones.has(tombstoneKey('scheduled_jobs',x.id)));
+  DB.rainShifts=DB.rainShifts.filter(x=>!_cloudTombstones.has(tombstoneKey('rain_shifts',x.id)));
 }
+let _tombstonesLoaded=false;
 async function loadCloudTombstones(){
-  if(!supabaseClient)return;
+  if(!supabaseClient){_tombstonesLoaded=false;return false;}
   try{
     const {data,error}=await withTimeout(supabaseClient.from('deleted_records').select('table_name,record_id'),6000,'deletion sync');
-    if(error){console.log('Deletion sync error',error);return;}
+    if(error){console.log('Deletion sync error',error);_tombstonesLoaded=false;return false;}
     _cloudTombstones.clear();
     (data||[]).forEach(r=>_cloudTombstones.add(tombstoneKey(r.table_name,r.record_id)));
-    applyCloudTombstones();
-  }catch(e){console.log('Deletion sync error',e);}
+    _tombstonesLoaded=true;applyCloudTombstones();return true;
+  }catch(e){console.log('Deletion sync error',e);_tombstonesLoaded=false;return false;}
 }
 async function deleteCloudRecord(table,id){
   queueDelete(table,id);
   if(!supabaseClient)return false;
   try{
-    // Record the deletion FIRST. Other devices consult this tombstone before
-    // reconciling local-only records, so a stale browser cannot resurrect it.
     const tombstone={table_name:table,record_id:String(id),deleted_at:new Date().toISOString()};
-    const {error:tombErr}=await withTimeout(
-      supabaseClient.from('deleted_records').upsert(tombstone,{onConflict:'table_name,record_id'}),
-      8000,'deletion tombstone'
-    );
+    const {error:tombErr}=await withTimeout(supabaseClient.from('deleted_records').upsert(tombstone,{onConflict:'table_name,record_id'}),8000,'deletion tombstone');
     if(tombErr){console.log('Deletion tombstone error',tombErr);return false;}
     _cloudTombstones.add(tombstoneKey(table,id));
-
-    const {error}=await withTimeout(supabaseClient.from(table).delete().eq('id',id),8000,table+' delete');
+    const {error}=await withTimeout(supabaseClient.from(table).delete().eq(table==='mileage_log'?'date':'id',id),8000,table+' delete');
     if(error&&error.code!=='42P01'){console.log(table+' delete error',error);return false;}
-    DB.pendingDeletes=DB.pendingDeletes.filter(x=>!(x.table===table&&x.id===id));
-    const bucket=table==='customers'?'customers':table==='job_history'?'jobs':'scheduled';
+    if(table==='job_history'){
+      try{await supabaseClient.from('app_settings').delete().eq('key','ros_job_meta:'+id);}catch(e){}
+    }
+    DB.pendingDeletes=DB.pendingDeletes.filter(x=>!(x.table===table&&String(x.id)===String(id)));
+    const bucket=table==='customers'?'customers':table==='job_history'?'jobs':table==='scheduled_jobs'?'scheduled':table==='rain_shifts'?'rain':'mileage';
     if(_syncedSig[bucket])delete _syncedSig[bucket][id];
-    persistSyncSignatures();
-    try{localStorage.setItem('ros_db',JSON.stringify(DB));}catch(e){}
-    return true;
+    persistSyncSignatures();try{localStorage.setItem('ros_db',JSON.stringify(DB));}catch(e){}return true;
   }catch(e){console.log(table+' delete error',e);return false;}
 }
 async function retryPendingDeletes(){
@@ -1203,319 +1259,255 @@ async function retryPendingDeletes(){
 
 function normalizeDB(){
   if(!DB||typeof DB!=='object')DB={};
-  if(!Array.isArray(DB.customers))DB.customers=[];if(!Array.isArray(DB.jobHistory))DB.jobHistory=[];if(!Array.isArray(DB.scheduledJobs))DB.scheduledJobs=[];if(!Array.isArray(DB.rainShifts))DB.rainShifts=[];if(!Array.isArray(DB.pendingDeletes))DB.pendingDeletes=[];
+  if(!Array.isArray(DB.customers))DB.customers=[];if(!Array.isArray(DB.jobHistory))DB.jobHistory=[];if(!Array.isArray(DB.scheduledJobs))DB.scheduledJobs=[];if(!Array.isArray(DB.mileageLog))DB.mileageLog=safeParseJSON(localStorage.getItem('ros_mileage_log'),[]);if(!Array.isArray(DB.rainShifts))DB.rainShifts=[];if(!Array.isArray(DB.pendingDeletes))DB.pendingDeletes=[];if(!Array.isArray(DB.pendingStorageDeletes))DB.pendingStorageDeletes=[];
   if(!DB.settings||typeof DB.settings!=='object')DB.settings={};DB.settings=Object.assign({mapsKey:'',homeBase:'',startTime:'07:00',hours:8,bizName:'Richardson Outdoor Solutions'},DB.settings);
   if(!Array.isArray(DB.jobTypes)||!DB.jobTypes.length)DB.jobTypes=JSON.parse(JSON.stringify(DEFAULT_JOB_TYPES));
   const existingTypes=new Set(DB.jobTypes.map(t=>t&&t.id).filter(Boolean));DEFAULT_JOB_TYPES.forEach(t=>{if(!existingTypes.has(t.id))DB.jobTypes.push(JSON.parse(JSON.stringify(t)));});
   DB.jobTypes=DB.jobTypes.filter(t=>t&&t.id&&t.name).map(t=>Object.assign({},t,{id:String(t.id).slice(0,80),name:String(t.name).slice(0,60),color:safeColor(t.color),defaultMin:clampNum(t.defaultMin,5,600,60),defaultPrice:clampNum(t.defaultPrice,0,100000,0),minPhotos:clampNum(t.minPhotos,0,10,1)}));
 
-  // UUID migration must preserve every relationship. Earlier versions used timestamp IDs.
   const custMap=new Map(),jobMap=new Map(),schedMap=new Map();
   DB.customers.forEach(c=>{const old=String(c.id||'');if(!isUuid(old)){const nu=makeUuid();if(old)custMap.set(old,nu);c.id=nu;}else c.id=old;
     ['first','last','addr','zip','phone','email','gate','notes','hubspotUrl','hubspotContactId','pauseReason'].forEach(k=>{if(c[k]==null)c[k]='';else c[k]=String(c[k]);});
-    c.alwaysPre=!!c.alwaysPre;if(c.prePauseSched&&!['weekly','biweekly','monthly','onetime'].includes(c.prePauseSched))c.prePauseSched='weekly';if(!Array.isArray(c.skipWeeks))c.skipWeeks=[];c.skipWeeks=c.skipWeeks.filter(validDateString);c.mowTime=clampNum(c.mowTime,5,600,45);const price=Number(c.price);c.price=Number.isFinite(price)&&price>=0?price:0;
+    c.alwaysPre=!!c.alwaysPre;if(c.prePauseSched&&!['weekly','biweekly','monthly','onetime'].includes(c.prePauseSched))c.prePauseSched='weekly';if(!Array.isArray(c.skipWeeks))c.skipWeeks=[];c.skipWeeks=c.skipWeeks.filter(validDateString);c.mowTime=clampNum(c.mowTime,5,600,45);const price=Number(c.price);c.price=Number.isFinite(price)&&price>=0?price:0;c.updatedAt=Number(c.updatedAt)||0;
   });
   DB.jobHistory.forEach(j=>{const old=String(j.id||'');if(!isUuid(old)){const nu=makeUuid();if(old)jobMap.set(old,nu);j.id=nu;}else j.id=old;if(custMap.has(String(j.custId)))j.custId=custMap.get(String(j.custId));
-    j.jobType=j.jobType||j.typeId||'mow';if(!validDateString(j.date))j.date=todayStr();['beforePhotos','afterPhotos','extraPhotos','beforePhotoUrls','afterPhotoUrls','extraPhotoUrls'].forEach(k=>{if(!Array.isArray(j[k]))j[k]=[];});
-    j.actualMin=clampNum(j.actualMin,0,1440,0);j.estMin=clampNum(j.estMin,0,1440,0);
-    if(j.paid){j.paymentStatus='paid';}
-    else if(j.paymentStatus==='invoice_sent'||j.invoiceSentAt){j.paymentStatus='invoice_sent';}
-    else{j.paymentStatus='unpaid';}
-    if(j.invoiceSentAt!=null)j.invoiceSentAt=Number(j.invoiceSentAt)||null;
-    if(j.paidAt!=null)j.paidAt=Number(j.paidAt)||null;
+    j.jobType=j.jobType||j.typeId||'mow';if(!validDateString(j.date))j.date=todayStr();['beforePhotos','afterPhotos','extraPhotos','beforePhotoUrls','afterPhotoUrls','extraPhotoUrls','beforePhotoPaths','afterPhotoPaths','extraPhotoPaths'].forEach(k=>{if(!Array.isArray(j[k]))j[k]=[];});
+    ['before','after','extra'].forEach(type=>{const U=type+'PhotoUrls',P=type+'PhotoPaths';for(let i=0;i<j[U].length;i++){if(!j[P][i])j[P][i]=storagePathFromUrl(j[U][i])||null;}});
+    j.actualMin=clampNum(j.actualMin,0,1440,0);j.estMin=clampNum(j.estMin,0,1440,0);j.updatedAt=Number(j.updatedAt)||0;
+    if(j.paymentStatus==='not_billable')j.paid=false;
+    else if(j.paid)j.paymentStatus='paid';
+    else if(j.paymentStatus==='invoice_sent'||j.invoiceSentAt)j.paymentStatus='invoice_sent';
+    else j.paymentStatus='unpaid';
+    if(j.invoiceSentAt!=null)j.invoiceSentAt=Number(j.invoiceSentAt)||null;if(j.paidAt!=null)j.paidAt=Number(j.paidAt)||null;
   });
   DB.scheduledJobs.forEach(x=>{const old=String(x.id||'');if(!isUuid(old)){const nu=makeUuid();if(old)schedMap.set(old,nu);x.id=nu;}else x.id=old;if(custMap.has(String(x.custId)))x.custId=custMap.get(String(x.custId));
-    x.jobType=x.jobType||x.typeId||'other';x.durationMin=clampNum(x.durationMin!=null?x.durationMin:x.estMin,5,600,jobType(x.jobType).defaultMin||60);x.price=clampNum(x.price,0,100000,jobType(x.jobType).defaultPrice||0);if(!validDateString(x.date))x.date=todayStr();x.done=x.done===undefined?x.status==='done':!!x.done;if(x.movesWithRain===undefined)x.movesWithRain=true;
+    x.jobType=x.jobType||x.typeId||'other';x.durationMin=clampNum(x.durationMin!=null?x.durationMin:x.estMin,5,600,jobType(x.jobType).defaultMin||60);x.price=clampNum(x.price,0,100000,jobType(x.jobType).defaultPrice||0);if(!validDateString(x.date))x.date=todayStr();x.done=x.done===undefined?x.status==='done':!!x.done;if(x.movesWithRain===undefined)x.movesWithRain=true;x.rainPrevDate=x.rainPrevDate||x._rainPrevDate||null;x.rainShiftId=x.rainShiftId||null;x.updatedAt=Number(x.updatedAt)||0;delete x._rainPrevDate;
   });
+  DB.mileageLog=DB.mileageLog.filter(x=>x&&validDateString(x.date)).map(x=>({date:x.date,miles:Number(x.miles)||0,stops:Number(x.stops)||0,source:x.source||'unknown',updatedAt:Number(x.updatedAt)||0}));
+  DB.rainShifts=DB.rainShifts.filter(x=>x&&x.id&&validDateString(x.rainDate)&&Array.isArray(x.redirects)).map(x=>({id:isUuid(x.id)?x.id:makeUuid(),rainDate:x.rainDate,redirects:x.redirects.filter(r=>r&&validDateString(r.from)&&validDateString(r.to)).map(r=>({from:r.from,to:r.to})),createdAt:x.createdAt||new Date().toISOString(),updatedAt:Number(x.updatedAt)||0}));
   DB.jobHistory.forEach(j=>{if(schedMap.has(String(j.schedId)))j.schedId=schedMap.get(String(j.schedId));});
-  // Repair an already-saved field route if its IDs were migrated on this device.
-  try{const route=safeParseJSON(localStorage.getItem('ros_track_route'),null);if(route&&Array.isArray(route.jobs)){let changed=false;route.jobs.forEach(j=>{const cid=String(j.custId||j.id||'');if(custMap.has(cid)){const nu=custMap.get(cid);if(j.custId)j.custId=nu;if(j.id===cid)j.id=nu;changed=true;}if(jobMap.has(String(j.jobId))){j.jobId=jobMap.get(String(j.jobId));changed=true;}if(schedMap.has(String(j.schedId))){j.schedId=schedMap.get(String(j.schedId));changed=true;}});if(changed)localStorage.setItem('ros_track_route',JSON.stringify(route));}
-  }catch(e){}
+  try{const route=safeParseJSON(localStorage.getItem('ros_track_route'),null);if(route&&Array.isArray(route.jobs)){let changed=false;route.jobs.forEach(j=>{const cid=String(j.custId||j.id||'');if(custMap.has(cid)){const nu=custMap.get(cid);if(j.custId)j.custId=nu;if(j.id===cid)j.id=nu;changed=true;}if(jobMap.has(String(j.jobId))){j.jobId=jobMap.get(String(j.jobId));changed=true;}if(schedMap.has(String(j.schedId))){j.schedId=schedMap.get(String(j.schedId));changed=true;}});if(changed)localStorage.setItem('ros_track_route',JSON.stringify(route));}}catch(e){}
+  setMileageLog(DB.mileageLog);
 }
 
-function _jobMetaPayload(){
-  const out={};
-  DB.jobHistory.forEach(j=>{
-    out[j.id]={
-      jobType:j.jobType||j.typeId||'mow',
-      chargedAmount:j.chargedAmount??null,
-      serviceDesc:j.serviceDesc||'',
-      lineItems:Array.isArray(j.lineItems)?j.lineItems:[],
-      arrivedAt:j.arrivedAt||null,
-      departedAt:j.departedAt||null,
-      driveMin:j.driveMin??null,
-      schedId:j.schedId||null,
-      price:j.price??null,
-      paymentStatus:paymentStatus(j),
-      invoiceSentAt:j.invoiceSentAt||null,
-      paidAt:j.paidAt||null
-    };
-  });
-  return out;
-}
 function _appConfigPayload(){
   const prefs={};DB.customers.forEach(c=>{if(c.alwaysPre||c.prePauseSched)prefs[c.id]={alwaysPre:!!c.alwaysPre,prePauseSched:c.prePauseSched||null};});
-  return {version:2,jobTypes:DB.jobTypes,rainShifts:DB.rainShifts,customerPrefs:prefs,services:getServices(),bizName:getBizName(),routeSettings:{homeBase:DB.settings.homeBase||'',startTime:DB.settings.startTime||'07:00',hours:clampNum(DB.settings.hours,1,16,8)}};
+  // Rain shifts are atomic rows in R8; do not put them back into the shared config blob.
+  return {version:4,jobTypes:DB.jobTypes,customerPrefs:prefs,services:getServices(),bizName:getBizName(),routeSettings:{homeBase:DB.settings.homeBase||'',startTime:DB.settings.startTime||'07:00',hours:clampNum(DB.settings.hours,1,16,8)}};
+}
+function _rainShiftRow(x){return {id:x.id,rain_date:x.rainDate,redirects:JSON.stringify(x.redirects||[]),created_at:x.createdAt||new Date().toISOString(),updated_at_ms:Number(x.updatedAt)||0};}
+
+function _recordNeedsStamp(bucket,id,row){const last=_syncedSig[bucket]&&_syncedSig[bucket][id];return !last||last!==_rowContentSig(row);}
+function stampDirtyRecords(){
+  const now=Date.now();
+  DB.customers.forEach(x=>{let row=_customerRow(x);if(_recordNeedsStamp('customers',x.id,row))x.updatedAt=Math.max((Number(x.updatedAt)||0)+1,now);});
+  DB.jobHistory.forEach(x=>{let row=_jobRow(x);if(_recordNeedsStamp('jobs',x.id,row))x.updatedAt=Math.max((Number(x.updatedAt)||0)+1,now);});
+  DB.scheduledJobs.forEach(x=>{let row=_scheduledJobRow(x);if(_recordNeedsStamp('scheduled',x.id,row))x.updatedAt=Math.max((Number(x.updatedAt)||0)+1,now);});
+  DB.mileageLog.forEach(x=>{let row=_mileageRow(x);if(_recordNeedsStamp('mileage',x.date,row))x.updatedAt=Math.max((Number(x.updatedAt)||0)+1,now);});
+  DB.rainShifts.forEach(x=>{let row=_rainShiftRow(x);if(_recordNeedsStamp('rain',x.id,row))x.updatedAt=Math.max((Number(x.updatedAt)||0)+1,now);});
 }
 
 let _cloudSyncTail=Promise.resolve();
+let _lastCloudSyncOk=false,_lastCloudSyncAt=null,_lastCloudError='',_r8SchemaReady=true;
+let _conflictMessage='';
+
+async function checkR8Schema(){
+  if(!supabaseClient)return false;
+  try{
+    const [a,b,c,d,e]=await Promise.all([
+      withTimeout(supabaseClient.from('job_history').select('id,updated_at_ms,payment_status,before_photo_paths').limit(1),6000,'R8 job schema check'),
+      withTimeout(supabaseClient.from('mileage_log').select('date,updated_at_ms').limit(1),6000,'R8 mileage schema check'),
+      withTimeout(supabaseClient.from('rain_shifts').select('id,updated_at_ms').limit(1),6000,'R8 rain schema check'),
+      withTimeout(supabaseClient.from('customers').select('id,updated_at_ms').limit(1),6000,'R8 customer schema check'),
+      withTimeout(supabaseClient.from('scheduled_jobs').select('id,updated_at_ms,rain_prev_date,rain_shift_id').limit(1),6000,'R8 scheduled schema check')
+    ]);
+    _r8SchemaReady=!(a.error||b.error||c.error||d.error||e.error);
+    if(!_r8SchemaReady){_lastCloudError='R8 database migration required';setSaveStatus('schema');}
+    return _r8SchemaReady;
+  }catch(e){_r8SchemaReady=false;_lastCloudError='R8 database migration required';setSaveStatus('schema');return false;}
+}
+
 function saveDB(){
-  normalizeDB(); // IMPORTANT: assign/migrate IDs before writing localStorage.
+  normalizeDB();
+  stampDirtyRecords();
   let localOk=true;
-  try{localStorage.setItem('ros_db',JSON.stringify(DB));}
+  try{localStorage.setItem('ros_db',JSON.stringify(DB));setMileageLog(DB.mileageLog);}
   catch(e){localOk=false;console.log('Local save error',e);}
   setSaveStatus(localOk?'saving':'error');
-
-  // Serialize cloud writes. This prevents an older, slower request from landing
-  // after a newer request and reverting a record.
-  _cloudSyncTail=_cloudSyncTail.catch(()=>{}).then(()=>syncDBToCloud(localOk));
+  _cloudSyncTail=_cloudSyncTail.catch(()=>false).then(()=>syncDBToCloud(localOk));
   return _cloudSyncTail;
 }
 
+async function _remoteVersionMap(table,ids,idCol='id'){
+  if(!ids.length)return new Map();
+  const {data,error}=await withTimeout(supabaseClient.from(table).select(idCol+',updated_at_ms').in(idCol,ids),7000,table+' version check');
+  if(error)throw error;
+  const m=new Map();(data||[]).forEach(r=>m.set(String(r[idCol]),Number(r.updated_at_ms)||0));return m;
+}
+async function _safeChangedRows(table,changed,idCol='id'){
+  if(!changed.length)return {safe:[],conflicts:[]};
+  const versions=await _remoteVersionMap(table,changed.map(x=>x.id),idCol);
+  const safe=[],conflicts=[];
+  changed.forEach(x=>{const remote=versions.get(String(x.id))||0,local=Number(x.row.updated_at_ms)||0;if(remote>local)conflicts.push(x);else safe.push(x);});
+  return {safe,conflicts};
+}
+
+function _customerFromCloud(c){return {
+  id:c.id,first:c.first||'',last:c.last||'',addr:c.addr||'',zip:c.zip||'',phone:c.phone||'',email:c.email||'',sched:c.sched||'weekly',day:String(c.day??0),price:c.price??'',mowTime:c.mowtime??45,size:c.size||'md',gate:c.gate||'',notes:c.notes||'',hubspotUrl:c.hubspot_url||'',hubspotContactId:c.hubspot_contact_id||'',stripeCustomerId:c.stripe_customer_id||'',payMethod:c.pay_method||'cash',payLink:c.pay_link||'',serviceType:c.service_type||'mow',resumeDate:c.resume_date||null,pauseReason:c.pause_reason||'',startDate:c.start_date||null,biweeklyWeek:c.biweekly_week||'A',skipWeeks:safeParseJSON(c.skip_weeks,[]),updatedAt:Number(c.updated_at_ms)||0
+};}
+function _jobFromCloud(j){
+  const obj={id:j.id,custId:j.cust_id,date:j.date,actualMin:j.actual_min||0,estMin:j.est_min||0,paid:!!j.paid,paidMethod:j.paid_method||null,notes:j.notes||'',isOneOff:!!j.is_one_off,
+    beforePhotoUrls:safeParseJSON(j.before_photo_urls,[]),afterPhotoUrls:safeParseJSON(j.after_photo_urls,[]),extraPhotoUrls:safeParseJSON(j.extra_photo_urls,[]),beforePhotoPaths:safeParseJSON(j.before_photo_paths,[]),afterPhotoPaths:safeParseJSON(j.after_photo_paths,[]),extraPhotoPaths:safeParseJSON(j.extra_photo_paths,[]),
+    beforePhotos:safeParseJSON(j.before_photos,[]).filter(p=>p!=='[uploaded]'&&p!=='[local-pending]'),afterPhotos:safeParseJSON(j.after_photos,[]).filter(p=>p!=='[uploaded]'&&p!=='[local-pending]'),extraPhotos:safeParseJSON(j.extra_photos,[]).filter(p=>p!=='[uploaded]'&&p!=='[local-pending]'),
+    jobType:j.job_type||'mow',chargedAmount:j.charged_amount==null?null:Number(j.charged_amount),serviceDesc:j.service_desc||'',lineItems:safeParseJSON(j.line_items,[]),arrivedAt:j.arrived_at_ms?Number(j.arrived_at_ms):null,departedAt:j.departed_at_ms?Number(j.departed_at_ms):null,driveMin:j.drive_min==null?null:Number(j.drive_min),schedId:j.sched_id||null,price:j.price==null?null:Number(j.price),paymentStatus:j.payment_status||null,invoiceSentAt:j.invoice_sent_at_ms?Number(j.invoice_sent_at_ms):null,paidAt:j.paid_at_ms?Number(j.paid_at_ms):null,updatedAt:Number(j.updated_at_ms)||0};
+  return obj;
+}
+function _scheduledFromCloud(x){return {id:x.id,custId:x.cust_id||null,jobType:x.job_type||'other',date:x.date,time:x.time||null,durationMin:x.duration_min||60,price:x.price??'',notes:x.notes||'',done:!!x.done,movesWithRain:x.moves_with_rain==null?true:!!x.moves_with_rain,rainPrevDate:x.rain_prev_date||null,rainShiftId:x.rain_shift_id||null,updatedAt:Number(x.updated_at_ms)||0};}
+function _mileageFromCloud(x){return {date:x.date,miles:Number(x.miles)||0,stops:Number(x.stops)||0,source:x.source||'unknown',updatedAt:Number(x.updated_at_ms)||0};}
+function _rainShiftFromCloud(x){return {id:x.id,rainDate:x.rain_date,redirects:safeParseJSON(x.redirects,[]),createdAt:x.created_at||new Date().toISOString(),updatedAt:Number(x.updated_at_ms)||0};}
+
+async function _refreshCloudConflicts(conflicts){
+  if(!conflicts.length)return;
+  const byTable={};conflicts.forEach(x=>{(byTable[x.table]||(byTable[x.table]=[])).push(x.id);});
+  try{
+    if(byTable.customers){const {data}=await supabaseClient.from('customers').select('*').in('id',byTable.customers);(data||[]).forEach(r=>{const o=_customerFromCloud(r),i=DB.customers.findIndex(x=>x.id===o.id);if(i>=0)DB.customers[i]=Object.assign({},DB.customers[i],o);_syncedSig.customers[o.id]=_rowContentSig(_customerRow(o));});}
+    if(byTable.job_history){const {data}=await supabaseClient.from('job_history').select('*').in('id',byTable.job_history);(data||[]).forEach(r=>{const o=_jobFromCloud(r),i=DB.jobHistory.findIndex(x=>x.id===o.id);if(i>=0)DB.jobHistory[i]=o;_syncedSig.jobs[o.id]=_rowContentSig(_jobRow(o));});}
+    if(byTable.scheduled_jobs){const {data}=await supabaseClient.from('scheduled_jobs').select('*').in('id',byTable.scheduled_jobs);(data||[]).forEach(r=>{const o=_scheduledFromCloud(r),i=DB.scheduledJobs.findIndex(x=>x.id===o.id);if(i>=0)DB.scheduledJobs[i]=o;_syncedSig.scheduled[o.id]=_rowContentSig(_scheduledJobRow(o));});}
+    if(byTable.mileage_log){const {data}=await supabaseClient.from('mileage_log').select('*').in('date',byTable.mileage_log);(data||[]).forEach(r=>{const o=_mileageFromCloud(r),i=DB.mileageLog.findIndex(x=>x.date===o.date);if(i>=0)DB.mileageLog[i]=o;else DB.mileageLog.push(o);_syncedSig.mileage[o.date]=_rowContentSig(_mileageRow(o));});}
+    if(byTable.rain_shifts){const {data}=await supabaseClient.from('rain_shifts').select('*').in('id',byTable.rain_shifts);(data||[]).forEach(r=>{const o=_rainShiftFromCloud(r),i=DB.rainShifts.findIndex(x=>x.id===o.id);if(i>=0)DB.rainShifts[i]=o;else DB.rainShifts.push(o);_syncedSig.rain[o.id]=_rowContentSig(_rainShiftRow(o));});}
+    normalizeDB();localStorage.setItem('ros_db',JSON.stringify(DB));persistSyncSignatures();
+    _conflictMessage='A newer change from your other device was kept. This screen has been refreshed.';
+    renderDash();refreshInvoicePageIfOpen();if(document.getElementById('pg-reports')?.classList.contains('active'))renderReports();if(document.getElementById('pg-customers')?.classList.contains('active'))renderCustomers();if(document.getElementById('pg-cal')?.classList.contains('active'))renderCalendar();renderTracker();
+  }catch(e){console.log('Conflict refresh error',e);}
+}
+
 async function syncDBToCloud(localOk=true){
-  if(!supabaseClient){setSaveStatus('error');return;}
-  // Refresh deletion markers before any upsert so a long-open stale device cannot revive deleted rows.
-  await loadCloudTombstones();
+  if(!supabaseClient||!_r8SchemaReady){_lastCloudSyncOk=false;setSaveStatus(_r8SchemaReady?'error':'schema');return false;}
+  const tombOk=await loadCloudTombstones();
+  if(!tombOk){_lastCloudSyncOk=false;_lastCloudError='Deletion safety check failed';setSaveStatus('error');return false;}
   applyCloudTombstones();
-  let cloudError=false;
-  let sigChanged=false;
+  let cloudError=false,sigChanged=false,raceConflict=false;const conflicts=[];
 
-  try{
-    const changed=[];
-    for(const customer of DB.customers){
-      const row=_customerRow(customer),sig=_sig(row);
-      if(_syncedSig.customers[customer.id]!==sig)changed.push({row,id:customer.id,sig});
-    }
-    if(changed.length){
-      const {error}=await withTimeout(supabaseClient.from('customers').upsert(changed.map(c=>c.row)),8000,'customer sync');
-      if(error){cloudError=true;console.log('Supabase customer save error',error);}
-      else{changed.forEach(c=>{_syncedSig.customers[c.id]=c.sig;});sigChanged=true;}
-    }
-  }catch(err){cloudError=true;console.log('Supabase customer sync error',err);}
+  const syncGroup=async({table,records,rowFn,bucket,idFn=(x)=>x.id,idCol='id'})=>{
+    try{
+      const changed=[];
+      for(const rec of records){const row=rowFn(rec),sig=_rowContentSig(row),id=idFn(rec);if(_syncedSig[bucket][id]!==sig)changed.push({row,id,sig,rec});}
+      if(!changed.length)return;
+      const checked=await _safeChangedRows(table,changed,idCol);
+      checked.conflicts.forEach(x=>conflicts.push({table,id:x.id}));
+      if(!checked.safe.length)return;
+      const {data:written,error}=await withTimeout(supabaseClient.from(table).upsert(checked.safe.map(c=>c.row)).select(idCol+',updated_at_ms'),10000,table+' sync');
+      if(error)throw error;
+      const returned=new Map((written||[]).map(r=>[String(r[idCol]),Number(r.updated_at_ms)||0]));
+      checked.safe.forEach(c=>{
+        const remoteVer=returned.get(String(c.id)),localVer=Number(c.row.updated_at_ms)||0;
+        if(remoteVer!=null&&remoteVer>localVer){conflicts.push({table,id:c.id});return;}
+        if(remoteVer==null||remoteVer!==localVer){cloudError=true;console.log(table+' sync version mismatch',c.id,localVer,remoteVer);return;}
+        _syncedSig[bucket][c.id]=c.sig;sigChanged=true;
+      });
+    }catch(err){cloudError=true;if(err&&(err.code==='40001'||String(err.message||'').includes('ROS_STALE_WRITE')))raceConflict=true;console.log(table+' sync error',err);}
+  };
 
-  try{
-    const changed=[];
-    for(const job of DB.jobHistory){
-      const row=_jobRow(job),sig=_sig(row);
-      if(_syncedSig.jobs[job.id]!==sig)changed.push({row,id:job.id,sig});
-    }
-    if(changed.length){
-      const {error}=await withTimeout(supabaseClient.from('job_history').upsert(changed.map(c=>c.row)),8000,'job sync');
-      if(error&&error.code!=='42P01'){cloudError=true;console.log('Job history sync error',error);}
-      else if(!error){changed.forEach(c=>{_syncedSig.jobs[c.id]=c.sig;});sigChanged=true;}
-    }
-  }catch(err){cloudError=true;console.log('Job history sync error',err);}
+  await syncGroup({table:'customers',records:DB.customers,rowFn:_customerRow,bucket:'customers'});
+  await syncGroup({table:'job_history',records:DB.jobHistory,rowFn:_jobRow,bucket:'jobs'});
+  await syncGroup({table:'scheduled_jobs',records:DB.scheduledJobs,rowFn:_scheduledJobRow,bucket:'scheduled'});
+  await syncGroup({table:'mileage_log',records:DB.mileageLog,rowFn:_mileageRow,bucket:'mileage',idFn:x=>x.date,idCol:'date'});
+  await syncGroup({table:'rain_shifts',records:DB.rainShifts,rowFn:_rainShiftRow,bucket:'rain'});
 
+  // Non-record settings stay in one small configuration row. Financial/job metadata
+  // no longer uses a global blob; it lives atomically on each job_history row.
   try{
-    const changed=[];
-    for(const sj of DB.scheduledJobs){
-      const row=_scheduledJobRow(sj),sig=_sig(row);
-      if(_syncedSig.scheduled[sj.id]!==sig)changed.push({row,id:sj.id,sig});
-    }
-    if(changed.length){
-      const {error}=await withTimeout(supabaseClient.from('scheduled_jobs').upsert(changed.map(c=>c.row)),8000,'scheduled-job sync');
-      if(error&&error.code!=='42P01'){cloudError=true;console.log('Scheduled jobs sync error',error);}
-      else if(!error){changed.forEach(c=>{_syncedSig.scheduled[c.id]=c.sig;});sigChanged=true;}
-    }
-  }catch(err){cloudError=true;console.log('Scheduled jobs sync error',err);}
-
-  // Extended fields do not exist in the original job_history schema. Keep them
-  // in app_settings so payment amounts, job types, timestamps and line items do
-  // not disappear when moving between devices.
-  try{
-    const appRows=[
-      {key:'ros_app_config',value:JSON.stringify(_appConfigPayload())},
-      {key:'ros_job_metadata',value:JSON.stringify(_jobMetaPayload())}
-    ];
+    const appRows=[{key:'ros_app_config',value:JSON.stringify(_appConfigPayload())}];
     const changed=appRows.filter(r=>_syncedSig.appSettings[r.key]!==_sig(r.value));
-    if(changed.length){
-      const {error}=await withTimeout(supabaseClient.from('app_settings').upsert(changed),8000,'settings sync');
-      if(error){cloudError=true;console.log('App settings sync error',error);}
-      else{changed.forEach(r=>{_syncedSig.appSettings[r.key]=_sig(r.value);});sigChanged=true;}
-    }
+    if(changed.length){const {error}=await withTimeout(supabaseClient.from('app_settings').upsert(changed),8000,'settings sync');if(error)throw error;changed.forEach(r=>_syncedSig.appSettings[r.key]=_sig(r.value));sigChanged=true;}
   }catch(err){cloudError=true;console.log('App settings sync error',err);}
 
+  if(conflicts.length)await _refreshCloudConflicts(conflicts);
   if(sigChanged)persistSyncSignatures();
-  if(cloudError||!localOk)setSaveStatus('error');else setSaveStatus('saved');
+  const ok=!cloudError&&localOk&&!conflicts.length&&!raceConflict;
+  _lastCloudSyncOk=ok;_lastCloudSyncAt=ok?Date.now():_lastCloudSyncAt;_lastCloudError=raceConflict?'Concurrent other-device edit detected':cloudError?'Cloud sync failed':conflicts.length?'Newer cloud change kept':'';
+  setSaveStatus((conflicts.length||raceConflict)?'conflict':ok?'saved':'error');return ok;
 }
 
 // ── Save status indicator ──
 let _saveStatusTimer=null;
 function setSaveStatus(state){
-  const el=document.getElementById('save-status');
-  if(!el)return;
-  clearTimeout(_saveStatusTimer);
-  if(state==='saving'){
-    el.style.display='flex';
-    el.style.background='var(--s2)';
-    el.style.color='var(--ink2)';
-    el.innerHTML='<span class="spin" style="width:11px;height:11px;border-width:2px"></span> Saving…';
-  }else if(state==='saved'){
-    el.style.display='flex';
-    el.style.background='var(--gp)';
-    el.style.color='var(--green)';
-    el.innerHTML='<i class="ti ti-check" style="font-size:13px"></i> Saved';
-    // Fade out after a moment
-    _saveStatusTimer=setTimeout(()=>{if(el)el.style.display='none';},1800);
-  }else if(state==='error'){
-    el.style.display='flex';
-    el.style.background='var(--rp)';
-    el.style.color='var(--red)';
-    el.innerHTML='<i class="ti ti-cloud-off" style="font-size:13px"></i> Saved on device — cloud sync failed';
-    // Leave it visible longer so the user notices
-    _saveStatusTimer=setTimeout(()=>{if(el)el.style.display='none';},6000);
+  const el=document.getElementById('save-status');if(!el)return;clearTimeout(_saveStatusTimer);el.classList.add('sync-status-persistent');
+  el.style.display='flex';
+  if(state==='saving'){el.style.background='var(--s2)';el.style.color='var(--ink2)';el.innerHTML='<span class="spin" style="width:11px;height:11px;border-width:2px></span> Saving…';}
+  else if(state==='saved'){const stamp=_lastCloudSyncAt?new Date(_lastCloudSyncAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';el.style.background='var(--gp)';el.style.color='var(--green)';el.innerHTML='<i class="ti ti-cloud-check" style="font-size:13px"></i> Cloud synced'+(stamp?' · '+stamp:'');}
+  else if(state==='conflict'){el.style.background='var(--ambp)';el.style.color='var(--amb)';el.innerHTML='<i class="ti ti-arrows-exchange" style="font-size:13px"></i> Newer other-device change kept';}
+  else if(state==='schema'){el.style.background='var(--rp)';el.style.color='var(--red)';el.innerHTML='<i class="ti ti-database-exclamation" style="font-size:13px"></i> R8 database update required';}
+  else {el.style.background='var(--rp)';el.style.color='var(--red)';el.innerHTML='<i class="ti ti-cloud-off" style="font-size:13px"></i> Saved on device — cloud sync pending';}
+}
+
+async function hydrateSignedPhotoUrls(){
+  if(!supabaseClient||!supabaseClient.storage)return;
+  for(const j of DB.jobHistory){
+    for(const type of ['before','after','extra']){
+      const P=type+'PhotoPaths',U=type+'PhotoUrls';const paths=(j[P]||[]).filter(Boolean);if(!paths.length)continue;
+      try{
+        const {data,error}=await supabaseClient.storage.from('job-photos').createSignedUrls(paths,60*60*24*7);
+        if(!error&&Array.isArray(data)){data.forEach((x,k)=>{const path=paths[k],idx=j[P].indexOf(path);if(idx>=0&&x&&x.signedUrl)j[U][idx]=x.signedUrl;});}
+      }catch(e){console.log('Signed photo URL error',e);}
+    }
   }
 }
 
 async function loadDB(){
   loadSyncSignatures();
-  try{
-    const d=localStorage.getItem('ros_db');
-    if(d){DB=Object.assign(DB,safeParseJSON(d,{}));}
-  }catch(e){console.log('Local load error',e);}
+  try{const d=localStorage.getItem('ros_db');if(d)DB=Object.assign(DB,safeParseJSON(d,{}));}catch(e){console.log('Local load error',e);}
   normalizeDB();
-  // Pull cross-device deletion tombstones before merging any stale local records.
-  await loadCloudTombstones();
-  await retryPendingDeletes();
+  const tombOk=await loadCloudTombstones();
+  if(tombOk)await retryPendingDeletes();
   applyCloudTombstones();
 
-  // Save a copy of the local records before fetching cloud copies. A record that
-  // differs from its last successful cloud signature is an unsynced local edit
-  // and must win over cloud instead of being overwritten.
-  const localCustomers=new Map(DB.customers.map(x=>[x.id,x]));
-  const localJobs=new Map(DB.jobHistory.map(x=>[x.id,x]));
-  const localSched=new Map(DB.scheduledJobs.map(x=>[x.id,x]));
-  const isLocalDirty=(bucket,id,row)=>{
-    const last=_syncedSig[bucket]&&_syncedSig[bucket][id];
-    return !!last && last!==_sig(row);
-  };
+  const localCustomers=new Map(DB.customers.map(x=>[x.id,x])),localJobs=new Map(DB.jobHistory.map(x=>[x.id,x])),localSched=new Map(DB.scheduledJobs.map(x=>[x.id,x])),localMileage=new Map(DB.mileageLog.map(x=>[x.date,x])),localRain=new Map(DB.rainShifts.map(x=>[x.id,x]));
+  const isLocalDirty=(bucket,id,row)=>{const last=_syncedSig[bucket]&&_syncedSig[bucket][id];return !!last&&last!==_rowContentSig(row);};
+  const cloudIds={customers:new Set(),jobs:new Set(),scheduled:new Set(),mileage:new Set(),rain:new Set()},legacyFilledIds=new Set();
 
   if(supabaseClient){
-    try{
-      const promise=supabaseClient.from('customers').select('*').order('created_at',{ascending:true});
-      const {data,error}=await Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),5000))]);
-      if(!error&&data){
-        const cloud=data.map(c=>({
-          id:c.id,first:c.first||'',last:c.last||'',addr:c.addr||'',zip:c.zip||'',phone:c.phone||'',email:c.email||'',
-          sched:c.sched||'weekly',day:String(c.day??0),price:c.price??'',mowTime:c.mowtime??45,size:c.size||'md',gate:c.gate||'',notes:c.notes||'',
-          hubspotUrl:c.hubspot_url||'',hubspotContactId:c.hubspot_contact_id||'',stripeCustomerId:c.stripe_customer_id||'',payMethod:c.pay_method||'cash',
-          payLink:c.pay_link||'',serviceType:c.service_type||'mow',resumeDate:c.resume_date||null,pauseReason:c.pause_reason||'',startDate:c.start_date||null,
-          biweeklyWeek:c.biweekly_week||'A',skipWeeks:safeParseJSON(c.skip_weeks,[])
-        }));
-        const ids=new Set();const merged=[];
-        cloud.forEach(c=>{
-          ids.add(c.id);const local=localCustomers.get(c.id);const localRow=local?_customerRow(local):null;
-          if(local&&isLocalDirty('customers',c.id,localRow))merged.push(local);
-          else merged.push(Object.assign({},local||{},c,{alwaysPre:local?!!local.alwaysPre:false}));
-        });
-        localCustomers.forEach((c,id)=>{if(!ids.has(id))merged.push(c);});
-        DB.customers=merged.filter(x=>!isPendingDelete('customers',x.id));
-      }else if(error)console.log('Supabase load error',error);
-    }catch(err){console.log('Supabase load error',err);}
+    try{const {data,error}=await withTimeout(supabaseClient.from('customers').select('*').order('created_at',{ascending:true}),7000,'customers load');if(error)throw error;const merged=[];(data||[]).map(_customerFromCloud).forEach(c=>{cloudIds.customers.add(c.id);const local=localCustomers.get(c.id);if(local&&isLocalDirty('customers',c.id,_customerRow(local))&&(Number(local.updatedAt)||0)>(Number(c.updatedAt)||0))merged.push(local);else merged.push(Object.assign({},local||{},c,{alwaysPre:local?!!local.alwaysPre:false}));});localCustomers.forEach((c,id)=>{if(!cloudIds.customers.has(id))merged.push(c);});DB.customers=merged.filter(x=>!isPendingDelete('customers',x.id));}catch(e){console.log('Customers load error',e);}
+    try{const {data,error}=await withTimeout(supabaseClient.from('job_history').select('*').order('date',{ascending:false}),7000,'jobs load');if(error&&error.code!=='42P01')throw error;const merged=[];(data||[]).map(_jobFromCloud).forEach(j=>{cloudIds.jobs.add(j.id);const local=localJobs.get(j.id);if(local&&isLocalDirty('jobs',j.id,_jobRow(local))&&(Number(local.updatedAt)||0)>(Number(j.updatedAt)||0))merged.push(local);else merged.push(j);});localJobs.forEach((j,id)=>{if(!cloudIds.jobs.has(id))merged.push(j);});DB.jobHistory=merged.filter(x=>!isPendingDelete('job_history',x.id));}catch(e){console.log('Jobs load error',e);}
+    try{const {data,error}=await withTimeout(supabaseClient.from('scheduled_jobs').select('*').order('date',{ascending:true}),7000,'scheduled load');if(error&&error.code!=='42P01')throw error;const merged=[];(data||[]).map(_scheduledFromCloud).forEach(x=>{cloudIds.scheduled.add(x.id);const local=localSched.get(x.id);if(local&&isLocalDirty('scheduled',x.id,_scheduledJobRow(local))&&(Number(local.updatedAt)||0)>(Number(x.updatedAt)||0))merged.push(local);else merged.push(x);});localSched.forEach((x,id)=>{if(!cloudIds.scheduled.has(id))merged.push(x);});DB.scheduledJobs=merged.filter(x=>!isPendingDelete('scheduled_jobs',x.id));}catch(e){console.log('Scheduled load error',e);}
+    try{const {data,error}=await withTimeout(supabaseClient.from('mileage_log').select('*').order('date',{ascending:true}),7000,'mileage load');if(error)throw error;const merged=[];(data||[]).map(_mileageFromCloud).forEach(x=>{cloudIds.mileage.add(x.date);const local=localMileage.get(x.date);if(local&&isLocalDirty('mileage',x.date,_mileageRow(local))&&(Number(local.updatedAt)||0)>(Number(x.updatedAt)||0))merged.push(local);else merged.push(x);});localMileage.forEach((x,id)=>{if(!cloudIds.mileage.has(id))merged.push(x);});DB.mileageLog=merged;}catch(e){console.log('Mileage load error',e);}
+    try{const {data,error}=await withTimeout(supabaseClient.from('rain_shifts').select('*').order('created_at',{ascending:true}),7000,'rain shifts load');if(error)throw error;const merged=[];(data||[]).map(_rainShiftFromCloud).forEach(x=>{cloudIds.rain.add(x.id);const local=localRain.get(x.id);if(local&&isLocalDirty('rain',x.id,_rainShiftRow(local))&&(Number(local.updatedAt)||0)>(Number(x.updatedAt)||0))merged.push(local);else merged.push(x);});localRain.forEach((x,id)=>{if(!cloudIds.rain.has(id))merged.push(x);});DB.rainShifts=merged.filter(x=>!isPendingDelete('rain_shifts',x.id));}catch(e){console.log('Rain shifts load error',e);}
 
     try{
-      const promise=supabaseClient.from('job_history').select('*').order('date',{ascending:false});
-      const {data,error}=await Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),5000))]);
-      if(!error&&data){
-        const cloud=data.map(j=>({
-          id:j.id,custId:j.cust_id,date:j.date,actualMin:j.actual_min||0,estMin:j.est_min||0,paid:!!j.paid,paidMethod:j.paid_method||null,notes:j.notes||'',isOneOff:!!j.is_one_off,
-          beforePhotoUrls:safeParseJSON(j.before_photo_urls,[]),afterPhotoUrls:safeParseJSON(j.after_photo_urls,[]),extraPhotoUrls:safeParseJSON(j.extra_photo_urls,[]),
-          beforePhotos:safeParseJSON(j.before_photos,[]).filter(p=>p!=='[uploaded]'),afterPhotos:safeParseJSON(j.after_photos,[]).filter(p=>p!=='[uploaded]'),extraPhotos:safeParseJSON(j.extra_photos,[]).filter(p=>p!=='[uploaded]')
-        }));
-        const ids=new Set();const merged=[];
-        cloud.forEach(j=>{
-          ids.add(j.id);const local=localJobs.get(j.id);const localRow=local?_jobRow(local):null;
-          if(local&&isLocalDirty('jobs',j.id,localRow))merged.push(local);
-          else merged.push(Object.assign({},local||{},j)); // cloud base + local extended metadata
-        });
-        localJobs.forEach((j,id)=>{if(!ids.has(id))merged.push(j);});
-        DB.jobHistory=merged.filter(x=>!isPendingDelete('job_history',x.id));
-      }else if(error&&error.code!=='42P01')console.log('Job history load error',error);
-    }catch(err){console.log('Job history load error',err);}
-
-    try{
-      const promise=supabaseClient.from('scheduled_jobs').select('*').order('date',{ascending:true});
-      const {data,error}=await Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),5000))]);
-      if(!error&&data){
-        const cloud=data.map(x=>({id:x.id,custId:x.cust_id||null,jobType:x.job_type||'other',date:x.date,time:x.time||null,durationMin:x.duration_min||60,price:x.price??'',notes:x.notes||'',done:!!x.done,movesWithRain:x.moves_with_rain==null?true:!!x.moves_with_rain}));
-        const ids=new Set();const merged=[];
-        cloud.forEach(x=>{
-          ids.add(x.id);const local=localSched.get(x.id);const localRow=local?_scheduledJobRow(local):null;
-          merged.push(local&&isLocalDirty('scheduled',x.id,localRow)?local:Object.assign({},local||{},x));
-        });
-        localSched.forEach((x,id)=>{if(!ids.has(id))merged.push(x);});
-        DB.scheduledJobs=merged.filter(x=>!isPendingDelete('scheduled_jobs',x.id));
-      }else if(error&&error.code!=='42P01')console.log('Scheduled jobs load error',error);
-    }catch(err){console.log('Scheduled jobs load error',err);}
-
-    // Load the extended app configuration and job metadata stored in app_settings.
-    try{
-      const readSetting=async key=>{
-        const {data,error}=await withTimeout(supabaseClient.from('app_settings').select('value').eq('key',key).maybeSingle(),6000,'settings load');
-        if(error)return null;return data?data.value:null;
-      };
-      const [cfgRaw,metaRaw]=await Promise.all([readSetting('ros_app_config'),readSetting('ros_job_metadata')]);
-      const cfg=typeof cfgRaw==='string'?safeParseJSON(cfgRaw,null):cfgRaw;
-      if(cfg&&typeof cfg==='object'){
-        if(Array.isArray(cfg.jobTypes)&&cfg.jobTypes.length)DB.jobTypes=cfg.jobTypes;
-        if(Array.isArray(cfg.rainShifts))DB.rainShifts=cfg.rainShifts;
-        if(cfg.routeSettings){DB.settings.homeBase=cfg.routeSettings.homeBase||DB.settings.homeBase;DB.settings.startTime=cfg.routeSettings.startTime||DB.settings.startTime;DB.settings.hours=clampNum(cfg.routeSettings.hours,1,16,DB.settings.hours||8);}
-        if(cfg.bizName)DB.settings.bizName=cfg.bizName;
-        if(Array.isArray(cfg.services)&&cfg.services.length){try{localStorage.setItem('ros_services',JSON.stringify(cfg.services));}catch(e){}}
-        if(cfg.customerPrefs){DB.customers.forEach(c=>{const pr=cfg.customerPrefs[c.id]||{};c.alwaysPre=!!pr.alwaysPre;if(pr.prePauseSched)c.prePauseSched=pr.prePauseSched;});}
-      }
-      const meta=typeof metaRaw==='string'?safeParseJSON(metaRaw,null):metaRaw;
-      if(meta&&typeof meta==='object')DB.jobHistory.forEach(j=>{if(meta[j.id])Object.assign(j,meta[j.id]);});
-    }catch(err){console.log('App settings load error',err);}
+      const readSetting=async key=>{const {data,error}=await withTimeout(supabaseClient.from('app_settings').select('value').eq('key',key).maybeSingle(),6000,'settings load');if(error)return null;return data?data.value:null;};
+      const [cfgRaw,legacyRaw]=await Promise.all([readSetting('ros_app_config'),readSetting('ros_job_metadata')]);const cfg=typeof cfgRaw==='string'?safeParseJSON(cfgRaw,null):cfgRaw;
+      if(cfg&&typeof cfg==='object'){if(Array.isArray(cfg.jobTypes)&&cfg.jobTypes.length)DB.jobTypes=cfg.jobTypes;if(Array.isArray(cfg.rainShifts)&&!DB.rainShifts.length)DB.rainShifts=cfg.rainShifts;if(cfg.routeSettings){DB.settings.homeBase=cfg.routeSettings.homeBase||DB.settings.homeBase;DB.settings.startTime=cfg.routeSettings.startTime||DB.settings.startTime;DB.settings.hours=clampNum(cfg.routeSettings.hours,1,16,DB.settings.hours||8);}if(cfg.bizName)DB.settings.bizName=cfg.bizName;if(Array.isArray(cfg.services)&&cfg.services.length){try{localStorage.setItem('ros_services',JSON.stringify(cfg.services));}catch(e){}}if(cfg.customerPrefs){DB.customers.forEach(c=>{const pr=cfg.customerPrefs[c.id]||{};c.alwaysPre=!!pr.alwaysPre;if(pr.prePauseSched)c.prePauseSched=pr.prePauseSched;});}}
+      // One-time compatibility bridge from R7's global metadata blob. It only fills
+      // fields missing from the new per-job columns; R8 never writes this blob again.
+      const legacy=typeof legacyRaw==='string'?safeParseJSON(legacyRaw,null):legacyRaw;if(legacy&&typeof legacy==='object')DB.jobHistory.forEach(j=>{const m=legacy[j.id];if(!m)return;let filled=false;const firstR8Migration=(Number(j.updatedAt)||0)===0;for(const [k,v] of Object.entries(m)){const missing=j[k]==null||j[k]===''||(Array.isArray(j[k])&&!j[k].length);if(firstR8Migration||missing){j[k]=v;filled=true;}}if(filled)legacyFilledIds.add(j.id);});
+    }catch(e){console.log('App settings load error',e);}
   }
 
-  applyCloudTombstones();
-  normalizeDB();
-  try{localStorage.setItem('ros_db',JSON.stringify(DB));}catch(e){}
-
-  // Establish the current cloud/local baseline. Any subsequent mutation will
-  // differ from these signatures and therefore sync; failed sync signatures are
-  // not advanced, so the local edit remains protected on next startup.
-  DB.customers.forEach(c=>{if(!_syncedSig.customers[c.id])_syncedSig.customers[c.id]=_sig(_customerRow(c));});
-  DB.jobHistory.forEach(j=>{if(!_syncedSig.jobs[j.id])_syncedSig.jobs[j.id]=_sig(_jobRow(j));});
-  DB.scheduledJobs.forEach(j=>{if(!_syncedSig.scheduled[j.id])_syncedSig.scheduled[j.id]=_sig(_scheduledJobRow(j));});
-  persistSyncSignatures();
+  applyCloudTombstones();normalizeDB();await hydrateSignedPhotoUrls();try{localStorage.setItem('ros_db',JSON.stringify(DB));}catch(e){}
+  // Baseline only records confirmed to exist in cloud. Local-only records remain
+  // unsynced so reconciliation can upload them; this avoids the old 14-vs-22 bug.
+  DB.customers.forEach(c=>{if(cloudIds.customers.has(c.id)&&!isLocalDirty('customers',c.id,_customerRow(c)))_syncedSig.customers[c.id]=_rowContentSig(_customerRow(c));});
+  DB.jobHistory.forEach(j=>{if(cloudIds.jobs.has(j.id)&&!legacyFilledIds.has(j.id)&&!isLocalDirty('jobs',j.id,_jobRow(j)))_syncedSig.jobs[j.id]=_rowContentSig(_jobRow(j));});
+  DB.scheduledJobs.forEach(j=>{if(cloudIds.scheduled.has(j.id)&&!isLocalDirty('scheduled',j.id,_scheduledJobRow(j)))_syncedSig.scheduled[j.id]=_rowContentSig(_scheduledJobRow(j));});
+  DB.mileageLog.forEach(m=>{if(cloudIds.mileage.has(m.date)&&!isLocalDirty('mileage',m.date,_mileageRow(m)))_syncedSig.mileage[m.date]=_rowContentSig(_mileageRow(m));});
+  DB.rainShifts.forEach(rn=>{if(cloudIds.rain.has(rn.id)&&!isLocalDirty('rain',rn.id,_rainShiftRow(rn)))_syncedSig.rain[rn.id]=_rowContentSig(_rainShiftRow(rn));});persistSyncSignatures();
 }
 
-// Reconcile records that exist only on this device back to Supabase.
-// This repairs a real cross-device edge case: older/local-only customers, jobs,
-// or scheduled jobs can survive in localStorage but never reach a fresh device.
 async function reconcileLocalOnlyToCloud(){
-  if(!supabaseClient)return;
-  await loadCloudTombstones();
-  applyCloudTombstones();
+  if(!supabaseClient||!_r8SchemaReady)return false;
+  const tombOk=await loadCloudTombstones();if(!tombOk){setSaveStatus('error');return false;}applyCloudTombstones();
   const groups=[
-    {table:'customers',records:DB.customers,rowFn:_customerRow,sigKey:'customers',deleteKey:'customers'},
-    {table:'job_history',records:DB.jobHistory,rowFn:_jobRow,sigKey:'jobs',deleteKey:'job_history'},
-    {table:'scheduled_jobs',records:DB.scheduledJobs,rowFn:_scheduledJobRow,sigKey:'scheduled',deleteKey:'scheduled_jobs'}
+    {table:'customers',records:DB.customers,rowFn:_customerRow,sigKey:'customers',deleteKey:'customers',idFn:x=>x.id,idCol:'id'},
+    {table:'job_history',records:DB.jobHistory,rowFn:_jobRow,sigKey:'jobs',deleteKey:'job_history',idFn:x=>x.id,idCol:'id'},
+    {table:'scheduled_jobs',records:DB.scheduledJobs,rowFn:_scheduledJobRow,sigKey:'scheduled',deleteKey:'scheduled_jobs',idFn:x=>x.id,idCol:'id'},
+    {table:'mileage_log',records:DB.mileageLog,rowFn:_mileageRow,sigKey:'mileage',deleteKey:null,idFn:x=>x.date,idCol:'date'},
+    {table:'rain_shifts',records:DB.rainShifts,rowFn:_rainShiftRow,sigKey:'rain',deleteKey:'rain_shifts',idFn:x=>x.id,idCol:'id'}
   ];
   let repaired=0,hadError=false;
   for(const g of groups){
-    try{
-      const {data,error}=await withTimeout(supabaseClient.from(g.table).select('id'),7000,g.table+' reconciliation read');
-      if(error){hadError=true;console.log(g.table+' reconciliation read error',error);continue;}
-      const cloudIds=new Set((data||[]).map(r=>String(r.id)));
-      const missing=(g.records||[]).filter(r=>r&&r.id&&!cloudIds.has(String(r.id))&&!isPendingDelete(g.deleteKey,r.id));
-      if(!missing.length)continue;
-      const rows=missing.map(g.rowFn);
-      const {error:writeError}=await withTimeout(supabaseClient.from(g.table).upsert(rows),10000,g.table+' reconciliation write');
-      if(writeError){hadError=true;console.log(g.table+' reconciliation write error',writeError);continue;}
-      missing.forEach(r=>{_syncedSig[g.sigKey][r.id]=_sig(g.rowFn(r));});
-      repaired+=missing.length;
-    }catch(err){hadError=true;console.log(g.table+' reconciliation error',err);}
+    try{const {data,error}=await withTimeout(supabaseClient.from(g.table).select(g.idCol),7000,g.table+' reconciliation read');if(error)throw error;const cloudIds=new Set((data||[]).map(r=>String(r[g.idCol])));const missing=(g.records||[]).filter(r=>{const id=g.idFn(r);return r&&id&&!cloudIds.has(String(id))&&(!g.deleteKey||!isPendingDelete(g.deleteKey,id));});if(!missing.length)continue;const rows=missing.map(g.rowFn);const {data:written,error:writeError}=await withTimeout(supabaseClient.from(g.table).upsert(rows).select(g.idCol+',updated_at_ms'),10000,g.table+' reconciliation write');if(writeError)throw writeError;const returned=new Map((written||[]).map(r=>[String(r[g.idCol]),Number(r.updated_at_ms)||0]));for(const r of missing){const id=g.idFn(r),row=g.rowFn(r),localVer=Number(row.updated_at_ms)||0,remoteVer=returned.get(String(id));if(remoteVer!=null&&remoteVer>localVer){await _refreshCloudConflicts([{table:g.table,id}]);continue;}if(remoteVer==null||remoteVer!==localVer)throw new Error(g.table+' reconciliation version mismatch');_syncedSig[g.sigKey][id]=_rowContentSig(row);repaired++;}}catch(e){hadError=true;console.log(g.table+' reconciliation error',e);}
   }
-  if(repaired){
-    persistSyncSignatures();
-    // Also push current app settings/job metadata now that all record IDs exist in cloud.
-    try{await syncDBToCloud(true);}catch(e){hadError=true;}
-    console.log('ROS cloud reconciliation uploaded '+repaired+' local-only record(s).');
-  }
-  if(hadError)setSaveStatus('error');
+  if(repaired)persistSyncSignatures();if(hadError){setSaveStatus('error');return false;}if(repaired)await syncDBToCloud(true);return true;
 }
 
 // ══ NAVIGATION ════════════════════════════════════════════════════
@@ -1589,6 +1581,7 @@ function jobAmount(j,c){
 }
 function paymentStatus(j){
   if(!j)return 'unpaid';
+  if(j.paymentStatus==='not_billable')return 'not_billable';
   if(j.paid)return 'paid';
   if(j.paymentStatus==='invoice_sent'||j.invoiceSentAt)return 'invoice_sent';
   return 'unpaid';
@@ -1597,10 +1590,12 @@ function paymentStatusLabel(j){
   const s=paymentStatus(j);
   if(s==='paid')return 'Paid';
   if(s==='invoice_sent')return 'Invoice Sent';
+  if(s==='not_billable')return 'No Charge';
   return 'Unpaid';
 }
 function paymentStatusDetail(j){
   if(!j)return 'Unpaid';
+  if(paymentStatus(j)==='not_billable')return 'No charge / not billable';
   if(j.paid){
     const method={cash:'Cash',check:'Check',card:'Card',paid:'Other'}[j.paidMethod]||'Paid';
     return j.invoiceSentAt?'Invoice sent · Paid '+method:'Paid '+method;
@@ -1608,6 +1603,28 @@ function paymentStatusDetail(j){
   if(paymentStatus(j)==='invoice_sent')return 'Invoice sent · Awaiting payment';
   return 'Unpaid · Invoice not yet marked sent';
 }
+function invoiceAgeDays(j){
+  if(!j||paymentStatus(j)!=='invoice_sent'||!j.invoiceSentAt)return 0;
+  return Math.max(0,Math.floor((Date.now()-Number(j.invoiceSentAt))/(86400000)));
+}
+function applyPaymentState(j,status,method,amount){
+  if(!j)return;
+  const now=Date.now();
+  if(amount!==undefined&&amount!==null)j.chargedAmount=clampNum(amount,0,100000,0);
+  if(status==='invoice_sent'){
+    j.paid=false;j.paidMethod=null;j.paidAt=null;j.paymentStatus='invoice_sent';j.invoiceSentAt=j.invoiceSentAt||now;
+  }else if(status==='unpaid'){
+    j.paid=false;j.paidMethod=null;j.paidAt=null;j.paymentStatus='unpaid';
+    // Current-state correction: selecting Invoice Not Sent means it is not currently
+    // an outstanding sent invoice. Clear the timestamp so every screen agrees.
+    j.invoiceSentAt=null;
+  }else if(status==='not_billable'){
+    j.paid=false;j.paidMethod=null;j.paidAt=null;j.invoiceSentAt=null;j.paymentStatus='not_billable';j.chargedAmount=0;
+  }else{
+    j.paid=true;j.paidMethod=method||status||'paid';j.paymentStatus='paid';j.paidAt=j.paidAt||now;
+  }
+}
+
 function normPhone(v){return String(v||'').replace(/\D/g,'');}
 function normEmail(v){return String(v||'').trim().toLowerCase();}
 function normText(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,' ');}
@@ -1639,17 +1656,14 @@ function renderDash(){
   const active=DB.customers.filter(c=>c.sched!=='inactive');
   const todayJobs=getOperationalJobsForDate(new Date());
   const monthRevenue=getMonthRevenue();
-  const unpaid=DB.jobHistory.filter(j=>!j.paid);
-  const invoiced=unpaid.filter(j=>paymentStatus(j)==='invoice_sent').length;
+  const outstanding=DB.jobHistory.filter(j=>!j.paid&&paymentStatus(j)!=='not_billable');
+  const invoiced=outstanding.filter(j=>paymentStatus(j)==='invoice_sent').length;
   document.getElementById('dash-metrics').innerHTML=
     `<div class="dash-card"><div class="dash-val">${active.length}</div><div class="dash-lbl">Active clients</div></div>`+
     `<div class="dash-card"><div class="dash-val">${todayJobs.length}</div><div class="dash-lbl">Jobs today</div></div>`+
-    `<div class="dash-card"><div class="dash-val">$${monthRevenue.toFixed(0)}</div><div class="dash-lbl">This month</div></div>`+
-    `<div class="dash-card"><div class="dash-val" style="color:${unpaid.length>0?'var(--red)':'var(--green)'}">${unpaid.length}</div><div class="dash-lbl">Outstanding${invoiced?' · '+invoiced+' invoiced':''}</div></div>`;
-  renderWeekStrip();
-  renderDayJobs();
-  renderUpcoming();
-  renderUnpaid();
+    `<div class="dash-card"><div class="dash-val">$${monthRevenue.toFixed(0)}</div><div class="dash-lbl">Collected this month</div></div>`+
+    `<div class="dash-card"><div class="dash-val" style="color:${outstanding.length>0?'var(--red)':'var(--green)'}">${outstanding.length}</div><div class="dash-lbl">Outstanding${invoiced?' · '+invoiced+' invoiced':''}</div></div>`;
+  renderWeekStrip();renderDayJobs();renderUpcoming();renderUnpaid();
 }
 
 function getWeekJobs(weekOffset){
@@ -1810,7 +1824,9 @@ function findHistoryForOperationalJob(j){
     if(j.recordId&&h.id===j.recordId)return true;
     if(h.custId!==j.custId||h.date!==j.date)return false;
     if(j.schedId)return h.schedId===j.schedId;
-    return !h.schedId&&(h.jobType||h.typeId||'mow')===(j.jobType||'mow');
+    // Recurring route work must not be considered complete merely because a
+    // separate one-off job for the same customer/type happened on the same day.
+    return !h.schedId&&!h.isOneOff&&(h.jobType||h.typeId||'mow')===(j.jobType||'mow');
   });
 }
 
@@ -1868,86 +1884,43 @@ function renderUpcoming(){
 }
 
 function renderUnpaid(){
-  const unpaid=DB.jobHistory.filter(j=>!j.paid).slice(0,10);
+  const unpaid=DB.jobHistory.filter(j=>!j.paid&&paymentStatus(j)!=='not_billable').slice(0,10);
   document.getElementById('unpaid-card').style.display=unpaid.length?'':'none';
   if(!unpaid.length)return;
   document.getElementById('unpaid-list').innerHTML=unpaid.map(j=>{
-    const c=DB.customers.find(x=>x.id===j.custId);
-    const price=jobAmount(j,c);
-    const desc=j.serviceDesc||'';
-    const invoiced=paymentStatus(j)==='invoice_sent';
-    const statusText=invoiced?'Invoice Sent — Awaiting Payment':'Unpaid — Invoice Not Marked Sent';
-    const statusBg=invoiced?'#eef4ff':'#fff4f1';
-    const statusColor=invoiced?'var(--blue)':'var(--red)';
-    const stamp=invoiced&&j.invoiceSentAt?' · '+new Date(j.invoiceSentAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+    const c=DB.customers.find(x=>x.id===j.custId),price=jobAmount(j,c),desc=j.serviceDesc||'',invoiced=paymentStatus(j)==='invoice_sent',age=invoiced?invoiceAgeDays(j):0;
+    const statusText=invoiced?'Invoice Sent — Awaiting Payment'+(age?' · '+age+'d':''):'Unpaid — Invoice Not Marked Sent';
+    const statusBg=invoiced?'#eef4ff':'#fff4f1',statusColor=invoiced?'var(--blue)':'var(--red)',stamp=invoiced&&j.invoiceSentAt?' · '+new Date(j.invoiceSentAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
     return `<div id="unpaid-job-${attr(j.id)}" style="padding:.75rem 0;border-bottom:1px solid var(--s3)">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.5rem;gap:8px">
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):esc(j.custId)}</div>
-          <div style="font-size:11px;color:var(--ink3)">${esc(fmtDate(j.date))}${desc?' · '+esc(desc):''}</div>
-          <div style="display:inline-flex;align-items:center;margin-top:5px;padding:3px 7px;border-radius:999px;background:${statusBg};color:${statusColor};font-size:10px;font-weight:700">${statusText}${esc(stamp)}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          <span style="font-weight:700;font-size:15px;color:var(--red)">$${price.toFixed(2)}</span>
-          <button class="btn bxsm" onclick="openEditJobModal('${jsStr(j.id)}')" style="font-size:10px"><i class="ti ti-edit" style="font-size:10px"></i></button>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:${invoiced?'repeat(3,1fr)':'repeat(4,1fr)'};gap:5px">
-        ${!invoiced?`<button class="btn bxsm" style="background:#eef4ff;color:var(--blue);border-color:#b3c8f0;font-size:10px" onclick="markInvoiceSentDash('${jsStr(j.id)}')"><i class="ti ti-file-invoice" style="font-size:10px"></i> Invoice Sent</button>`:''}
-        <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:10px" onclick="markPaidDash('${jsStr(j.id)}','cash')">
-          <i class="ti ti-cash" style="font-size:10px"></i> Cash
-        </button>
-        <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:10px" onclick="markPaidDash('${jsStr(j.id)}','check')">
-          <i class="ti ti-receipt" style="font-size:10px"></i> Check
-        </button>
-        <button class="btn bxsm" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0;font-size:10px" onclick="markPaidDash('${jsStr(j.id)}','paid')">
-          <i class="ti ti-check" style="font-size:10px"></i> Paid
-        </button>
-      </div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.5rem;gap:8px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):esc(j.custId)}</div><div style="font-size:11px;color:var(--ink3)">${esc(fmtDate(j.date))}${desc?' · '+esc(desc):''}</div><div style="display:inline-flex;align-items:center;margin-top:5px;padding:3px 7px;border-radius:999px;background:${statusBg};color:${statusColor};font-size:10px;font-weight:700">${statusText}${esc(stamp)}</div></div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0"><span style="font-weight:700;font-size:15px;color:var(--red)">$${price.toFixed(2)}</span><button class="btn bxsm fin-action" onclick="openEditJobModal('${jsStr(j.id)}')"><i class="ti ti-edit"></i></button></div></div>
+      <div style="display:grid;grid-template-columns:${invoiced?'repeat(3,1fr)':'repeat(4,1fr)'};gap:5px">${!invoiced?`<button class="btn bxsm fin-action" style="background:#eef4ff;color:var(--blue);border-color:#b3c8f0" onclick="markInvoiceSentDash('${jsStr(j.id)}')"><i class="ti ti-file-invoice"></i> Invoice Sent</button>`:''}<button class="btn bxsm fin-action" style="background:var(--gp);color:var(--green);border-color:#b8d5b4" onclick="markPaidDash('${jsStr(j.id)}','cash')"><i class="ti ti-cash"></i> Cash</button><button class="btn bxsm fin-action" style="background:var(--gp);color:var(--green);border-color:#b8d5b4" onclick="markPaidDash('${jsStr(j.id)}','check')"><i class="ti ti-receipt"></i> Check</button><button class="btn bxsm fin-action" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="markPaidDash('${jsStr(j.id)}','paid')"><i class="ti ti-check"></i> Paid</button></div>
     </div>`;
   }).join('');
 }
 
+function paymentSnapshot(j){return j?{paid:!!j.paid,paidMethod:j.paidMethod??null,paymentStatus:j.paymentStatus||'unpaid',chargedAmount:j.chargedAmount??null,invoiceSentAt:j.invoiceSentAt??null,paidAt:j.paidAt??null}:null;}
+let _paymentUndoTimer=null;
+function showPaymentUndo(jobId,snapshot,label){
+  if(!snapshot)return;let el=document.getElementById('payment-undo-toast');if(!el){el=document.createElement('div');el.id='payment-undo-toast';el.style.cssText='position:fixed;left:50%;bottom:82px;transform:translateX(-50%);z-index:9999;max-width:calc(100vw - 24px);background:#1f2a1f;color:white;border-radius:10px;padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.25);display:flex;align-items:center;gap:10px;font-size:13px';document.body.appendChild(el);}clearTimeout(_paymentUndoTimer);el.innerHTML='<span style="flex:1">'+esc(label||'Payment status updated')+'</span><button type="button" style="border:0;border-radius:7px;padding:8px 12px;font-weight:800;cursor:pointer" id="payment-undo-btn">UNDO</button>';el.style.display='flex';document.getElementById('payment-undo-btn').onclick=()=>{const j=DB.jobHistory.find(x=>x.id===jobId);if(!j)return;Object.assign(j,snapshot);saveDB();renderDash();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(jobId);if(document.getElementById('pg-reports')?.classList.contains('active'))renderReports();el.style.display='none';};_paymentUndoTimer=setTimeout(()=>{el.style.display='none';},6000);
+}
+
 function markInvoiceSentDash(jobId){
-  const j=DB.jobHistory.find(x=>x.id===jobId);
-  if(j){
-    const c=DB.customers.find(x=>x.id===j.custId);
-    if(j.chargedAmount==null||j.chargedAmount==='')j.chargedAmount=jobAmount(j,c);
-    j.paid=false;
-    j.paidMethod=null;
-    j.paidAt=null;
-    j.paymentStatus='invoice_sent';
-    j.invoiceSentAt=j.invoiceSentAt||Date.now();
-    saveDB();
-    renderDash();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(jobId);
-    if(document.getElementById('pg-reports')&&document.getElementById('pg-reports').classList.contains('active'))renderReports();
-  }
+  const j=DB.jobHistory.find(x=>x.id===jobId);if(!j)return;const before=paymentSnapshot(j),c=DB.customers.find(x=>x.id===j.custId),amount=(j.chargedAmount==null||j.chargedAmount==='')?jobAmount(j,c):j.chargedAmount;applyPaymentState(j,'invoice_sent',null,amount);saveDB();renderDash();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(jobId);if(document.getElementById('pg-reports')?.classList.contains('active'))renderReports();showPaymentUndo(jobId,before,'Marked Invoice Sent');
 }
 
 function markPaidDash(jobId,method){
-  const j=DB.jobHistory.find(x=>x.id===jobId);
-  if(j){
-    const c=DB.customers.find(x=>x.id===j.custId);
-    if(j.chargedAmount==null||j.chargedAmount==='')j.chargedAmount=jobAmount(j,c);
-    j.paid=true;
-    j.paidMethod=method;
-    j.paymentStatus='paid';
-    j.paidAt=j.paidAt||Date.now();
-    saveDB();
-    renderDash();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(jobId);
-    if(document.getElementById('pg-reports')&&document.getElementById('pg-reports').classList.contains('active'))renderReports();
-  }
+  const j=DB.jobHistory.find(x=>x.id===jobId);if(!j)return;const before=paymentSnapshot(j),c=DB.customers.find(x=>x.id===j.custId),amount=(j.chargedAmount==null||j.chargedAmount==='')?jobAmount(j,c):j.chargedAmount;applyPaymentState(j,'paid',method,amount);saveDB();renderDash();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(jobId);if(document.getElementById('pg-reports')?.classList.contains('active'))renderReports();showPaymentUndo(jobId,before,'Marked '+({cash:'Cash',check:'Check',paid:'Paid'}[method]||'Paid'));
 }
 
-function markPaid(id){
-  const j=DB.jobHistory.find(x=>x.id===id);
-  if(j){j.paid=true;j.paidMethod='cash';saveDB();renderDash();}
+function markNotBillableDash(jobId){
+  const j=DB.jobHistory.find(x=>x.id===jobId);if(!j)return;const before=paymentSnapshot(j);applyPaymentState(j,'not_billable','not_billable',0);saveDB();renderDash();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(jobId);if(document.getElementById('pg-reports')?.classList.contains('active'))renderReports();showPaymentUndo(jobId,before,'Marked No Charge');
 }
+
+function markPaid(id){const j=DB.jobHistory.find(x=>x.id===id);if(j){applyPaymentState(j,'paid','cash',jobAmount(j,DB.customers.find(c=>c.id===j.custId)));saveDB();renderDash();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(id);}}
 
 function getMonthRevenue(){
   const now=new Date(),m=now.getMonth(),y=now.getFullYear();
-  return DB.jobHistory.filter(j=>{const d=parseLocalDate(j.date);return j.paid&&d.getMonth()===m&&d.getFullYear()===y;})
-    .reduce((a,j)=>a+jobAmount(j,DB.customers.find(x=>x.id===j.custId)),0);
+  return DB.jobHistory.filter(j=>{if(!j.paid)return false;const d=j.paidAt?new Date(Number(j.paidAt)):parseLocalDate(j.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce((a,j)=>a+jobAmount(j,DB.customers.find(x=>x.id===j.custId)),0);
 }
 
 // ══ CALENDAR ═════════════════════════════════════════════════════
@@ -2021,7 +1994,7 @@ function selectCalDay(dateStr){
 
 // ══ RAIN DELAY ════════════════════════════════════════════════════
 // Work days Mon(1)..Fri(5); Friday is the buffer. Sat/Sun never auto-filled.
-const RAIN_WORK_DAYS=[1,2,3,4,5];
+const RAIN_WORK_DAYS=[1,2,3,4]; // Mon–Thu auto-shift; Friday is the buffer and never auto-pushes into Saturday.
 const _DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 function _rainYmd(d){const x=new Date(d);x.setHours(0,0,0,0);return dateStr(x);}
@@ -2032,15 +2005,13 @@ function _rainAdd(s,n){const d=_rainParse(s);d.setDate(d.getDate()+n);return _ra
 // through Friday shifts to the next calendar day. Friday's tail is the overflow.
 function rainComputeCascade(rainDateStr){
   const rainDow=_rainParse(rainDateStr).getDay();
+  if(rainDow===5)return {fridayManual:true,redirects:[],chain:[rainDateStr],overflowFrom:rainDateStr};
   if(!RAIN_WORK_DAYS.includes(rainDow))return null;
-  const chain=[];
-  let cur=rainDateStr;
-  while(RAIN_WORK_DAYS.includes(_rainParse(cur).getDay())){
-    chain.push(cur);
-    cur=_rainAdd(cur,1);
-  }
-  const redirects=chain.map(from=>({from,to:_rainAdd(from,1)}));
-  return {redirects,overflowFrom:chain[chain.length-1],chain};
+  const chain=[];let cur=rainDateStr;
+  // Shift only through Thursday. Thursday lands on Friday; Friday's normal work
+  // stays on Friday too, making Friday the actual buffer instead of pushing to Saturday.
+  while(RAIN_WORK_DAYS.includes(_rainParse(cur).getDay())){chain.push(cur);if(_rainParse(cur).getDay()===4)break;cur=_rainAdd(cur,1);}
+  const redirects=chain.map(from=>({from,to:_rainAdd(from,1)}));return {redirects,overflowFrom:chain[chain.length-1],chain,fridayManual:false};
 }
 
 // Is a date already part of an active rain shift?
@@ -2059,89 +2030,26 @@ function rainDayLoadMinutes(dateStr){
 
 // Confirm before applying a rain delay
 function confirmRainDelay(rainDateStr){
-  const d=_rainParse(rainDateStr);
-  const cascade=rainComputeCascade(rainDateStr);
-  if(!cascade){alert('Rain delay applies to work days (Mon–Fri).');return;}
-  const lastDay=cascade.chain[cascade.chain.length-1];
-  const msg=`Mark ${_DOW[d.getDay()]} ${fmtDate(rainDateStr)} as rained out?\n\nThis pushes that day's jobs — and the rest of the week — forward by one day. ${_DOW[_rainParse(lastDay).getDay()]} is your buffer day and catches the tail. Everyone snaps back to their normal day next week.`;
-  if(confirm(msg))applyRainDelay(rainDateStr);
+  const d=_rainParse(rainDateStr),cascade=rainComputeCascade(rainDateStr);if(!cascade){alert('Rain delay auto-shift applies Monday through Thursday. Weekend work must be moved manually.');return;}if(cascade.fridayManual){alert('Friday is your buffer day. A Friday rainout is not automatically pushed into Saturday; move those jobs manually to the next workable date.');return;}
+  const msg=`Mark ${_DOW[d.getDay()]} ${fmtDate(rainDateStr)} as rained out?\n\nAffected jobs move forward one day through Thursday. Thursday's work lands on Friday, while Friday's normal jobs stay Friday. Everyone returns to their normal recurring day next week.`;if(confirm(msg))applyRainDelay(rainDateStr);
 }
 
 // Apply a rain delay for the given date: store the shift, prompt for landscaping
 // jobs, warn on overflow, snap back automatically next week.
 function applyRainDelay(rainDateStr){
-  if(rainDateAlreadyShifted(rainDateStr)){
-    alert(_DOW[_rainParse(rainDateStr).getDay()]+' '+fmtDate(rainDateStr)+' is already marked as rained out.');
-    return;
-  }
-  const cascade=rainComputeCascade(rainDateStr);
-  if(!cascade){
-    alert('Rain delay applies to work days (Mon–Fri). For weekend work, move jobs manually.');
-    return;
-  }
-
-  // Find scheduled landscaping jobs on the shifted days and ask per job
-  const shiftedDates=cascade.redirects.map(r=>r.from);
-  const affectedSched=(DB.scheduledJobs||[]).filter(s=>shiftedDates.includes(s.date)&&!s.done);
-
-  // Build the shift record
-  const shift={
-    id:uid(),
-    rainDate:rainDateStr,
-    redirects:cascade.redirects,
-    createdAt:new Date().toISOString()
-  };
-  if(!DB.rainShifts)DB.rainShifts=[];
-  DB.rainShifts.push(shift);
-
-  // Move landscaping jobs that are set to move with rain; collect the ones to ask about
-  const askAbout=[];
-  affectedSched.forEach(s=>{
-    if(s.movesWithRain){
-      const newDate=_rainAdd(s.date,1);
-      s._rainPrevDate=s.date; // remember for undo
-      s.date=newDate;
-      askAbout.push({job:s,moved:true});
-    } else {
-      askAbout.push({job:s,moved:false});
-    }
-  });
-
-  saveDB();
-  renderCalendar();
-
-  // Show the result + overflow warning + landscaping summary
-  showRainResult(shift,cascade,askAbout);
+  if(rainDateAlreadyShifted(rainDateStr)){alert(_DOW[_rainParse(rainDateStr).getDay()]+' '+fmtDate(rainDateStr)+' is already marked as rained out.');return;}const cascade=rainComputeCascade(rainDateStr);if(!cascade){alert('Rain auto-shift applies Monday through Thursday.');return;}if(cascade.fridayManual){alert('Friday is the buffer day and will not auto-shift into Saturday. Move Friday jobs manually.');return;}
+  const shiftedDates=cascade.redirects.map(r=>r.from),affectedSched=(DB.scheduledJobs||[]).filter(s=>shiftedDates.includes(s.date)&&!s.done),shift={id:uid(),rainDate:rainDateStr,redirects:cascade.redirects,createdAt:new Date().toISOString()};if(!DB.rainShifts)DB.rainShifts=[];DB.rainShifts.push(shift);const askAbout=[];
+  affectedSched.forEach(s=>{if(s.movesWithRain){s.rainPrevDate=s.date;s.rainShiftId=shift.id;s.date=_rainAdd(s.date,1);askAbout.push({job:s,moved:true});}else askAbout.push({job:s,moved:false});});saveDB();renderCalendar();showRainResult(shift,cascade,askAbout);
 }
 
 // Undo a rain shift (snap everything back)
-function undoRainDelay(shiftId){
-  const idx=(DB.rainShifts||[]).findIndex(s=>s.id===shiftId);
-  if(idx<0)return;
-  const shift=DB.rainShifts[idx];
-  // Move any landscaping jobs back that we moved
-  const shiftedTargets=shift.redirects.map(r=>r.to);
-  (DB.scheduledJobs||[]).forEach(s=>{
-    if(s._rainPrevDate&&shift.redirects.some(r=>r.from===s._rainPrevDate)){
-      s.date=s._rainPrevDate;
-      delete s._rainPrevDate;
-    }
-  });
-  DB.rainShifts.splice(idx,1);
-  saveDB();
-  renderCalendar();
-  if(calSelectedDate)renderCalDayPanel(calSelectedDate);
+async function undoRainDelay(shiftId){
+  const idx=(DB.rainShifts||[]).findIndex(s=>s.id===shiftId);if(idx<0)return;const shift=DB.rainShifts[idx];(DB.scheduledJobs||[]).forEach(s=>{if(s.rainShiftId===shiftId&&s.rainPrevDate){s.date=s.rainPrevDate;s.rainPrevDate=null;s.rainShiftId=null;}});DB.rainShifts.splice(idx,1);queueDelete('rain_shifts',shiftId);saveDB();renderCalendar();if(calSelectedDate)renderCalDayPanel(calSelectedDate);await deleteCloudRecord('rain_shifts',shiftId);
 }
 
 // Auto-clean rain shifts whose whole week is in the past (housekeeping).
 function cleanupOldRainShifts(){
-  const cutoff=_rainYmd(new Date());
-  const before=(DB.rainShifts||[]).length;
-  DB.rainShifts=(DB.rainShifts||[]).filter(sh=>{
-    // keep if any target date is today or later
-    return sh.redirects.some(r=>r.to>=cutoff);
-  });
-  if((DB.rainShifts||[]).length!==before)saveDB();
+  const cutoff=_rainYmd(new Date()),old=DB.rainShifts||[],removed=old.filter(sh=>!sh.redirects.some(r=>r.to>=cutoff));DB.rainShifts=old.filter(sh=>sh.redirects.some(r=>r.to>=cutoff));removed.forEach(sh=>queueDelete('rain_shifts',sh.id));if(removed.length){saveDB();retryPendingDeletes();}
 }
 
 // Show the rain result modal: overflow warning + landscaping job summary
@@ -2181,7 +2089,7 @@ function showRainResult(shift,cascade,askAbout){
     <div style="background:${anyOverflow?'#fff3cd':'var(--gp)'};border:1px solid ${anyOverflow?'#ffc107':'var(--gl)'};border-radius:var(--r);padding:.75rem .875rem;font-size:13px;color:${anyOverflow?'#856404':'var(--green)'};line-height:1.5;margin-bottom:.875rem">
       ${anyOverflow
         ? '⚠ One or more days now run over your '+hours+'-hour day. Drag overflow onto your buffer day or the weekend from the day view.'
-        : '✓ Your week shifted forward by one day. Everyone snaps back to their normal day next week automatically.'}
+        : '✓ Affected work shifted forward through Friday. Friday remains the buffer; nothing was auto-scheduled into Saturday.'}
     </div>
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">Shifted week load</div>
     ${overflowRows}
@@ -2526,19 +2434,20 @@ function renderPlan(){
   document.getElementById('plan-metrics-wrap').style.display=planJobs.length?'':'none';
   if(planJobs.length){
     const cls=pct>100?'color:var(--red)':pct>85?'color:var(--amb)':'color:var(--green)';
-    // Compute total distance from DT matrix (minutes -> rough miles at 25mph avg)
+    // Use actual Google Distance Matrix miles when available. Never fabricate
+    // mileage from drive time; if distance data is unavailable, show a dash.
     let totalDriveMi=0;
-    if(Object.keys(planDT).length){
-      // Sum drive segments: prev->ci for each scheduled job
+    if(mapsLoaded&&Object.keys(planMiles).length){
       let p2=0;
-      planJobs.forEach((_,i2)=>{const ci2=i2+off;const dm2=planDT[p2+'-'+ci2];if(dm2)totalDriveMi+=dm2/60*25;p2=ci2;});
+      planJobs.forEach((_,i2)=>{const ci2=i2+off;const seg=Number(planMiles[p2+'-'+ci2]);if(Number.isFinite(seg)&&seg>0)totalDriveMi+=seg;p2=ci2;});
+      if(home&&planJobs.length){const back=Number(planMiles[p2+'-0']);if(Number.isFinite(back)&&back>0)totalDriveMi+=back;}
     }
     const miStr=totalDriveMi>0?totalDriveMi.toFixed(1)+' mi':'—';
     document.getElementById('plan-metrics').innerHTML=
       `<div class="dash-card" style="padding:.75rem"><div class="dash-val" style="font-size:26px;color:var(--green)">${Math.round(tm)}m</div><div class="dash-lbl">Service</div></div>`+
       `<div class="dash-card" style="padding:.75rem"><div class="dash-val" style="font-size:26px">${Math.round(td)}m</div><div class="dash-lbl">Drive</div></div>`+
       `<div class="dash-card" style="padding:.75rem"><div class="dash-val" style="font-size:26px;${cls}">${Math.round(tt)}m</div><div class="dash-lbl">Total</div></div>`+
-      `<div class="dash-card" style="padding:.75rem"><div class="dash-val" style="font-size:26px;color:var(--blue)">${miStr}</div><div class="dash-lbl">Miles</div></div>`;
+      `<div class="dash-card" style="padding:.75rem"><div class="dash-val" style="font-size:26px;color:var(--blue)">${miStr}</div><div class="dash-lbl">Miles incl. return</div></div>`;
   }
   const tagCls={sm:'tag-green',md:'tag-blue',lg:'tag-amb'},tagLbl={sm:'Sm',md:'Med',lg:'Lg'};
   let h='';
@@ -2606,9 +2515,10 @@ function sendToTracker(){
   const home=document.getElementById('plan-home').value.trim(),st=document.getElementById('plan-start').value||'07:00',parts=st.split(':');let cur=(parseInt(parts[0])||0)*60+(parseInt(parts[1])||0),prev=0,totalMiles=0;const off=home?1:0,sch=[];
   active.forEach((j,i)=>{const ci=i+off,dm=planDT[prev+'-'+ci]??null,mm=Math.max(1,Math.round(Number(j.time)||45)),segMiles=planMiles[prev+'-'+ci]??0;totalMiles+=Number(segMiles)||0;
     sch.push({id:j.custId||j.id,custId:j.custId||j.id,jobId:uid(),schedId:j.schedId||null,jobType:j.jobType||'mow',name:j.name,addr:j.addr,size:j.size,notes:j.notes,estMin:mm,price:Number(j.price)||0,arr:cur+(dm||0),done:cur+(dm||0)+mm,plannedDrive:dm,miles:Number(segMiles)||0,serviceType:j.serviceType||'mow'});cur+=(dm||0)+mm;prev=ci;});
-  const payload={date:routeDate,jobs:sch,totalMiles:Number(totalMiles.toFixed(2)),mileageSource:mapsLoaded?'google-distance':'not-calculated'};
+  if(home&&active.length&&mapsLoaded){const back=Number(planMiles[prev+'-0']);if(Number.isFinite(back)&&back>0)totalMiles+=back;}
+  const payload={date:routeDate,jobs:sch,totalMiles:Number(totalMiles.toFixed(2)),mileageSource:mapsLoaded?'google-distance-including-return':'not-calculated'};
   try{localStorage.setItem('ros_track_route',JSON.stringify(payload));}catch(e){alert('Could not save the route on this device. Free some browser storage and try again.');return;}
-  if(mapsLoaded&&payload.totalMiles>0){try{const log=safeParseJSON(localStorage.getItem('ros_mileage_log'),[]),idx=log.findIndex(e=>e.date===routeDate),entry={date:routeDate,miles:payload.totalMiles,stops:payload.jobs.length};if(idx>=0)log[idx]=entry;else log.push(entry);log.sort((a,b)=>a.date.localeCompare(b.date));if(log.length>365)log.splice(0,log.length-365);localStorage.setItem('ros_mileage_log',JSON.stringify(log));}catch(e){}}
+  if(mapsLoaded&&payload.totalMiles>0){try{const log=[...getMileageLog()],idx=log.findIndex(e=>e.date===routeDate),entry={date:routeDate,miles:payload.totalMiles,stops:payload.jobs.length,source:'google-distance',updatedAt:Date.now()};if(idx>=0)log[idx]=entry;else log.push(entry);log.sort((a,b)=>a.date.localeCompare(b.date));if(log.length>365)log.splice(0,log.length-365);setMileageLog(log);saveDB();}catch(e){console.log('Mileage save error',e);}}
   trackerRoute=payload;trackerStates={};saveTrackerStates();goTab('track');loadTrackerRoute(payload);
 }
 
@@ -2618,33 +2528,26 @@ function printRoute(){window.print();}
 let trackerRoute=null, trackerStates={}, pvJob=null, pvType=null, pvIdx=0;
 
 // FIX: Persist tracker states (including photos) to localStorage so data survives reloads
-let _trackerSaveTimer=null;
+let _trackerSaveTimer=null,_trackerCheckpointTimer=null;
+function trackerCheckpointPayload(){
+  if(!trackerRoute)return {updatedAt:Date.now(),route:null,states:{}};const states={};Object.keys(trackerStates).forEach(i=>{const st=trackerStates[i]||{},x={status:st.status||'pending',elapsed:st.elapsed+(st.startMs?Math.floor((Date.now()-st.startMs)/1000):0),wasActive:st.status==='active',notes:st.notes||'',actualMin:st.actualMin||0,expanded:!!st.expanded,arrivedAt:st.arrivedAt||null,departedAt:st.departedAt||null,preSentAt:st.preSentAt||null,postSentAt:st.postSentAt||null};['before','after','extra'].forEach(type=>{const urls=st[type+'PhotoUrls']||[],paths=st[type+'PhotoPaths']||[],safeUrls=[],safePaths=[];for(let n=0;n<Math.max(urls.length,paths.length);n++){if(paths[n]){safePaths.push(paths[n]);safeUrls.push(urls[n]||null);}}x[type+'PhotoUrls']=safeUrls;x[type+'PhotoPaths']=safePaths;x[type+'Photos']=safeUrls.filter(Boolean);});states[i]=x;});return {updatedAt:Date.now(),route:trackerRoute,states};
+}
+function queueTrackerCloudCheckpoint(){clearTimeout(_trackerCheckpointTimer);_trackerCheckpointTimer=setTimeout(async()=>{if(!supabaseClient||!_r8SchemaReady)return;try{const payload=trackerCheckpointPayload();await supabaseClient.from('app_settings').upsert({key:'ros_active_tracker',value:JSON.stringify(payload)});localStorage.setItem('ros_tracker_checkpoint_updated',String(payload.updatedAt));}catch(e){console.log('Tracker checkpoint error',e);}},1200);}
+async function loadActiveTrackerCheckpoint(){
+  if(!supabaseClient||trackerRoute)return false;try{const {data,error}=await supabaseClient.from('app_settings').select('value').eq('key','ros_active_tracker').maybeSingle();if(error||!data)return false;const p=typeof data.value==='string'?safeParseJSON(data.value,null):data.value;if(!p||!p.route||!Array.isArray(p.route.jobs)||!p.route.jobs.length)return false;const localUpdated=Number(localStorage.getItem('ros_tracker_checkpoint_updated'))||0;if(localUpdated&&localUpdated>=Number(p.updatedAt||0))return false;trackerRoute=p.route;trackerStates=p.states||{};for(const i of Object.keys(trackerStates)){const st=trackerStates[i];st.interval=null;st.startMs=st.wasActive?Date.now():null;['before','after','extra'].forEach(type=>{st[type+'PhotoUrls']=st[type+'PhotoUrls']||[];st[type+'PhotoPaths']=st[type+'PhotoPaths']||[];st[type+'Photos']=st[type+'Photos']||st[type+'PhotoUrls'].filter(Boolean);});}await hydrateTrackerSignedPhotoUrls();try{localStorage.setItem('ros_track_route',JSON.stringify(trackerRoute));localStorage.setItem('ros_tracker_states',JSON.stringify(trackerStates));localStorage.setItem('ros_tracker_checkpoint_updated',String(p.updatedAt||Date.now()));}catch(e){}loadTrackerRoute(trackerRoute);return true;}catch(e){console.log('Tracker checkpoint load error',e);return false;}
+}
+async function hydrateTrackerSignedPhotoUrls(){if(!supabaseClient?.storage)return;for(const i of Object.keys(trackerStates)){const st=trackerStates[i];for(const type of ['before','after','extra']){const paths=st[type+'PhotoPaths']||[];if(!paths.length)continue;try{const {data,error}=await supabaseClient.storage.from('job-photos').createSignedUrls(paths,60*60*24*7);if(!error&&Array.isArray(data)){st[type+'PhotoUrls']=data.map(x=>x?.signedUrl||null);st[type+'Photos']=st[type+'PhotoUrls'].filter(Boolean);}}catch(e){}}}}
+
 function saveTrackerStates(){
-  try{
-    const toSave={};
-    Object.keys(trackerStates).forEach(i=>{
-      const st=trackerStates[i];
-      toSave[i]={status:st.status,elapsed:st.elapsed+(st.startMs?Math.floor((Date.now()-st.startMs)/1000):0),wasActive:st.status==='active',
-        beforePhotos:st.beforePhotos||[],afterPhotos:st.afterPhotos||[],extraPhotos:st.extraPhotos||[],beforePhotoUrls:st.beforePhotoUrls||[],afterPhotoUrls:st.afterPhotoUrls||[],extraPhotoUrls:st.extraPhotoUrls||[],
-        notes:st.notes||'',actualMin:st.actualMin||0,expanded:!!st.expanded,arrivedAt:st.arrivedAt||null,departedAt:st.departedAt||null,preSentAt:st.preSentAt||null,postSentAt:st.postSentAt||null};
-    });
-    localStorage.setItem('ros_tracker_states',JSON.stringify(toSave));
-  }catch(e){
-    console.log('saveTrackerStates error',e);
-    if(e&&(e.name==='QuotaExceededError'||/quota/i.test(e.message||''))){setSaveStatus('error');const el=document.getElementById('save-status');if(el)el.innerHTML='<i class="ti ti-cloud-off"></i> Storage full — photos need to sync before adding more';}
-  }
+  try{const toSave={};Object.keys(trackerStates).forEach(i=>{const st=trackerStates[i];toSave[i]={status:st.status,elapsed:st.elapsed+(st.startMs?Math.floor((Date.now()-st.startMs)/1000):0),wasActive:st.status==='active',beforePhotos:st.beforePhotos||[],afterPhotos:st.afterPhotos||[],extraPhotos:st.extraPhotos||[],beforePhotoUrls:st.beforePhotoUrls||[],afterPhotoUrls:st.afterPhotoUrls||[],extraPhotoUrls:st.extraPhotoUrls||[],beforePhotoPaths:st.beforePhotoPaths||[],afterPhotoPaths:st.afterPhotoPaths||[],extraPhotoPaths:st.extraPhotoPaths||[],notes:st.notes||'',actualMin:st.actualMin||0,expanded:!!st.expanded,arrivedAt:st.arrivedAt||null,departedAt:st.departedAt||null,preSentAt:st.preSentAt||null,postSentAt:st.postSentAt||null};});localStorage.setItem('ros_tracker_states',JSON.stringify(toSave));localStorage.setItem('ros_tracker_checkpoint_updated',String(Date.now()));queueTrackerCloudCheckpoint();}catch(e){console.log('saveTrackerStates error',e);if(e&&(e.name==='QuotaExceededError'||/quota/i.test(e.message||''))){setSaveStatus('error');const el=document.getElementById('save-status');if(el)el.innerHTML='<i class="ti ti-cloud-off"></i> Storage full — photos need to sync before adding more';}}
 }
 function queueTrackerStateSave(){clearTimeout(_trackerSaveTimer);_trackerSaveTimer=setTimeout(saveTrackerStates,350);}
 function loadTrackerStates(){
-  try{
-    const saved=safeParseJSON(localStorage.getItem('ros_tracker_states'),null);if(!saved)return;
-    trackerStates={};Object.keys(saved).forEach(i=>{const st=saved[i]||{};trackerStates[i]={status:st.status||'pending',elapsed:Number(st.elapsed)||0,startMs:st.wasActive?Date.now():null,interval:null,beforePhotos:st.beforePhotos||[],afterPhotos:st.afterPhotos||[],extraPhotos:st.extraPhotos||[],beforePhotoUrls:st.beforePhotoUrls||[],afterPhotoUrls:st.afterPhotoUrls||[],extraPhotoUrls:st.extraPhotoUrls||[],notes:st.notes||'',actualMin:Number(st.actualMin)||0,expanded:!!st.expanded,arrivedAt:st.arrivedAt||null,departedAt:st.departedAt||null,preSentAt:st.preSentAt||null,postSentAt:st.postSentAt||null};});
-  }catch(e){console.log('loadTrackerStates error',e);trackerStates={};}
+  try{const saved=safeParseJSON(localStorage.getItem('ros_tracker_states'),null);if(!saved)return;trackerStates={};Object.keys(saved).forEach(i=>{const st=saved[i]||{};trackerStates[i]={status:st.status||'pending',elapsed:Number(st.elapsed)||0,startMs:st.wasActive?Date.now():null,interval:null,beforePhotos:st.beforePhotos||[],afterPhotos:st.afterPhotos||[],extraPhotos:st.extraPhotos||[],beforePhotoUrls:st.beforePhotoUrls||[],afterPhotoUrls:st.afterPhotoUrls||[],extraPhotoUrls:st.extraPhotoUrls||[],beforePhotoPaths:st.beforePhotoPaths||[],afterPhotoPaths:st.afterPhotoPaths||[],extraPhotoPaths:st.extraPhotoPaths||[],notes:st.notes||'',actualMin:Number(st.actualMin)||0,expanded:!!st.expanded,arrivedAt:st.arrivedAt||null,departedAt:st.departedAt||null,preSentAt:st.preSentAt||null,postSentAt:st.postSentAt||null};['before','after','extra'].forEach(type=>{const U=type+'PhotoUrls',P=type+'PhotoPaths';for(let n=0;n<trackerStates[i][U].length;n++){if(!trackerStates[i][P][n])trackerStates[i][P][n]=storagePathFromUrl(trackerStates[i][U][n])||null;}});});}catch(e){console.log('loadTrackerStates error',e);trackerStates={};}
 }
 
 function getTS(i){
-  if(!trackerStates[i])trackerStates[i]={status:'pending',startMs:null,elapsed:0,interval:null,beforePhotos:[],afterPhotos:[],extraPhotos:[],beforePhotoUrls:[],afterPhotoUrls:[],extraPhotoUrls:[],notes:'',actualMin:0,expanded:false,arrivedAt:null,departedAt:null,preSentAt:null,postSentAt:null};
-  return trackerStates[i];
+  if(!trackerStates[i])trackerStates[i]={status:'pending',startMs:null,elapsed:0,interval:null,beforePhotos:[],afterPhotos:[],extraPhotos:[],beforePhotoUrls:[],afterPhotoUrls:[],extraPhotoUrls:[],beforePhotoPaths:[],afterPhotoPaths:[],extraPhotoPaths:[],notes:'',actualMin:0,expanded:false,arrivedAt:null,departedAt:null,preSentAt:null,postSentAt:null};return trackerStates[i];
 }
 function getElap(i){const st=getTS(i);return Math.max(0,st.elapsed+(st.startMs?Math.floor((Date.now()-st.startMs)/1000):0));}
 function tType(i){return jobType(trackerRoute&&trackerRoute.jobs[i]?trackerRoute.jobs[i].jobType||'mow':'mow');}
@@ -2654,8 +2557,10 @@ function actualDrive(i){if(i<1)return null;const prev=getTS(i-1),cur=getTS(i);if
 function trackerDate(){return trackerRoute&&trackerRoute.date?dateStr(parseLocalDate(trackerRoute.date)):todayStr();}
 function getJobRecordForTracker(j){
   if(!j)return null;
-  if(j.jobId){const exact=DB.jobHistory.find(h=>h.id===j.jobId);if(exact)return exact;}
-  return DB.jobHistory.find(h=>h.custId===(j.custId||j.id)&&h.date===trackerDate()&&(j.schedId?h.schedId===j.schedId:!h.schedId&&(h.jobType||h.typeId||'mow')===(j.jobType||'mow')))||null;
+  // A route job UUID is authoritative. Never fall back to customer/date if that
+  // UUID exists, or two same-customer/same-service visits could overwrite each other.
+  if(j.jobId)return DB.jobHistory.find(h=>h.id===j.jobId)||null;
+  return DB.jobHistory.find(h=>h.custId===(j.custId||j.id)&&h.date===trackerDate()&&(j.schedId?h.schedId===j.schedId:!h.schedId&&!h.isOneOff&&(h.jobType||h.typeId||'mow')===(j.jobType||'mow')))||null;
 }
 function getJobRecord(custId,i){
   if(trackerRoute&&trackerRoute.jobs&&trackerRoute.jobs[Number(i)]!==undefined)return getJobRecordForTracker(trackerRoute.jobs[Number(i)]);
@@ -2698,7 +2603,7 @@ function buildJobCard(j,i){
     ${st.status==='done'?`<div class="sum-grid"><div class="sum-box"><div class="sum-v">${fmtMins(st.actualMin)}</div><div class="sum-l">Actual</div></div><div class="sum-box"><div class="sum-v">${fmtMins(j.estMin)}</div><div class="sum-l">Estimated</div></div></div><button class="btn ${st.postSentAt?'':'btnb'}" style="width:100%;margin-bottom:.625rem" onclick="sendPost(${i})"><i class="ti ti-message-check"></i> ${st.postSentAt?'Sent '+fmtStamp(st.postSentAt)+' — send again':'Text customer job is done'}</button>${buildPaymentUI(j,i,st)}`:''}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.875rem"><button class="btn" onclick="document.getElementById('ecam-${i}').click()"><i class="ti ti-camera-plus"></i> Extra photo</button><button class="btn" onclick="navTo('${jsStr(j.addr||'')}')"><i class="ti ti-navigation"></i> Navigate</button><button class="btn" style="grid-column:span 2" onclick="sendOnMyWayFromTracker('${jsStr(j.custId||j.id)}')"><i class="ti ti-send"></i> Generic on-my-way text</button><input type="file" id="ecam-${i}" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(${i},'extra',this)"></div>
     ${st.extraPhotos.length?`<div class="photo-section"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink3);margin-bottom:.5rem">Extra photos (${st.extraPhotos.length})</div><div class="photo-grid">${grid('extra')}</div></div>`:''}
-    <div><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink3);margin-bottom:.4rem">Field notes</div><textarea class="notes-area" id="jnotes-${i}" maxlength="4000" placeholder="Gate confirmed, issues found..." oninput="getTS(${i}).notes=this.value;queueTrackerStateSave()">${esc(st.notes)}</textarea></div>
+    <div><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink3);margin-bottom:.4rem">Field notes</div><textarea class="notes-area" id="jnotes-${i}" maxlength="4000" placeholder="Gate confirmed, issues found..." oninput="updateTrackerNotes(${i},this.value)">${esc(st.notes)}</textarea></div>
   </div></div>`;
 }
 function sendPre(i){const j=trackerRoute.jobs[i],t=tType(i),c=DB.customers.find(x=>x.id===(j.custId||j.id));if(!c){alert('Customer record not found.');return;}if(sendSMS(c.phone,fillTpl(t.preTpl,c,j.jobType))){getTS(i).preSentAt=Date.now();saveTrackerStates();setTimeout(()=>rerenderJCard(i),300);}}
@@ -2791,83 +2696,20 @@ function toggleService(i,serviceId,price,basePrice){
 }
 
 function buildPaymentUI(j,i,s){
-  const rec=getJobRecordForTracker(j);
-  const custId=j.custId||j.id;
-  const c=DB.customers.find(x=>x.id===custId);
-  const price=(j.price!==undefined&&j.price!==null)?Math.max(0,Number(j.price)||0):Math.max(0,Number(c&&c.price)||0);
-  const services=getServices().filter(svc=>svc.active);
-
-  // Invoice has been sent but payment is still outstanding.
-  if(rec&&!rec.paid&&paymentStatus(rec)==='invoice_sent'){
-    const sentLabel=rec.invoiceSentAt?new Date(rec.invoiceSentAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'Recorded';
-    return `<div class="pay-done-badge" style="border-color:#b3c8f0;background:#eef4ff">
-      <i class="ti ti-file-invoice" style="font-size:24px;color:var(--blue);flex-shrink:0"></i>
-      <div><div style="font-weight:700;font-size:14px;color:var(--blue)">Invoice sent — awaiting payment</div>
-      <div style="font-size:12px;color:var(--ink3)">${sentLabel} · $${jobAmount(rec,c).toFixed(2)}${rec.serviceDesc?' · '+esc(rec.serviceDesc):''}</div>
-      <div style="font-size:11px;color:var(--ink3);margin-top:2px">Keep this outstanding until the customer pays.</div></div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:.875rem">
-      <button class="btn bxsm btng" onclick="confirmPayment('${jsStr(custId)}','${i}','cash')"><i class="ti ti-cash"></i> Cash</button>
-      <button class="btn bxsm btng" onclick="confirmPayment('${jsStr(custId)}','${i}','check')"><i class="ti ti-receipt"></i> Check</button>
-      <button class="btn bxsm" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="confirmPayment('${jsStr(custId)}','${i}','paid')"><i class="ti ti-check"></i> Paid</button>
-    </div>
-    <button class="btn bsm" onclick="textCustomer('${jsStr(custId)}')" style="margin-bottom:.875rem;width:100%"><i class="ti ti-message"></i> Text job summary</button>`;
+  const rec=getJobRecordForTracker(j),custId=j.custId||j.id,c=DB.customers.find(x=>x.id===custId),price=(j.price!==undefined&&j.price!==null)?Math.max(0,Number(j.price)||0):Math.max(0,Number(c&&c.price)||0),services=getServices().filter(svc=>svc.active);
+  if(rec&&paymentStatus(rec)==='not_billable'){
+    return `<div class="pay-done-badge" style="border-color:var(--bd);background:var(--s2)"><i class="ti ti-circle-minus" style="font-size:24px;color:var(--ink3);flex-shrink:0"></i><div><div style="font-weight:700;font-size:14px">No charge / not billable</div><div style="font-size:12px;color:var(--ink3)">${rec.serviceDesc?esc(rec.serviceDesc):esc(jobTypeLabel(rec.jobType||'mow'))}</div><div style="font-size:11px;color:var(--ink3);margin-top:2px">Kept in Job History but excluded from money owed.</div></div></div><button class="btn bsm fin-action" onclick="unmarkPaid('${jsStr(custId)}','${i}')" style="margin-bottom:.875rem;width:100%">Change payment status</button>`;
   }
-
-  // Already recorded as paid
+  if(rec&&!rec.paid&&paymentStatus(rec)==='invoice_sent'){
+    const sentLabel=rec.invoiceSentAt?new Date(rec.invoiceSentAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'Recorded',age=invoiceAgeDays(rec);
+    return `<div class="pay-done-badge" style="border-color:#b3c8f0;background:#eef4ff"><i class="ti ti-file-invoice" style="font-size:24px;color:var(--blue);flex-shrink:0"></i><div><div style="font-weight:700;font-size:14px;color:var(--blue)">Invoice sent — awaiting payment${age?' · '+age+'d':''}</div><div style="font-size:12px;color:var(--ink3)">${sentLabel} · $${jobAmount(rec,c).toFixed(2)}${rec.serviceDesc?' · '+esc(rec.serviceDesc):''}</div></div></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:.875rem"><button class="btn bxsm btng fin-action" onclick="confirmPayment('${jsStr(custId)}','${i}','cash')"><i class="ti ti-cash"></i> Cash</button><button class="btn bxsm btng fin-action" onclick="confirmPayment('${jsStr(custId)}','${i}','check')"><i class="ti ti-receipt"></i> Check</button><button class="btn bxsm fin-action" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="confirmPayment('${jsStr(custId)}','${i}','paid')"><i class="ti ti-check"></i> Paid</button></div><button class="btn bsm fin-action" onclick="textCustomer('${jsStr(custId)}')" style="margin-bottom:.875rem;width:100%"><i class="ti ti-message"></i> Text job summary</button>`;
+  }
   if(rec&&rec.paid){
     const methodLabel={cash:'Cash',check:'Check',card:'Card',paid:'Paid (other)'}[rec.paidMethod]||'Paid';
-    return `<div class="pay-done-badge">
-      <i class="ti ti-circle-check-filled" style="font-size:24px;color:var(--green);flex-shrink:0"></i>
-      <div><div style="font-weight:700;font-size:14px;color:var(--green)">Payment recorded</div>
-      <div style="font-size:12px;color:var(--ink3)">${methodLabel} · $${jobAmount(rec,c).toFixed(2)}${rec.serviceDesc?' · '+esc(rec.serviceDesc):''}</div>
-      <div style="font-size:11px;color:var(--ink3);margin-top:2px">Recorded here — collect in Stripe app. <button class="btn bxsm" style="font-size:10px;height:22px;padding:0 7px;margin-left:4px" onclick="unmarkPaid('${jsStr(custId)}','${i}')">Undo</button></div></div>
-    </div>
-    <button class="btn bsm" onclick="textCustomer('${jsStr(custId)}')" style="margin-bottom:.875rem;width:100%"><i class="ti ti-message"></i> Text job summary</button>`;
+    return `<div class="pay-done-badge"><i class="ti ti-circle-check-filled" style="font-size:24px;color:var(--green);flex-shrink:0"></i><div><div style="font-weight:700;font-size:14px;color:var(--green)">Payment recorded</div><div style="font-size:12px;color:var(--ink3)">${methodLabel} · $${jobAmount(rec,c).toFixed(2)}${rec.serviceDesc?' · '+esc(rec.serviceDesc):''}</div><div style="font-size:11px;color:var(--ink3);margin-top:2px">Paid ${rec.paidAt?new Date(rec.paidAt).toLocaleDateString():''} <button class="btn bxsm" style="font-size:10px;height:26px;padding:0 7px;margin-left:4px" onclick="unmarkPaid('${jsStr(custId)}','${i}')">Undo</button></div></div></div><button class="btn bsm fin-action" onclick="textCustomer('${jsStr(custId)}')" style="margin-bottom:.875rem;width:100%"><i class="ti ti-message"></i> Text job summary</button>`;
   }
-
-  // Build service buttons (kept — records what was done as structured data)
-  const svcButtons=services.map(svc=>`
-    <button id="svc-btn-${i}-${attr(svc.id)}"
-      onclick="toggleService(${i},'${jsStr(svc.id)}',${parseFloat(svc.price)||0},${price})"
-      style="height:auto;padding:.5rem .75rem;border-radius:var(--r);border:1px solid var(--bd);background:var(--s2);color:var(--ink);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px;transition:all .15s">
-      <span>${esc(svc.name)}</span>
-      <span style="font-size:11px;opacity:.7">+$${parseFloat(svc.price).toFixed(0)}</span>
-    </button>`).join('');
-
-  return `<div style="margin-bottom:.875rem">
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">What was done?</div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:.75rem">
-      ${svcButtons}
-    </div>
-
-    <div style="background:var(--s2);border-radius:var(--r);padding:.625rem .875rem;margin-bottom:.75rem;border:1px solid var(--bd)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <span id="pay-desc-${i}" style="font-size:12px;color:var(--ink3);flex:1">Tap services above to build total</span>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          <span style="font-size:11px;color:var(--ink3)">Total:</span>
-          <div style="position:relative;display:inline-flex;align-items:center">
-            <span style="position:absolute;left:8px;font-size:14px;font-weight:700;color:var(--green)">$</span>
-            <input type="number" id="pay-amount-${i}" value="${price.toFixed(2)}" min="0" step="0.01"
-              style="width:80px;height:32px;border-radius:var(--r);border:2px solid var(--green);background:var(--s);color:var(--ink);padding:0 6px 0 18px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;text-align:right"
-              oninput="updatePayAmount(${i},${price},getJobServices(${i}))">
-          </div>
-          <button class="btn bxsm" onclick="resetPayJobServices(${i},${price})" style="font-size:10px;color:var(--ink3)">Reset</button>
-        </div>
-      </div>
-    </div>
-
-    <div style="font-size:11px;color:var(--ink3);margin-bottom:.5rem;line-height:1.5"><i class="ti ti-info-circle" style="font-size:11px"></i> Record how you got paid. Money is collected in your Stripe app — this just tracks who's settled up.</div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button class="btn btng" style="height:46px" onclick="confirmPayment('${jsStr(custId)}','${i}','cash')"><i class="ti ti-cash"></i> Cash</button>
-      <button class="btn btng" style="height:46px" onclick="confirmPayment('${jsStr(custId)}','${i}','check')"><i class="ti ti-receipt"></i> Check</button>
-      <button class="btn" style="height:46px;background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="confirmPayment('${jsStr(custId)}','${i}','paid')"><i class="ti ti-circle-check"></i> Paid (other)</button>
-      <button class="btn" style="height:46px;background:#eef4ff;color:var(--blue);border-color:#b3c8f0" onclick="markInvoiceSent('${jsStr(custId)}','${i}')"><i class="ti ti-file-invoice"></i> Invoice Sent</button>
-      <button class="btn" style="height:46px;grid-column:span 2" onclick="leaveUnpaid('${jsStr(custId)}','${i}')"><i class="ti ti-clock-pause"></i> Leave unpaid / invoice not sent</button>
-    </div>
-  </div>`;
+  const svcButtons=services.map(svc=>`<button id="svc-btn-${i}-${attr(svc.id)}" onclick="toggleService(${i},'${jsStr(svc.id)}',${parseFloat(svc.price)||0},${price})" style="height:auto;min-height:44px;padding:.5rem .75rem;border-radius:var(--r);border:1px solid var(--bd);background:var(--s2);color:var(--ink);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${esc(svc.name)}</span><span style="font-size:11px;opacity:.7">+$${parseFloat(svc.price).toFixed(0)}</span></button>`).join('');
+  return `<div style="margin-bottom:.875rem"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">What was done?</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:.75rem">${svcButtons}</div><div style="background:var(--s2);border-radius:var(--r);padding:.625rem .875rem;margin-bottom:.75rem;border:1px solid var(--bd)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span id="pay-desc-${i}" style="font-size:12px;color:var(--ink3);flex:1">Tap services above to build total</span><div style="display:flex;align-items:center;gap:6px;flex-shrink:0"><span style="font-size:11px;color:var(--ink3)">Total:</span><div style="position:relative;display:inline-flex;align-items:center"><span style="position:absolute;left:8px;font-size:14px;font-weight:700;color:var(--green)">$</span><input type="number" id="pay-amount-${i}" value="${price.toFixed(2)}" min="0" step="0.01" style="width:80px;height:36px;border-radius:var(--r);border:2px solid var(--green);background:var(--s);color:var(--ink);padding:0 6px 0 18px;font-size:14px;font-weight:700;text-align:right" oninput="updatePayAmount(${i},${price},getJobServices(${i}))"></div><button class="btn bxsm" onclick="resetPayJobServices(${i},${price})">Reset</button></div></div></div><div style="font-size:11px;color:var(--ink3);margin-bottom:.5rem;line-height:1.5"><i class="ti ti-info-circle"></i> Choose exactly what happened financially for this completed job.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn btng fin-action" onclick="confirmPayment('${jsStr(custId)}','${i}','cash')"><i class="ti ti-cash"></i> Cash</button><button class="btn btng fin-action" onclick="confirmPayment('${jsStr(custId)}','${i}','check')"><i class="ti ti-receipt"></i> Check</button><button class="btn fin-action" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="confirmPayment('${jsStr(custId)}','${i}','paid')"><i class="ti ti-circle-check"></i> Paid (other)</button><button class="btn fin-action" style="background:#eef4ff;color:var(--blue);border-color:#b3c8f0" onclick="markInvoiceSent('${jsStr(custId)}','${i}')"><i class="ti ti-file-invoice"></i> Invoice Sent</button><button class="btn fin-action" onclick="leaveUnpaid('${jsStr(custId)}','${i}')"><i class="ti ti-clock-pause"></i> Invoice Not Sent</button><button class="btn fin-action" onclick="markNotBillable('${jsStr(custId)}','${i}')"><i class="ti ti-circle-minus"></i> No Charge</button></div></div>`;
 }
 
 function getPayAmount(i){
@@ -2916,6 +2758,8 @@ function leaveUnpaid(custId,i){
   recordPayment(custId,i,'unpaid',getPayAmount(i));
 }
 
+function markNotBillable(custId,i){recordPayment(custId,i,'not_billable',0);}
+
 function unmarkPaid(custId,i){
   const j=trackerRoute&&trackerRoute.jobs[Number(i)],rec=j?getJobRecordForTracker(j):null;
   if(rec){
@@ -2926,30 +2770,9 @@ function unmarkPaid(custId,i){
   rerenderJCard(Number(i));
 }
 function recordPayment(custId,i,method,chargedAmount,serviceDesc){
-  i=Number(i);const j=trackerRoute&&trackerRoute.jobs[i],c=DB.customers.find(x=>x.id===custId);
-  const price=clampNum(chargedAmount,0,100000,j&&j.price!==undefined?Number(j.price)||0:Number(c&&c.price)||0);
-  const desc=serviceDesc||getServiceDescription(i)||jobTypeLabel(j&&j.jobType||'mow');
-  const lineItems=(getJobServices(i)||[]).map(x=>({id:x.id,name:x.name,price:Math.max(0,Number(x.price)||0)}));
-  const isPaid=!['unpaid','invoice_sent'].includes(method);let rec=j?getJobRecordForTracker(j):null;
-  if(!rec){
-    rec={id:j&&j.jobId?j.jobId:uid(),custId,date:trackerDate(),jobType:j&&j.jobType||'mow',schedId:j&&j.schedId||null,actualMin:0,estMin:j?j.estMin:0,price:j?Number(j.price)||0:0,beforePhotos:[],afterPhotos:[],extraPhotos:[],beforePhotoUrls:[],afterPhotoUrls:[],extraPhotoUrls:[],notes:''};
-    DB.jobHistory.push(rec);if(j)j.jobId=rec.id;
-  }
-  rec.paid=isPaid;rec.paidMethod=isPaid?method:null;rec.chargedAmount=price;rec.serviceDesc=desc;rec.lineItems=lineItems;
-  if(method==='invoice_sent'){
-    rec.paymentStatus='invoice_sent';
-    rec.invoiceSentAt=rec.invoiceSentAt||Date.now();
-    rec.paidAt=null;
-  }else if(method==='unpaid'){
-    rec.paymentStatus='unpaid';
-    rec.paidAt=null;
-  }else{
-    rec.paymentStatus='paid';
-    rec.paidAt=Date.now();
-    // invoiceSentAt is deliberately preserved so the history shows that
-    // the invoice was sent before it was paid.
-  }
-  saveDB();rerenderJCard(i);renderDash();refreshInvoicePageIfOpen();
+  i=Number(i);const j=trackerRoute&&trackerRoute.jobs[i],c=DB.customers.find(x=>x.id===custId),price=clampNum(chargedAmount,0,100000,j&&j.price!==undefined?Number(j.price)||0:Number(c&&c.price)||0),desc=serviceDesc||getServiceDescription(i)||jobTypeLabel(j&&j.jobType||'mow'),lineItems=(getJobServices(i)||[]).map(x=>({id:x.id,name:x.name,price:Math.max(0,Number(x.price)||0)}));let rec=j?getJobRecordForTracker(j):null;
+  if(!rec){rec={id:j&&j.jobId?j.jobId:uid(),custId,date:trackerDate(),jobType:j&&j.jobType||'mow',schedId:j&&j.schedId||null,actualMin:0,estMin:j?j.estMin:0,price:j?Number(j.price)||0:0,beforePhotos:[],afterPhotos:[],extraPhotos:[],beforePhotoUrls:[],afterPhotoUrls:[],extraPhotoUrls:[],beforePhotoPaths:[],afterPhotoPaths:[],extraPhotoPaths:[],notes:''};DB.jobHistory.push(rec);if(j)j.jobId=rec.id;}
+  const before=paymentSnapshot(rec);rec.serviceDesc=desc;rec.lineItems=lineItems;applyPaymentState(rec,method==='invoice_sent'?'invoice_sent':method==='unpaid'?'unpaid':method==='not_billable'?'not_billable':'paid',method,price);saveDB();rerenderJCard(i);renderDash();refreshInvoicePageIfOpen();if(document.getElementById('pg-reports')?.classList.contains('active'))renderReports();showPaymentUndo(rec.id,before,method==='invoice_sent'?'Marked Invoice Sent':method==='unpaid'?'Marked Invoice Not Sent':method==='not_billable'?'Marked No Charge':'Marked '+({cash:'Cash',check:'Check',paid:'Paid'}[method]||'Paid'));
 }
 
 function rerenderJCard(i){
@@ -3006,93 +2829,51 @@ function base64ToBlob(dataUrl){
   return new Blob([arr],{type:mime});
 }
 
-// Upload a single photo to Supabase Storage, return public URL
+const _photoUploadPending=new Set(),_photoUploadFailed=new Set();
+function photoSyncState(){return {pending:_photoUploadPending.size,failed:_photoUploadFailed.size};}
+function _photoToken(jobId,type,idx){return String(jobId)+':'+String(type)+':'+String(idx);}
+async function signedPhotoUrl(path){if(!path||!supabaseClient?.storage)return null;try{const {data,error}=await supabaseClient.storage.from('job-photos').createSignedUrl(path,60*60*24*7);if(error)throw error;return data&&(data.signedUrl||data.signedURL)||null;}catch(e){console.log('Signed photo URL error',e);return null;}}
+function queueStorageDelete(path){path=String(path||'');if(!path)return;if(!Array.isArray(DB.pendingStorageDeletes))DB.pendingStorageDeletes=[];if(!DB.pendingStorageDeletes.includes(path))DB.pendingStorageDeletes.push(path);try{localStorage.setItem('ros_db',JSON.stringify(DB));}catch(e){}}
+async function removeStoredPhoto(path){path=String(path||'');if(!path)return true;queueStorageDelete(path);if(!supabaseClient?.storage)return false;try{const {error}=await withTimeout(supabaseClient.storage.from('job-photos').remove([path]),8000,'photo delete');if(error)throw error;DB.pendingStorageDeletes=(DB.pendingStorageDeletes||[]).filter(x=>x!==path);try{localStorage.setItem('ros_db',JSON.stringify(DB));}catch(e){}return true;}catch(e){console.log('Photo delete error',e);return false;}}
+async function retryPendingStorageDeletes(){if(!supabaseClient?.storage||!Array.isArray(DB.pendingStorageDeletes)||!DB.pendingStorageDeletes.length)return;for(const path of [...DB.pendingStorageDeletes])await removeStoredPhoto(path);}
+
+// Upload a single photo to private Supabase Storage and return a signed URL.
 async function uploadPhotoToStorage(base64,jobId,type,idx){
-  if(!supabaseClient||!supabaseClient.storage)return null;
+  if(!supabaseClient||!supabaseClient.storage)return null;const token=_photoToken(jobId,type,idx);_photoUploadPending.add(token);_photoUploadFailed.delete(token);
   try{
-    const blob=base64ToBlob(base64);
-    const ext=blob.type.includes('png')?'png':'jpg';
-    const path=`${jobId}/${type}-${idx+1}.${ext}`;
-    const {data,error}=await withTimeout(supabaseClient.storage
-      .from('job-photos')
-      .upload(path,blob,{contentType:blob.type,upsert:true}),12000,'photo upload');
-    if(error){console.log('Photo upload error',error);return null;}
-    const {data:urlData}=supabaseClient.storage
-      .from('job-photos')
-      .getPublicUrl(path);
-    return urlData.publicUrl||null;
-  }catch(e){
-    console.log('Photo upload error',e);
-    return null;
-  }
+    const blob=base64ToBlob(base64),ext=blob.type.includes('png')?'png':'jpg',path=`${jobId}/${type}-${uid()}.${ext}`;
+    const {error}=await withTimeout(supabaseClient.storage.from('job-photos').upload(path,blob,{contentType:blob.type,upsert:false}),12000,'photo upload');if(error)throw error;
+    let signedUrl=null;try{const signed=await supabaseClient.storage.from('job-photos').createSignedUrl(path,60*60*24*7);if(!signed.error&&signed.data)signedUrl=signed.data.signedUrl||signed.data.signedURL||null;}catch(e){}
+    _photoUploadFailed.delete(token);return {path,url:signedUrl,stored:true};
+  }catch(e){console.log('Photo upload error',e);_photoUploadFailed.add(token);return null;}
+  finally{_photoUploadPending.delete(token);}
 }
 
 // Upload all photos for a job, replace base64 with URLs where successful
 async function uploadJobPhotos(jobRec,trackerState,onProgress){
-  const types=[
-    {key:'beforePhotos',urlKey:'beforePhotoUrls',label:'before'},
-    {key:'afterPhotos',urlKey:'afterPhotoUrls',label:'after'},
-    {key:'extraPhotos',urlKey:'extraPhotoUrls',label:'extra'}
-  ];
-  let uploaded=0,total=0;
-  types.forEach(t=>{total+=(trackerState[t.key]||[]).filter(isBase64Photo).length;});
-  if(!jobRec.beforePhotoUrls)jobRec.beforePhotoUrls=[];
-  if(!jobRec.afterPhotoUrls)jobRec.afterPhotoUrls=[];
-  if(!jobRec.extraPhotoUrls)jobRec.extraPhotoUrls=[];
-
-  for(const t of types){
-    const photos=trackerState[t.key]||[];
-    const urls=jobRec[t.urlKey]||[];
-    for(let idx=0;idx<photos.length;idx++){
+  const types=[{key:'beforePhotos',urlKey:'beforePhotoUrls',pathKey:'beforePhotoPaths',label:'before'},{key:'afterPhotos',urlKey:'afterPhotoUrls',pathKey:'afterPhotoPaths',label:'after'},{key:'extraPhotos',urlKey:'extraPhotoUrls',pathKey:'extraPhotoPaths',label:'extra'}];let done=0,total=0;types.forEach(t=>total+=(trackerState[t.key]||[]).filter(isBase64Photo).length);
+  for(const t of types){const photos=trackerState[t.key]||[],urls=trackerState[t.urlKey]||[],paths=trackerState[t.pathKey]||[];for(let idx=0;idx<photos.length;idx++){
       const p=photos[idx];
-      if(!isBase64Photo(p)){
-        // Already a URL — keep it
-        if(!urls[idx])urls[idx]=p;
-        continue;
-      }
-      if(onProgress)onProgress(++uploaded,total);
-      const url=await uploadPhotoToStorage(p,jobRec.id,t.label,idx);
-      if(url){
-        urls[idx]=url;
-        // Replace base64 with URL in tracker state to free memory
-        photos[idx]=url;
-      } else {
-        urls[idx]=p; // keep base64 as fallback if upload failed
-      }
+      if(!isBase64Photo(p)){paths[idx]=paths[idx]||storagePathFromUrl(urls[idx]||p)||null;if(!urls[idx])urls[idx]=p;continue;}
+      if(onProgress)onProgress(done,total);
+      // If the object was already stored but signing failed, sign the existing path
+      // instead of uploading a duplicate object on every retry.
+      if(paths[idx]){const existingUrl=await signedPhotoUrl(paths[idx]);if(existingUrl){urls[idx]=existingUrl;photos[idx]=existingUrl;_photoUploadFailed.delete(_photoToken(jobRec.id,t.label,idx));done++;if(onProgress)onProgress(done,total);continue;}}
+      const uploaded=await uploadPhotoToStorage(p,jobRec.id,t.label,idx);done++;if(onProgress)onProgress(done,total);if(uploaded&&uploaded.stored){paths[idx]=uploaded.path;urls[idx]=uploaded.url||urls[idx]||null;if(uploaded.url)photos[idx]=uploaded.url;}
     }
-    jobRec[t.urlKey]=urls;
-    trackerState[t.key]=photos;
-  }
-  return jobRec;
+    trackerState[t.key]=photos;trackerState[t.urlKey]=urls;trackerState[t.pathKey]=paths;jobRec[t.key]=[...photos];jobRec[t.urlKey]=[...urls];jobRec[t.pathKey]=[...paths];
+  }return jobRec;
 }
+
+function countUnsyncedTrackerPhotos(){let n=0;if(!trackerRoute)return 0;trackerRoute.jobs.forEach((_,i)=>{const st=getTS(i);['before','after','extra'].forEach(type=>{n+=(st[type+'Photos']||[]).filter(isBase64Photo).length;});});return n;}
+async function retryUnsyncedTrackerPhotos(){if(!trackerRoute)return 0;for(let i=0;i<trackerRoute.jobs.length;i++){const st=getTS(i);if(st.status!=='done')continue;const rec=getJobRecordForTracker(trackerRoute.jobs[i]);if(!rec)continue;const count=['before','after','extra'].reduce((a,type)=>a+(st[type+'Photos']||[]).filter(isBase64Photo).length,0);if(!count)continue;await uploadJobPhotos(rec,st);syncTrackerStateToHistory(i,false);saveTrackerStates();}await saveDB();return countUnsyncedTrackerPhotos();}
 
 const _finishingJobs=new Set();
 function finishJob(i){
-  if(_finishingJobs.has(i))return;
-  if(!hasAfter(i)){alert('Take the required after photo(s) first.');return;}
-  const st=getTS(i),j=trackerRoute.jobs[i];if(st.status==='done')return;
-  _finishingJobs.add(i);
-  if(st.startMs){st.elapsed+=Math.floor((Date.now()-st.startMs)/1000);st.startMs=null;}
-  stopTick(i);st.status='done';st.departedAt=Date.now();if(!st.arrivedAt)st.arrivedAt=st.departedAt;st.actualMin=Math.max(0,Math.round(st.elapsed/60));
-  const existing=getJobRecordForTracker(j);
-  const rec=Object.assign({},existing||{}, {
-    id:existing?existing.id:(j.jobId||uid()),custId:j.custId||j.id,date:trackerDate(),jobType:j.jobType||'mow',schedId:j.schedId||null,
-    actualMin:st.actualMin,estMin:Number(j.estMin)||0,price:Number(j.price)||0,arrivedAt:st.arrivedAt,departedAt:st.departedAt,driveMin:actualDrive(i),
-    paid:existing?!!existing.paid:false,paidMethod:existing?existing.paidMethod||null:null,
-    beforePhotos:[...(st.beforePhotos||[])],afterPhotos:[...(st.afterPhotos||[])],extraPhotos:[...(st.extraPhotos||[])],
-    beforePhotoUrls:[...(st.beforePhotoUrls||[])],afterPhotoUrls:[...(st.afterPhotoUrls||[])],extraPhotoUrls:[...(st.extraPhotoUrls||[])],notes:st.notes||''
-  });
-  j.jobId=rec.id;
-  const idx=DB.jobHistory.findIndex(x=>x.id===rec.id);if(idx>=0)DB.jobHistory[idx]=rec;else DB.jobHistory.push(rec);
-  if(j.schedId){const sj=DB.scheduledJobs.find(x=>x.id===j.schedId);if(sj)sj.done=true;}
-  // Persist completion before network photo work. A crash/offline transition here
-  // still leaves a recoverable completed record and the local photos.
-  saveTrackerStates();saveDB();rerenderJCard(i);
-
-  uploadJobPhotos(rec,st,(done,total)=>{const b=document.getElementById('upload-banner-'+i);if(b)b.textContent='Uploading photos ('+done+'/'+total+')…';})
-    .then(()=>{const n=DB.jobHistory.findIndex(x=>x.id===rec.id);if(n>=0)DB.jobHistory[n]=rec;saveTrackerStates();return saveDB();})
-    .catch(e=>{console.log('Photo finalization error',e);setSaveStatus('error');})
-    .finally(()=>{_finishingJobs.delete(i);rerenderJCard(i);renderDash();if(document.getElementById('pg-cal').classList.contains('active'))renderCalendar();});
+  if(_finishingJobs.has(i))return;if(!hasAfter(i)){alert('Take the required after photo(s) first.');return;}const st=getTS(i),j=trackerRoute.jobs[i];if(st.status==='done')return;_finishingJobs.add(i);if(st.startMs){st.elapsed+=Math.floor((Date.now()-st.startMs)/1000);st.startMs=null;}stopTick(i);st.status='done';st.departedAt=Date.now();if(!st.arrivedAt)st.arrivedAt=st.departedAt;st.actualMin=Math.max(0,Math.round(st.elapsed/60));
+  const existing=getJobRecordForTracker(j),rec=Object.assign({},existing||{},{id:existing?existing.id:(j.jobId||uid()),custId:j.custId||j.id,date:trackerDate(),jobType:j.jobType||'mow',schedId:j.schedId||null,actualMin:st.actualMin,estMin:Number(j.estMin)||0,price:Number(j.price)||0,arrivedAt:st.arrivedAt,departedAt:st.departedAt,driveMin:actualDrive(i),paid:existing?!!existing.paid:false,paidMethod:existing?existing.paidMethod||null:null,beforePhotos:[...(st.beforePhotos||[])],afterPhotos:[...(st.afterPhotos||[])],extraPhotos:[...(st.extraPhotos||[])],beforePhotoUrls:[...(st.beforePhotoUrls||[])],afterPhotoUrls:[...(st.afterPhotoUrls||[])],extraPhotoUrls:[...(st.extraPhotoUrls||[])],beforePhotoPaths:[...(st.beforePhotoPaths||[])],afterPhotoPaths:[...(st.afterPhotoPaths||[])],extraPhotoPaths:[...(st.extraPhotoPaths||[])],notes:st.notes||''});
+  j.jobId=rec.id;const idx=DB.jobHistory.findIndex(x=>x.id===rec.id);if(idx>=0)DB.jobHistory[idx]=rec;else DB.jobHistory.push(rec);if(j.schedId){const sj=DB.scheduledJobs.find(x=>x.id===j.schedId);if(sj)sj.done=true;}saveTrackerStates();saveDB();rerenderJCard(i);
+  uploadJobPhotos(rec,st,(done,total)=>{const b=document.getElementById('upload-banner-'+i);if(b)b.textContent='Uploading photos ('+done+'/'+total+')…';}).then(()=>{syncTrackerStateToHistory(i,false);saveTrackerStates();return saveDB();}).catch(e=>{console.log('Photo finalization error',e);setSaveStatus('error');}).finally(()=>{_finishingJobs.delete(i);rerenderJCard(i);renderDash();if(document.getElementById('pg-cal')?.classList.contains('active'))renderCalendar();});
 }
 function markJobPaid(custId,i){recordPayment(custId,i,'cash',getPayAmount(Number(i)));}
 
@@ -3134,19 +2915,15 @@ function navTo(addr){window.open('https://maps.google.com/?q='+encodeURIComponen
 function shrinkImage(dataUrl,maxDim=1400,quality=.72){
   return new Promise(resolve=>{const img=new Image();img.onload=()=>{try{let w=img.width,h=img.height;if(w>maxDim||h>maxDim){if(w>=h){h=Math.round(h*maxDim/w);w=maxDim;}else{w=Math.round(w*maxDim/h);h=maxDim;}}const cv=document.createElement('canvas');cv.width=Math.max(1,w);cv.height=Math.max(1,h);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);resolve(cv.toDataURL('image/jpeg',quality));}catch(e){resolve(dataUrl);}};img.onerror=()=>resolve(dataUrl);img.src=dataUrl;});
 }
+let _historyNoteSaveTimer=null;
+function syncTrackerStateToHistory(i,doSave=true){
+  if(!trackerRoute||!trackerRoute.jobs[i])return null;const st=getTS(i);if(st.status!=='done')return null;const rec=getJobRecordForTracker(trackerRoute.jobs[i]);if(!rec)return null;
+  ['before','after','extra'].forEach(type=>{rec[type+'Photos']=[...(st[type+'Photos']||[])];rec[type+'PhotoUrls']=[...(st[type+'PhotoUrls']||[])];rec[type+'PhotoPaths']=[...(st[type+'PhotoPaths']||[])];});rec.notes=st.notes||rec.notes||'';if(doSave)saveDB();return rec;
+}
+function updateTrackerNotes(i,value){const st=getTS(i);st.notes=value;queueTrackerStateSave();if(st.status==='done'){const rec=syncTrackerStateToHistory(i,false);if(rec){clearTimeout(_historyNoteSaveTimer);_historyNoteSaveTimer=setTimeout(()=>saveDB(),550);}}}
+
 function addPhoto(i,type,input){
-  const file=input.files&&input.files[0];if(!file)return;
-  if(file.type&&!file.type.startsWith('image/')){alert('Choose an image file.');input.value='';return;}
-  const reader=new FileReader();
-  reader.onload=async e=>{
-    const st=getTS(i),base64=await shrinkImage(e.target.result),arr=type==='before'?st.beforePhotos:type==='after'?st.afterPhotos:st.extraPhotos,urlArr=type==='before'?st.beforePhotoUrls:type==='after'?st.afterPhotoUrls:st.extraPhotoUrls;
-    const idx=arr.length;arr.push(base64);urlArr[idx]=urlArr[idx]||null;input.value='';saveTrackerStates();rerenderJCard(i);
-    const job=trackerRoute&&trackerRoute.jobs[i],jobId=job&&(job.jobId||(job.jobId=uid()));
-    let url=null;try{url=jobId?await uploadPhotoToStorage(base64,jobId,type,idx):null;}catch(e){url=null;}
-    if(url&&arr[idx]===base64){arr[idx]=url;urlArr[idx]=url;saveTrackerStates();rerenderJCard(i);}else if(!url)console.log('Photo upload deferred — kept locally');
-  };
-  reader.onerror=()=>{alert('Could not read that photo. Try another image.');input.value='';};
-  reader.readAsDataURL(file);
+  const file=input.files&&input.files[0];if(!file)return;if(file.type&&!file.type.startsWith('image/')){alert('Choose an image file.');input.value='';return;}const reader=new FileReader();reader.onload=async e=>{const st=getTS(i),base64=await shrinkImage(e.target.result),arr=st[type+'Photos'],urlArr=st[type+'PhotoUrls'],pathArr=st[type+'PhotoPaths']||(st[type+'PhotoPaths']=[]),idx=arr.length;arr.push(base64);urlArr[idx]=null;pathArr[idx]=null;input.value='';saveTrackerStates();syncTrackerStateToHistory(i,true);rerenderJCard(i);const job=trackerRoute&&trackerRoute.jobs[i],jobId=job&&(job.jobId||(job.jobId=uid()));let uploaded=null;try{uploaded=jobId?await uploadPhotoToStorage(base64,jobId,type,idx):null;}catch(e){}if(uploaded&&uploaded.stored&&arr[idx]===base64){pathArr[idx]=uploaded.path;if(uploaded.url){arr[idx]=uploaded.url;urlArr[idx]=uploaded.url;}syncTrackerStateToHistory(i,true);saveTrackerStates();rerenderJCard(i);}else if(!uploaded)console.log('Photo upload deferred — kept locally');};reader.onerror=()=>{alert('Could not read that photo. Try another image.');input.value='';};reader.readAsDataURL(file);
 }
 
 // Photo viewer
@@ -3171,86 +2948,51 @@ function dlPhoto(){
   const name=(j?j.name||'Job':'Photo').replace(/[^a-z0-9]/gi,'_')+'-'+pvType+'-'+(pvIdx+1)+'.jpg';
   const a=document.createElement('a');a.href=(urls&&urls[pvIdx])||photos[pvIdx];a.download=name;a.rel='noopener';a.click();
 }
-function delPhoto(){
-  if(pvJob===null)return;if(!confirm('Delete this photo?'))return;
-  const s=getTS(pvJob);
-  const arr=pvType==='before'?s.beforePhotos:pvType==='after'?s.afterPhotos:s.extraPhotos;
-  const urls=pvType==='before'?s.beforePhotoUrls:pvType==='after'?s.afterPhotoUrls:s.extraPhotoUrls;
-  arr.splice(pvIdx,1);if(urls)urls.splice(pvIdx,1);
-  saveTrackerStates();
-  closePV();rerenderJCard(pvJob);
+async function delPhoto(){
+  if(pvJob===null)return;if(!confirm('Delete this photo?'))return;const i=pvJob,type=pvType,idx=pvIdx,s=getTS(i),arr=s[type+'Photos'],urls=s[type+'PhotoUrls'],paths=s[type+'PhotoPaths']||(s[type+'PhotoPaths']=[]),path=paths[idx]||storagePathFromUrl(urls[idx])||null;arr.splice(idx,1);urls.splice(idx,1);paths.splice(idx,1);saveTrackerStates();syncTrackerStateToHistory(i,true);closePV();rerenderJCard(i);if(path)await removeStoredPhoto(path);
 }
 
 async function exportDaySummary(){
-  if(!trackerRoute){alert('No route loaded.');return false;}if(!window.JSZip){alert('ZIP export library did not load. Check your internet connection and reload.');return false;}
-  const displayDate=parseLocalDate(trackerRoute.date||todayStr()).toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}),zip=new JSZip();
-  trackerRoute.jobs.forEach((j,i)=>{
-    const st=getTS(i),actualMin=st.actualMin||Math.round(st.elapsed/60),c=DB.customers.find(x=>x.id===(j.custId||j.id)),rec=getJobRecordForTracker(j),price=jobAmount(rec||j,c);
-    const safe=(j.name||'Job').replace(/[^a-z0-9]/gi,'_').slice(0,60)||'Job';
-    function pSection(photos,urlPhotos,label,prefix){const srcs=(photos||[]).map((p,pi)=>(urlPhotos&&urlPhotos[pi])||p).filter(Boolean);if(!srcs.length)return `<p style="color:#aaa;font-size:13px">No ${esc(label.toLowerCase())} taken</p>`;return srcs.map((src,pi)=>{const p=safeUrl(src)||(/^data:image\//i.test(src)?src:'');if(!p)return '';return `<div style="margin-bottom:12px"><img src="${attr(p)}" style="width:100%;max-width:340px;border-radius:8px;border:1px solid #ddd;display:block;margin-bottom:6px"><a href="${attr(p)}" ${isBase64Photo(p)?`download="${attr(prefix+'-'+(pi+1)+'.jpg')}"`:'target="_blank" rel="noopener"'} style="font-size:12px;color:#2d5a27;font-weight:600">${isBase64Photo(p)?'⬇ Save':'🔗 View'} ${esc(label)} ${pi+1}</a></div>`;}).join('');}
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(j.name||'Job')} — Job Summary</title><style>body{font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:2rem 1.25rem;color:#1a1a1a}h1{color:#2d5a27}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}.box,.nbox{background:#f7f8f5;border-radius:8px;padding:.875rem}.lbl,.stitle{font-size:10px;font-weight:700;text-transform:uppercase;color:#888}.val{font-size:18px;font-weight:600}@media(max-width:420px){.grid{grid-template-columns:1fr}}</style></head><body><h1>${esc(j.name||'Job')}</h1><p>Richardson Outdoor Solutions · ${esc(displayDate)}</p><p><strong>${st.status==='done'?'✓ Complete':'In Progress'}</strong> · ${esc(jobTypeLabel(j.jobType||'mow'))}</p><p>${esc(j.addr||'')}</p><p><strong>Payment:</strong> ${esc(paymentStatusDetail(rec||j))}${(rec||j).invoiceSentAt?' · Invoice sent '+esc(new Date((rec||j).invoiceSentAt).toLocaleString()):''}${(rec||j).paidAt?' · Paid '+esc(new Date((rec||j).paidAt).toLocaleString()):''}</p><div class="grid"><div class="box"><div class="lbl">Actual</div><div class="val">${actualMin>0?actualMin+' min':'—'}</div></div><div class="box"><div class="lbl">Estimated</div><div class="val">${Number(j.estMin)||0} min</div></div><div class="box"><div class="lbl">Amount</div><div class="val">$${price.toFixed(2)}</div></div></div>${j.notes?`<h3 class="stitle">Job notes</h3><div class="nbox">${esc(j.notes)}</div>`:''}${st.notes?`<h3 class="stitle">Field notes</h3><div class="nbox">${esc(st.notes)}</div>`:''}<h3 class="stitle">Before photos</h3>${pSection(st.beforePhotos,st.beforePhotoUrls,'Before',safe+'-before')}<h3 class="stitle">After photos</h3>${pSection(st.afterPhotos,st.afterPhotoUrls,'After',safe+'-after')}${st.extraPhotos.length?`<h3 class="stitle">Extra photos</h3>${pSection(st.extraPhotos,st.extraPhotoUrls,'Extra',safe+'-extra')}`:''}</body></html>`;
-    zip.file('Stop-'+(i+1)+'-'+safe+'.html',html);const folder=safe;
-    [['before',st.beforePhotos],['after',st.afterPhotos],['extra',st.extraPhotos]].forEach(([type,arr])=>(arr||[]).forEach((x,pi)=>{if(isBase64Photo(x)){const b=x.split(',')[1];if(b)zip.file(folder+'/'+type+'-'+(pi+1)+'.jpg',b,{base64:true});}}));
-  });
-  try{const blob=await zip.generateAsync({type:'blob'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ROS-Day-'+(trackerRoute.date||todayStr())+'.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return true;}catch(e){alert('Export failed: '+(e&&e.message?e.message:e));return false;}
+  if(!trackerRoute){alert('No route loaded.');return false;}if(!window.JSZip){alert('ZIP export library did not load. Check your internet connection and reload.');return false;}const zip=new JSZip(),displayDate=parseLocalDate(trackerRoute.date||todayStr()).toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  try{
+    for(let i=0;i<trackerRoute.jobs.length;i++){
+      const j=trackerRoute.jobs[i],st=getTS(i),actualMin=st.actualMin||Math.round(st.elapsed/60),c=DB.customers.find(x=>x.id===(j.custId||j.id)),rec=getJobRecordForTracker(j),price=jobAmount(rec||j,c),safe=(j.name||'Job').replace(/[^a-z0-9]/gi,'_').slice(0,60)||'Job',folder=safe+'-'+i;
+      const sections={};
+      for(const type of ['before','after','extra']){
+        const photos=st[type+'Photos']||[],urls=st[type+'PhotoUrls']||[],items=[];
+        for(let pi=0;pi<photos.length;pi++){
+          const src=urls[pi]||photos[pi];if(!src)continue;let ext='jpg',blob=null;
+          if(isBase64Photo(src)){const b=src.split(',')[1];if(!b)continue;const mime=(src.match(/^data:image\/([^;]+)/i)||[])[1]||'jpeg';ext=mime.includes('png')?'png':'jpg';zip.file(folder+'/'+type+'-'+(pi+1)+'.'+ext,b,{base64:true});}
+          else{const response=await withTimeout(fetch(src),12000,'photo export download');if(!response.ok)throw new Error('Could not download '+type+' photo '+(pi+1)+' for '+(j.name||'job'));blob=await response.blob();ext=blob.type&&blob.type.includes('png')?'png':'jpg';zip.file(folder+'/'+type+'-'+(pi+1)+'.'+ext,blob);}
+          items.push(`<div style="margin-bottom:12px"><img src="${attr(folder+'/'+type+'-'+(pi+1)+'.'+ext)}" style="width:100%;max-width:340px;border-radius:8px;border:1px solid #ddd;display:block;margin-bottom:6px"><div style="font-size:12px;color:#2d5a27;font-weight:600">${esc(type[0].toUpperCase()+type.slice(1))} ${pi+1}</div></div>`);
+        }
+        sections[type]=items.length?items.join(''):`<p style="color:#aaa;font-size:13px">No ${esc(type)} photos taken</p>`;
+      }
+      const payment=rec||j,amountText=paymentStatus(payment)==='not_billable'?'No charge':'$'+price.toFixed(2),html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(j.name||'Job')} — Job Summary</title><style>body{font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:2rem 1.25rem;color:#1a1a1a}h1{color:#2d5a27}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}.box,.nbox{background:#f7f8f5;border-radius:8px;padding:.875rem}.lbl,.stitle{font-size:10px;font-weight:700;text-transform:uppercase;color:#888}.val{font-size:18px;font-weight:600}@media(max-width:420px){.grid{grid-template-columns:1fr}}</style></head><body><h1>${esc(j.name||'Job')}</h1><p>Richardson Outdoor Solutions · ${esc(displayDate)}</p><p><strong>${st.status==='done'?'✓ Complete':'In Progress'}</strong> · ${esc(jobTypeLabel(j.jobType||'mow'))}</p><p>${esc(j.addr||'')}</p><p><strong>Payment:</strong> ${esc(paymentStatusDetail(payment))}${payment.invoiceSentAt?' · Invoice sent '+esc(new Date(payment.invoiceSentAt).toLocaleString()):''}${payment.paidAt?' · Paid '+esc(new Date(payment.paidAt).toLocaleString()):''}</p><div class="grid"><div class="box"><div class="lbl">Actual</div><div class="val">${actualMin>0?actualMin+' min':'—'}</div></div><div class="box"><div class="lbl">Estimated</div><div class="val">${Number(j.estMin)||0} min</div></div><div class="box"><div class="lbl">Amount</div><div class="val">${amountText}</div></div></div>${j.notes?`<h3 class="stitle">Job notes</h3><div class="nbox">${esc(j.notes)}</div>`:''}${st.notes?`<h3 class="stitle">Field notes</h3><div class="nbox">${esc(st.notes)}</div>`:''}<h3 class="stitle">Before photos</h3>${sections.before}<h3 class="stitle">After photos</h3>${sections.after}${(st.extraPhotos||[]).length?`<h3 class="stitle">Extra photos</h3>${sections.extra}`:''}</body></html>`;zip.file('Stop-'+(i+1)+'-'+safe+'.html',html);
+    }
+    const blob=await zip.generateAsync({type:'blob'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ROS-Day-'+(trackerRoute.date||todayStr())+'.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return true;
+  }catch(e){console.log('Export failed',e);alert('Export stopped because a job photo could not be safely included. Nothing was cleared. Try again when connected.\n\n'+(e&&e.message?e.message:e));return false;}
 }
 
 async function endDay(){
   if(!trackerRoute||!Array.isArray(trackerRoute.jobs)||!trackerRoute.jobs.length){alert('No route is loaded.');return;}
+  const rows=trackerRoute.jobs.map((j,i)=>({j,i,st:getTS(i),rec:getJobRecordForTracker(j)})),incomplete=rows.filter(x=>x.st.status!=='done');
+  if(incomplete.length){const names=incomplete.slice(0,5).map(x=>x.j.name||('Stop '+(x.i+1))).join(', ');alert('Finish every job before ending the day. Still open: '+names+(incomplete.length>5?' and '+(incomplete.length-5)+' more.':'.'));return;}
+  if(_finishingJobs.size){alert('A job is still finalizing photos. Wait until it finishes, then tap End Day again.');return;}
+  let ps=photoSyncState();if(ps.pending){alert(ps.pending+' photo upload'+(ps.pending===1?' is':'s are')+' still running. Wait before ending the day.');return;}
+  // A browser refresh clears the in-memory failed-upload set, so also inspect the
+  // tracker itself for base64 photos. Retry them before allowing the day to close.
+  let unsyncedPhotos=countUnsyncedTrackerPhotos();if(unsyncedPhotos||ps.failed){setSaveStatus('saving');unsyncedPhotos=await retryUnsyncedTrackerPhotos();ps=photoSyncState();if(unsyncedPhotos||ps.failed){alert((unsyncedPhotos||ps.failed)+' photo'+((unsyncedPhotos||ps.failed)===1?' is':'s are')+' still stored only on this device. End Day will keep the route open. Check your connection and try again.');return;}}
+  const paymentMissing=rows.filter(x=>!x.rec||!Object.prototype.hasOwnProperty.call(x.rec,'chargedAmount'));if(paymentMissing.length){alert('Review payment for every completed job before ending the day. Choose Cash, Check, Paid, Invoice Sent, Invoice Not Sent, or No Charge for: '+paymentMissing.slice(0,5).map(x=>x.j.name||('Stop '+(x.i+1))).join(', ')+(paymentMissing.length>5?' and '+(paymentMissing.length-5)+' more.':'.'));return;}
+  const syncOk=await saveDB();if(!syncOk){alert('This day is saved on this device, but the cloud is not fully synced yet. End Day will not clear the route until cloud sync succeeds. Check your connection and try again.');return;}
+  const needsInvoices=rows.filter(x=>x.rec&&!x.rec.paid&&paymentStatus(x.rec)==='unpaid'),awaiting=rows.filter(x=>x.rec&&paymentStatus(x.rec)==='invoice_sent'),paid=rows.filter(x=>x.rec&&x.rec.paid),noCharge=rows.filter(x=>x.rec&&paymentStatus(x.rec)==='not_billable');
+  const collected=paid.reduce((a,x)=>a+jobAmount(x.rec,DB.customers.find(c=>c.id===x.rec.custId)),0),awaitingAmt=awaiting.reduce((a,x)=>a+jobAmount(x.rec,DB.customers.find(c=>c.id===x.rec.custId)),0),miles=Number(trackerRoute.totalMiles)||0;
+  const summary=document.getElementById('endday-summary');summary.innerHTML=`<div class="dash-grid" style="margin-bottom:.875rem"><div class="dash-card"><div class="dash-val">${rows.length}</div><div class="dash-lbl">Jobs completed</div></div><div class="dash-card"><div class="dash-val" style="color:var(--green)">$${collected.toFixed(0)}</div><div class="dash-lbl">Collected</div></div><div class="dash-card"><div class="dash-val" style="color:var(--blue)">$${awaitingAmt.toFixed(0)}</div><div class="dash-lbl">Invoice sent / owed</div></div><div class="dash-card"><div class="dash-val" style="color:${needsInvoices.length?'var(--red)':'var(--green)'}">${needsInvoices.length}</div><div class="dash-lbl">Still need invoice</div></div></div><div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:.75rem;font-size:13px;line-height:1.7"><div>✓ Cloud synced</div><div>✓ Photos synced</div><div>${miles>0?'✓ '+miles.toFixed(1)+' route miles':'• Mileage not recorded'}</div><div>${noCharge.length?'• '+noCharge.length+' no-charge job'+(noCharge.length===1?'':'s'):''}</div>${needsInvoices.length?`<div style="color:var(--red);font-weight:700">⚠ ${needsInvoices.length} completed job${needsInvoices.length===1?' still needs':'s still need'} an invoice</div>`:'<div style="color:var(--green)">✓ Every billable job is paid or invoiced</div>'}</div><label style="display:flex;align-items:center;gap:8px;margin-top:.875rem;font-size:13px;font-weight:600"><input id="endday-export-check" type="checkbox" checked style="width:18px;height:18px;accent-color:var(--green)"> Download Day Summary + Photos before closing</label>`;
+  document.getElementById('endday-modal').classList.add('open');
+}
 
-  const incomplete=trackerRoute.jobs.map((j,i)=>({j,i,st:getTS(i)})).filter(x=>x.st.status!=='done');
-  if(incomplete.length){
-    const names=incomplete.slice(0,5).map(x=>x.j.name||('Stop '+(x.i+1))).join(', ');
-    alert('Finish every job before ending the day. Still open: '+names+(incomplete.length>5?' and '+(incomplete.length-5)+' more.':'.'));
-    return;
-  }
-
-  if(_finishingJobs.size){
-    alert('Job photos are still uploading. Wait until saving finishes, then tap End Day again.');
-    return;
-  }
-
-  // A payment choice writes chargedAmount even when the choice is Leave unpaid.
-  // This prevents a completed job from disappearing from the payment follow-up flow
-  // simply because End Day was tapped before its payment status was reviewed.
-  const paymentMissing=[];
-  trackerRoute.jobs.forEach((j,i)=>{
-    const rec=getJobRecordForTracker(j);
-    if(!rec||!Object.prototype.hasOwnProperty.call(rec,'chargedAmount'))paymentMissing.push(j.name||('Stop '+(i+1)));
-  });
-  if(paymentMissing.length){
-    alert('Review payment for every completed job before ending the day. Choose Cash, Check, Paid, Invoice Sent, or Leave unpaid for: '+paymentMissing.slice(0,5).join(', ')+(paymentMissing.length>5?' and '+(paymentMissing.length-5)+' more.':'.'));
-    return;
-  }
-
-  const needsInvoices=trackerRoute.jobs.map((j,i)=>({j,i,rec:getJobRecordForTracker(j)})).filter(x=>x.rec&&!x.rec.paid&&paymentStatus(x.rec)!=='invoice_sent');
-  if(needsInvoices.length){
-    const names=needsInvoices.slice(0,5).map(x=>x.j.name||('Stop '+(x.i+1))).join(', ');
-    if(!confirm(needsInvoices.length+' completed job'+(needsInvoices.length===1?' still needs an invoice.':'s still need invoices.')+'\n\n'+names+(needsInvoices.length>5?' and '+(needsInvoices.length-5)+' more.':'')+'\n\nEnd the day anyway?'))return;
-  }
-
-  const exportFirst=confirm('Download another Day Summary before closing today?\n\nOK = Export first\nCancel = Skip export');
-  if(exportFirst){const exported=await exportDaySummary();if(!exported)return;}
-
-  if(!confirm('End this workday now?\n\nCompleted jobs, payments, times, notes, and synced photos will stay in Job History. The current Field Tracker route will be cleared.'))return;
-
-  try{await saveDB();}catch(e){console.log('End day sync error',e);}
-
-  Object.keys(trackerStates).forEach(i=>stopTick(Number(i)));
-  trackerStates={};trackerRoute=null;
-  try{localStorage.removeItem('ros_tracker_states');localStorage.removeItem('ros_track_route');localStorage.setItem('ros_last_ended_day',new Date().toISOString());}catch(e){}
-
-  // Clear the in-memory planner too so the next workday starts clean.
-  planJobs=[];planDT={};planMiles={};
-  try{renderPlan();}catch(e){}
-
-  const jobsEl=document.getElementById('track-jobs');if(jobsEl)jobsEl.innerHTML='';
-  const empty=document.getElementById('track-empty');if(empty)empty.style.display='';
-  const wrap=document.getElementById('track-export-wrap');if(wrap)wrap.style.display='none';
-  const sub=document.getElementById('track-sub');if(sub)sub.textContent='No route loaded';
-  updateEndDayUI();renderDash();
-  goTab('dash');
-  alert('Day ended. Completed jobs are saved. Any money still owed remains on Invoices & Payments, and Field Tracker is ready for the next route.');
+async function confirmEndDayCloseout(){
+  if(!trackerRoute)return;const btn=document.getElementById('endday-confirm-btn');if(btn)btn.disabled=true;try{const exp=document.getElementById('endday-export-check');if(exp&&exp.checked){const ok=await exportDaySummary();if(!ok)return;}const ps=photoSyncState(),unsyncedPhotos=countUnsyncedTrackerPhotos();if(ps.pending||ps.failed||unsyncedPhotos){alert('Photo sync changed while closing the day. Keep the day open and retry after photos sync.');return;}const cloudOk=await saveDB();if(!cloudOk){alert('Cloud sync did not complete. The route was NOT cleared. Try End Day again when the cloud status is green.');return;}Object.keys(trackerStates).forEach(i=>stopTick(Number(i)));trackerStates={};trackerRoute=null;try{localStorage.removeItem('ros_tracker_states');localStorage.removeItem('ros_track_route');localStorage.setItem('ros_last_ended_day',new Date().toISOString());localStorage.setItem('ros_tracker_checkpoint_updated',String(Date.now()));}catch(e){}try{if(supabaseClient)await supabaseClient.from('app_settings').upsert({key:'ros_active_tracker',value:JSON.stringify({updatedAt:Date.now(),route:null,states:{}})});}catch(e){console.log('Active tracker clear error',e);}planJobs=[];planDT={};planMiles={};try{renderPlan();}catch(e){}const jobsEl=document.getElementById('track-jobs');if(jobsEl)jobsEl.innerHTML='';const empty=document.getElementById('track-empty');if(empty)empty.style.display='';const wrap=document.getElementById('track-export-wrap');if(wrap)wrap.style.display='none';const sub=document.getElementById('track-sub');if(sub)sub.textContent='No route loaded';closeModal('endday-modal');updateEndDayUI();renderDash();goTab('dash');alert('Day ended. Completed work and payment history are cloud-synced. Any money still owed remains in Invoices & Payments.');}finally{if(btn)btn.disabled=false;}
 }
 
 // Load modal
@@ -3297,7 +3039,7 @@ function renderCustomers(){
     return;
   }
   const schedBadge={weekly:'tag-green',biweekly:'tag-blue',monthly:'tag-blue',onetime:'tag-amb',paused:'tag-amb',inactive:'tag-gray'};
-  const schedLbl={weekly:'Weekly',biweekly:'Biweekly',monthly:'Monthly',onetime:'One-time',paused:'Paused',inactive:'Inactive'};
+  const schedLbl={weekly:'Weekly',biweekly:'Biweekly',monthly:'Every 4 Weeks',onetime:'One-time',paused:'Paused',inactive:'Inactive'};
   document.getElementById('cust-list').innerHTML=list.map(c=>{
     const jobs=DB.jobHistory.filter(j=>j.custId===c.id);
     const lastJob=jobs.length?jobs.sort((a,b)=>b.date.localeCompare(a.date))[0]:null;
@@ -3515,7 +3257,7 @@ function renderCustHistory(custId){
           <span style="font-size:13px;font-weight:600">${fmtDate(j.date)}</span>
           <span style="font-size:11px;color:var(--ink3);margin-left:8px">${j.actualMin?j.actualMin+'m':j.estMin?j.estMin+'m est':''}</span>
         </div>
-        <span class="tag ${j.paid?'tag-green':'tag-red'}">${j.paid?'Paid':'Unpaid'}</span>
+        <span class="tag ${j.paid?'tag-green':paymentStatus(j)==='not_billable'?'tag-gray':paymentStatus(j)==='invoice_sent'?'tag-blue':'tag-red'}">${esc(j.paid?'Paid':paymentStatus(j)==='not_billable'?'No Charge':paymentStatus(j)==='invoice_sent'?'Invoice Sent':'Unpaid')}</span>
       </div>
       ${allPhotos.length?`<div class="hist-photo-strip">${allPhotos.map(p=>`<img class="hist-thumb" src="${attr(p)}" onclick="openHistPhoto('${jsStr(encodeURIComponent(p))}')" onerror="this.style.display='none'">`).join('')}</div>`:''}
       ${j.notes?`<div style="font-size:11px;color:var(--ink3);margin-top:3px">${esc(j.notes)}</div>`:''}
@@ -3543,18 +3285,9 @@ function openQuickJobModal(){
 }
 
 function saveQuickJob(){
-  if(window._quickJobBusy)return;
-  const custId=document.getElementById('qj-cust').value,c=DB.customers.find(x=>x.id===custId);if(!c){alert('Select a customer.');return;}
-  const date=document.getElementById('qj-date').value;if(!validDateString(date)){alert('Choose a valid job date.');return;}
-  const jobTypeId=document.getElementById('qj-type').value||'mow',type=jobType(jobTypeId);
-  const mins=clampNum(document.getElementById('qj-mins').value,1,600,type.defaultMin||45);
-  const rawPrice=document.getElementById('qj-price').value;
-  const amount=rawPrice===''?clampNum(type.defaultPrice||c.price,0,100000,0):clampNum(rawPrice,0,100000,0);
-  const paidVal=document.getElementById('qj-paid').value;
-  const rec={id:uid(),custId,date,jobType:jobTypeId,actualMin:mins,estMin:mins,chargedAmount:amount,price:amount,paid:paidVal!=='unpaid',paidMethod:paidVal==='unpaid'?null:paidVal,
-    beforePhotos:[],afterPhotos:[],extraPhotos:[],beforePhotoUrls:[],afterPhotoUrls:[],extraPhotoUrls:[],notes:document.getElementById('qj-notes').value.trim(),isOneOff:true};
-  window._quickJobBusy=true;setTimeout(()=>{window._quickJobBusy=false;},350);DB.jobHistory.push(rec);saveDB();closeModal('quickjob-modal');renderDash();renderReports();renderCalendar();
-  alert(`Job logged for ${custFullName(c)} on ${fmtDate(date)}.`);
+  if(window._quickJobBusy)return;const custId=document.getElementById('qj-cust').value,c=DB.customers.find(x=>x.id===custId);if(!c){alert('Select a customer.');return;}const date=document.getElementById('qj-date').value;if(!validDateString(date)){alert('Choose a valid job date.');return;}const jobTypeId=document.getElementById('qj-type').value||'mow',type=jobType(jobTypeId),mins=clampNum(document.getElementById('qj-mins').value,1,600,type.defaultMin||45),rawPrice=document.getElementById('qj-price').value,amount=rawPrice===''?clampNum(type.defaultPrice||c.price,0,100000,0):clampNum(rawPrice,0,100000,0),paidVal=document.getElementById('qj-paid').value;
+  const rec={id:uid(),custId,date,jobType:jobTypeId,actualMin:mins,estMin:mins,chargedAmount:amount,price:amount,paid:false,paidMethod:null,beforePhotos:[],afterPhotos:[],extraPhotos:[],beforePhotoUrls:[],afterPhotoUrls:[],extraPhotoUrls:[],beforePhotoPaths:[],afterPhotoPaths:[],extraPhotoPaths:[],notes:document.getElementById('qj-notes').value.trim(),isOneOff:true};
+  applyPaymentState(rec,paidVal,paidVal,amount);window._quickJobBusy=true;setTimeout(()=>window._quickJobBusy=false,350);DB.jobHistory.push(rec);saveDB();closeModal('quickjob-modal');renderDash();renderReports();renderCalendar();refreshInvoicePageIfOpen();alert(`Job logged for ${custFullName(c)} on ${fmtDate(date)}.`);
 }
 
 function loadServicesUI(){
@@ -3716,39 +3449,25 @@ function openEditJobModal(jobId){
   populateJobTypeSelect('ej-type',j.jobType||'mow');
   document.getElementById('ej-date').value=j.date||todayStr();const c=DB.customers.find(x=>x.id===j.custId);
   document.getElementById('ej-amount').value=jobAmount(j,c).toFixed(2);document.getElementById('ej-desc').value=j.serviceDesc||'';document.getElementById('ej-notes').value=j.notes||'';
-  const paidVal=j.paid?(j.paidMethod||'paid'):(paymentStatus(j)==='invoice_sent'?'invoice':'unpaid');document.getElementById('ej-paid').value=paidVal;document.getElementById('editjob-modal').classList.add('open');
+  const ps=paymentStatus(j),paidVal=j.paid?(j.paidMethod||'paid'):(ps==='invoice_sent'?'invoice':ps==='not_billable'?'not_billable':'unpaid');document.getElementById('ej-paid').value=paidVal;document.getElementById('editjob-modal').classList.add('open');
 }
 
 function saveEditJob(){
-  if(window._editJobBusy)return;
-  const id=document.getElementById('ej-id').value,j=DB.jobHistory.find(x=>x.id===id);if(!j)return;
-  const date=document.getElementById('ej-date').value;if(!validDateString(date)){alert('Choose a valid date.');return;}
-  const custId=document.getElementById('ej-cust').value;if(!DB.customers.some(c=>c.id===custId)){alert('Choose a valid customer.');return;}
-  const paidVal=document.getElementById('ej-paid').value;
-  const wasPaid=!!j.paid,wasInvoice=paymentStatus(j)==='invoice_sent';
-  const now=Date.now();
-  const paidNow=!['unpaid','invoice'].includes(paidVal);
-  Object.assign(j,{custId,date,jobType:document.getElementById('ej-type').value||j.jobType||'mow',chargedAmount:clampNum(document.getElementById('ej-amount').value,0,100000,0),
-    serviceDesc:document.getElementById('ej-desc').value.trim(),notes:document.getElementById('ej-notes').value.trim(),paid:paidNow,paidMethod:paidNow?paidVal:null});
-  if(paidVal==='invoice'){
-    j.paymentStatus='invoice_sent';j.invoiceSentAt=j.invoiceSentAt||now;j.paidAt=null;
-  }else if(paidVal==='unpaid'){
-    j.paymentStatus='unpaid';j.paidAt=null;
-  }else{
-    j.paymentStatus='paid';j.paidAt=(wasPaid&&j.paidAt)?j.paidAt:now;
-    if(wasInvoice&&!j.invoiceSentAt)j.invoiceSentAt=now;
-  }
-  window._editJobBusy=true;setTimeout(()=>{window._editJobBusy=false;},350);saveDB();closeModal('editjob-modal');renderDash();renderReports();renderCalendar();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(id);
+  if(window._editJobBusy)return;const id=document.getElementById('ej-id').value,j=DB.jobHistory.find(x=>x.id===id);if(!j)return;const date=document.getElementById('ej-date').value;if(!validDateString(date)){alert('Choose a valid date.');return;}const custId=document.getElementById('ej-cust').value;if(!DB.customers.some(c=>c.id===custId)){alert('Choose a valid customer.');return;}const paidVal=document.getElementById('ej-paid').value,amount=clampNum(document.getElementById('ej-amount').value,0,100000,0);
+  Object.assign(j,{custId,date,jobType:document.getElementById('ej-type').value||j.jobType||'mow',chargedAmount:amount,serviceDesc:document.getElementById('ej-desc').value.trim(),notes:document.getElementById('ej-notes').value.trim()});applyPaymentState(j,paidVal==='invoice'?'invoice_sent':paidVal,paidVal,amount);window._editJobBusy=true;setTimeout(()=>window._editJobBusy=false,350);saveDB();closeModal('editjob-modal');renderDash();renderReports();renderCalendar();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(id);
+}
+
+async function deleteJobStoredPhotos(job){
+  if(!job)return;const paths=[];['before','after','extra'].forEach(type=>{(job[type+'PhotoPaths']||[]).forEach(x=>{if(x&&!paths.includes(x))paths.push(x);});(job[type+'PhotoUrls']||[]).forEach(u=>{const x=storagePathFromUrl(u);if(x&&!paths.includes(x))paths.push(x);});});for(const path of paths)await removeStoredPhoto(path);
 }
 
 async function deleteJob(){
-  const id=document.getElementById('ej-id').value;if(!id)return;if(!confirm('Delete this job record? This cannot be undone.'))return;
-  DB.jobHistory=DB.jobHistory.filter(x=>x.id!==id);queueDelete('job_history',id);saveDB();closeModal('editjob-modal');renderDash();renderReports();renderCalendar();refreshInvoicePageIfOpen();await deleteCloudRecord('job_history',id);
+  const id=document.getElementById('ej-id').value;if(!id)return;if(!confirm('Delete this job record? This cannot be undone.'))return;const job=DB.jobHistory.find(x=>x.id===id);DB.jobHistory=DB.jobHistory.filter(x=>x.id!==id);queueDelete('job_history',id);saveDB();closeModal('editjob-modal');renderDash();renderReports();renderCalendar();refreshInvoicePageIfOpen();await Promise.all([deleteCloudRecord('job_history',id),deleteJobStoredPhotos(job)]);
 }
 
 // ══ INVOICES / PAYMENTS ══════════════════════════════════════════
 // Operational accounts-receivable view. The durable status fields live on each
-// completed job and are included in ros_job_metadata, so they sync across devices.
+// completed job and are stored directly on each job_history row, so they sync atomically across devices.
 let invoiceFilter='all';
 
 function setInvoiceFilter(filter,btn){
@@ -3763,11 +3482,10 @@ function invoicePaidMethodLabel(j){
 }
 
 function invoiceStatusInfo(j){
-  if(j&&j.paid){
-    const method=invoicePaidMethodLabel(j);
-    return {key:'paid',label:method||'Paid',badge:'PAID',bg:'var(--gp)',color:'var(--green)'};
-  }
-  if(paymentStatus(j)==='invoice_sent')return {key:'invoice_sent',label:'Invoice Sent — Awaiting Payment',badge:'INVOICE SENT',bg:'#eef4ff',color:'var(--blue)'};
+  const ps=paymentStatus(j);
+  if(ps==='not_billable')return {key:'not_billable',label:'No Charge / Not Billable',badge:'NO CHARGE',bg:'var(--s2)',color:'var(--ink3)'};
+  if(j&&j.paid){const method=invoicePaidMethodLabel(j);return {key:'paid',label:method||'Paid',badge:'PAID',bg:'var(--gp)',color:'var(--green)'};}
+  if(ps==='invoice_sent'){const age=invoiceAgeDays(j);return {key:'invoice_sent',label:'Invoice Sent — Awaiting Payment'+(age?' · '+age+' day'+(age===1?'':'s'):''),badge:age>=7?'INVOICE 7+ DAYS':'INVOICE SENT',bg:age>=7?'var(--ambp)':'#eef4ff',color:age>=7?'var(--amb)':'var(--blue)'};}
   return {key:'needs_invoice',label:'Invoice Not Sent',badge:'NEEDS INVOICE',bg:'#fff4f1',color:'var(--red)'};
 }
 
@@ -3793,71 +3511,17 @@ function paidThisMonth(j){
 }
 
 function renderInvoices(){
-  const summary=document.getElementById('invoice-summary'),listEl=document.getElementById('invoice-list');
-  if(!summary||!listEl)return;
-  const jobs=[...(DB.jobHistory||[])];
-  const outstanding=jobs.filter(j=>!j.paid);
-  const awaiting=outstanding.filter(j=>paymentStatus(j)==='invoice_sent');
-  const needsInvoice=outstanding.filter(j=>paymentStatus(j)!=='invoice_sent');
-  const outstandingAmt=outstanding.reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0);
-  const collectedMonth=jobs.filter(paidThisMonth).reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0);
-
-  summary.innerHTML=
-    `<div class="dash-card"><div class="dash-val" style="color:${outstandingAmt>0?'var(--red)':'var(--green)'}">$${outstandingAmt.toFixed(0)}</div><div class="dash-lbl">Outstanding</div></div>`+
-    `<div class="dash-card"><div class="dash-val" style="color:${awaiting.length?'var(--blue)':'var(--green)'}">${awaiting.length}</div><div class="dash-lbl">Awaiting payment</div></div>`+
-    `<div class="dash-card"><div class="dash-val" style="color:${needsInvoice.length?'var(--red)':'var(--green)'}">${needsInvoice.length}</div><div class="dash-lbl">Need invoice</div></div>`+
-    `<div class="dash-card"><div class="dash-val" style="color:var(--green)">$${collectedMonth.toFixed(0)}</div><div class="dash-lbl">Collected this month</div></div>`;
-
+  const summary=document.getElementById('invoice-summary'),listEl=document.getElementById('invoice-list');if(!summary||!listEl)return;
+  const jobs=[...(DB.jobHistory||[])],billable=jobs.filter(j=>paymentStatus(j)!=='not_billable'),outstanding=billable.filter(j=>!j.paid),awaiting=outstanding.filter(j=>paymentStatus(j)==='invoice_sent'),needsInvoice=outstanding.filter(j=>paymentStatus(j)==='unpaid'),overdue=awaiting.filter(j=>invoiceAgeDays(j)>=7),outstandingAmt=outstanding.reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0),collectedMonth=jobs.filter(paidThisMonth).reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0);
+  summary.innerHTML=`<div class="dash-card"><div class="dash-val" style="color:${outstandingAmt>0?'var(--red)':'var(--green)'}">$${outstandingAmt.toFixed(0)}</div><div class="dash-lbl">Outstanding</div></div><div class="dash-card"><div class="dash-val" style="color:${awaiting.length?'var(--blue)':'var(--green)'}">${awaiting.length}</div><div class="dash-lbl">Awaiting payment${overdue.length?' · '+overdue.length+' 7+d':''}</div></div><div class="dash-card"><div class="dash-val" style="color:${needsInvoice.length?'var(--red)':'var(--green)'}">${needsInvoice.length}</div><div class="dash-lbl">Need invoice</div></div><div class="dash-card"><div class="dash-val" style="color:var(--green)">$${collectedMonth.toFixed(0)}</div><div class="dash-lbl">Collected this month</div></div>`;
   const q=((document.getElementById('invoice-search')||{}).value||'').trim().toLowerCase();
-  let filtered=jobs.filter(j=>{
-    const st=invoiceStatusInfo(j),c=DB.customers.find(x=>x.id===j.custId);
-    if(invoiceFilter==='needs_invoice'&&st.key!=='needs_invoice')return false;
-    if(invoiceFilter==='invoice_sent'&&st.key!=='invoice_sent')return false;
-    if(invoiceFilter==='paid'&&st.key!=='paid')return false;
-    if(invoiceFilter==='week'&&!invoiceInCurrentWeek(j.date))return false;
-    if(invoiceFilter==='month'&&!invoiceInCurrentMonth(j.date))return false;
-    if(q){const hay=[custFullName(c),j.serviceDesc||'',jobTypeLabel(j.jobType||'mow'),j.date,j.paidMethod||'',st.label].join(' ').toLowerCase();if(!hay.includes(q))return false;}
-    return true;
-  });
-
-  const rank={needs_invoice:0,invoice_sent:1,paid:2};
-  filtered.sort((a,b)=>{
-    if(invoiceFilter==='all'){
-      const ar=rank[invoiceStatusInfo(a).key],br=rank[invoiceStatusInfo(b).key];
-      if(ar!==br)return ar-br;
-    }
-    return String(b.date||'').localeCompare(String(a.date||''))||String(b.paidAt||b.invoiceSentAt||0).localeCompare(String(a.paidAt||a.invoiceSentAt||0));
-  });
-
-  if(!filtered.length){
-    listEl.innerHTML='<div class="card"><div class="empty-state" style="padding:1.25rem"><i class="ti ti-file-invoice"></i><strong>No jobs match this filter</strong><small>Completed jobs will appear here with their invoice and payment status.</small></div></div>';
-    return;
-  }
-
-  listEl.innerHTML=filtered.map(j=>{
-    const c=DB.customers.find(x=>x.id===j.custId),st=invoiceStatusInfo(j),amt=jobAmount(j,c),desc=j.serviceDesc||jobTypeLabel(j.jobType||'mow');
-    const invoiceStamp=invoiceDateText(j.invoiceSentAt,'Invoice sent');
-    const paidStamp=invoiceDateText(j.paidAt,'Paid');
-    const timeline=[invoiceStamp,paidStamp].filter(Boolean).join(' · ');
-    const actions=st.key==='paid'
-      ? `<button class="btn bxsm" onclick="openEditJobModal('${jsStr(j.id)}')"><i class="ti ti-edit"></i> Edit</button>`
-      : `${st.key==='needs_invoice'?`<button class="btn bxsm" style="background:#eef4ff;color:var(--blue);border-color:#b3c8f0" onclick="markInvoiceSentDash('${jsStr(j.id)}')"><i class="ti ti-file-invoice"></i> Invoice Sent</button>`:''}
-         <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4" onclick="markPaidDash('${jsStr(j.id)}','cash')"><i class="ti ti-cash"></i> Cash</button>
-         <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4" onclick="markPaidDash('${jsStr(j.id)}','check')"><i class="ti ti-receipt"></i> Check</button>
-         <button class="btn bxsm" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="markPaidDash('${jsStr(j.id)}','paid')"><i class="ti ti-check"></i> Paid</button>
-         <button class="btn bxsm" onclick="openEditJobModal('${jsStr(j.id)}')"><i class="ti ti-edit"></i></button>`;
-    return `<div class="card" style="margin-top:.5rem">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:15px">${c?esc(custFullName(c)):'Deleted customer'}</div>
-          <div style="font-size:12px;color:var(--ink3);margin-top:2px">${esc(fmtDate(j.date))} · ${esc(desc)}</div>
-          <div style="display:inline-flex;align-items:center;margin-top:7px;padding:4px 8px;border-radius:999px;background:${st.bg};color:${st.color};font-size:10px;font-weight:800;letter-spacing:.03em">${esc(st.badge)}</div>
-          <div style="font-size:11px;color:var(--ink3);margin-top:6px">${esc(st.label)}${timeline?' · '+esc(timeline):''}</div>
-        </div>
-        <div style="font-weight:800;font-size:18px;color:${st.key==='paid'?'var(--green)':'var(--red)'};flex-shrink:0">$${amt.toFixed(2)}</div>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:.75rem">${actions}</div>
-    </div>`;
+  let filtered=jobs.filter(j=>{const st=invoiceStatusInfo(j),c=DB.customers.find(x=>x.id===j.custId);if(invoiceFilter==='needs_invoice'&&st.key!=='needs_invoice')return false;if(invoiceFilter==='invoice_sent'&&st.key!=='invoice_sent')return false;if(invoiceFilter==='paid'&&st.key!=='paid')return false;if(invoiceFilter==='not_billable'&&st.key!=='not_billable')return false;if(invoiceFilter==='overdue'&&!(st.key==='invoice_sent'&&invoiceAgeDays(j)>=7))return false;if(invoiceFilter==='week'&&!invoiceInCurrentWeek(j.date))return false;if(invoiceFilter==='month'&&!invoiceInCurrentMonth(j.date))return false;if(q){const hay=[custFullName(c),j.serviceDesc||'',jobTypeLabel(j.jobType||'mow'),j.date,j.paidMethod||'',st.label].join(' ').toLowerCase();if(!hay.includes(q))return false;}return true;});
+  const rank={needs_invoice:0,invoice_sent:1,paid:2,not_billable:3};filtered.sort((a,b)=>{if(invoiceFilter==='all'){const ar=rank[invoiceStatusInfo(a).key],br=rank[invoiceStatusInfo(b).key];if(ar!==br)return ar-br;}if(paymentStatus(a)==='invoice_sent'&&paymentStatus(b)==='invoice_sent')return invoiceAgeDays(b)-invoiceAgeDays(a);return String(b.date||'').localeCompare(String(a.date||''))||Number(b.paidAt||b.invoiceSentAt||0)-Number(a.paidAt||a.invoiceSentAt||0);});
+  if(!filtered.length){listEl.innerHTML='<div class="card"><div class="empty-state" style="padding:1.25rem"><i class="ti ti-file-invoice"></i><strong>No jobs match this filter</strong><small>Completed jobs will appear here with their invoice and payment status.</small></div></div>';return;}
+  listEl.innerHTML=filtered.map(j=>{const c=DB.customers.find(x=>x.id===j.custId),st=invoiceStatusInfo(j),amt=jobAmount(j,c),desc=j.serviceDesc||jobTypeLabel(j.jobType||'mow'),timeline=[invoiceDateText(j.invoiceSentAt,'Invoice sent'),invoiceDateText(j.paidAt,'Paid')].filter(Boolean).join(' · ');let actions='';
+    if(st.key==='paid'||st.key==='not_billable')actions=`<button class="btn bxsm fin-action" onclick="openEditJobModal('${jsStr(j.id)}')"><i class="ti ti-edit"></i> Edit</button>`;
+    else actions=`${st.key==='needs_invoice'?`<button class="btn bxsm fin-action" style="background:#eef4ff;color:var(--blue);border-color:#b3c8f0" onclick="markInvoiceSentDash('${jsStr(j.id)}')"><i class="ti ti-file-invoice"></i> Invoice Sent</button>`:''}<button class="btn bxsm fin-action" style="background:var(--gp);color:var(--green);border-color:#b8d5b4" onclick="markPaidDash('${jsStr(j.id)}','cash')"><i class="ti ti-cash"></i> Cash</button><button class="btn bxsm fin-action" style="background:var(--gp);color:var(--green);border-color:#b8d5b4" onclick="markPaidDash('${jsStr(j.id)}','check')"><i class="ti ti-receipt"></i> Check</button><button class="btn bxsm fin-action" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="markPaidDash('${jsStr(j.id)}','paid')"><i class="ti ti-check"></i> Paid</button><button class="btn bxsm fin-action" onclick="markNotBillableDash('${jsStr(j.id)}')"><i class="ti ti-circle-minus"></i> No Charge</button><button class="btn bxsm fin-action" onclick="openEditJobModal('${jsStr(j.id)}')"><i class="ti ti-edit"></i></button>`;
+    return `<div class="card" style="margin-top:.5rem"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px"><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:15px">${c?esc(custFullName(c)):'Deleted customer'}</div><div style="font-size:12px;color:var(--ink3);margin-top:2px">${esc(fmtDate(j.date))} · ${esc(desc)}</div><div style="display:inline-flex;align-items:center;margin-top:7px;padding:4px 8px;border-radius:999px;background:${st.bg};color:${st.color};font-size:10px;font-weight:800;letter-spacing:.03em">${esc(st.badge)}</div><div style="font-size:11px;color:var(--ink3);margin-top:6px">${esc(st.label)}${timeline?' · '+esc(timeline):''}</div></div><div style="font-weight:800;font-size:18px;color:${st.key==='paid'?'var(--green)':st.key==='not_billable'?'var(--ink3)':'var(--red)'};flex-shrink:0">${st.key==='not_billable'?'—':'$'+amt.toFixed(2)}</div></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:.75rem">${actions}</div></div>`;
   }).join('');
 }
 
@@ -3867,29 +3531,17 @@ function refreshInvoicePageIfOpen(){
 }
 
 function renderReports(){
-  const el=document.getElementById('report-content');if(!el)return;
-  const period=(document.getElementById('report-period')||{}).value||'week',now=new Date();
-  const inPeriod=(date)=>{const d=parseLocalDate(date);if(period==='all')return true;if(period==='month')return d>=new Date(now.getFullYear(),now.getMonth(),1);const monday=new Date(now);monday.setDate(now.getDate()-((now.getDay()+6)%7));monday.setHours(0,0,0,0);return d>=monday;};
-  const filtered=DB.jobHistory.filter(j=>inPeriod(j.date));
-  const totalJobs=filtered.length,revenue=filtered.filter(j=>j.paid).reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0),
-        unpaidRevenue=filtered.filter(j=>!j.paid).reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0);
-  const timed=filtered.filter(j=>Number(j.actualMin)>0),avgActual=timed.length?timed.reduce((a,j)=>a+Number(j.actualMin||0),0)/timed.length:0;
-  const mileageLog=safeParseJSON(localStorage.getItem('ros_mileage_log'),[]).filter(e=>e&&inPeriod(e.date));
-  const totalMiles=mileageLog.reduce((a,e)=>a+(Number(e.miles)||0),0);
-  const catMap={};
-  filtered.filter(j=>j.paid).forEach(j=>{
-    const c=DB.customers.find(x=>x.id===j.custId),amt=jobAmount(j,c);
-    const items=Array.isArray(j.lineItems)?j.lineItems.filter(x=>x&&x.name):[];
-    if(items.length){items.forEach(x=>{const key=String(x.name).trim();if(!catMap[key])catMap[key]={count:0,revenue:0};catMap[key].count++;catMap[key].revenue+=Math.max(0,Number(x.price)||0);});return;}
-    const desc=String(j.serviceDesc||'').trim();const parts=desc?desc.split(/\s*\+\s*/).filter(Boolean):[jobTypeLabel(j.jobType||'mow')||svcShort(c&&c.serviceType)];
-    parts.forEach(x=>{const key=String(x).trim()||'Service';if(!catMap[key])catMap[key]={count:0,revenue:0};catMap[key].count++;catMap[key].revenue+=amt/Math.max(1,parts.length);});
-  });
-  const cats=Object.entries(catMap).sort((a,b)=>b[1].revenue-a[1].revenue),sorted=[...filtered].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-  el.innerHTML=`<div class="dash-grid"><div class="dash-card"><div class="dash-val">${totalJobs}</div><div class="dash-lbl">Jobs completed</div></div><div class="dash-card"><div class="dash-val" style="color:var(--green)">$${revenue.toFixed(0)}</div><div class="dash-lbl">Revenue collected</div></div><div class="dash-card"><div class="dash-val" style="color:var(--red)">$${unpaidRevenue.toFixed(0)}</div><div class="dash-lbl">Outstanding</div></div><div class="dash-card"><div class="dash-val">${avgActual?Math.round(avgActual)+'m':'—'}</div><div class="dash-lbl">Avg job time</div></div></div>
-  ${cats.length?`<div class="card"><div class="card-title">Revenue by service</div>${cats.map(([name,d])=>`<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--s3)"><div><div style="font-weight:600;font-size:13px">${esc(name)}</div><div style="font-size:11px;color:var(--ink3)">${d.count} item${d.count!==1?'s':''}</div></div><div style="font-weight:700;color:var(--green)">$${d.revenue.toFixed(0)}</div></div>`).join('')}</div>`:''}
-  <div class="card"><div class="card-title">All jobs (${sorted.length})</div>${sorted.length?sorted.map(j=>{const c=DB.customers.find(x=>x.id===j.custId),amt=jobAmount(j,c),desc=j.serviceDesc||jobTypeLabel(j.jobType||'mow');return `<div style="display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):'Deleted customer'}</div><div style="font-size:11px;color:var(--ink3)">${esc(fmtDate(j.date))} · ${esc(desc)}</div>${j.notes?`<div style="font-size:11px;color:var(--ink3)">${esc(j.notes)}</div>`:''}</div><div style="text-align:right;flex-shrink:0"><div style="font-weight:700;font-size:13px;color:${j.paid?'var(--green)':'var(--red)'}">$${amt.toFixed(2)}</div><span class="tag ${j.paid?'tag-green':'tag-red'}" style="font-size:9px">${j.paid?esc((j.invoiceSentAt?'Invoice → ':'')+(j.paidMethod||'paid')):esc(paymentStatus(j)==='invoice_sent'?'Invoice Sent':'Unpaid')}</span><div><button class="btn bxsm" onclick="openEditJobModal('${jsStr(j.id)}')" style="margin-top:4px"><i class="ti ti-edit"></i></button></div></div></div>`;}).join(''):'<div class="empty-state" style="padding:1rem"><small>No jobs recorded yet</small></div>'}</div>
+  const el=document.getElementById('report-content');if(!el)return;const period=(document.getElementById('report-period')||{}).value||'week',now=new Date();
+  const inPeriodDate=(d)=>{if(!(d instanceof Date))d=parseLocalDate(d);if(period==='all')return true;if(period==='month'){const start=new Date(now.getFullYear(),now.getMonth(),1),next=new Date(now.getFullYear(),now.getMonth()+1,1);return d>=start&&d<next;}const monday=new Date(now);monday.setDate(now.getDate()-((now.getDay()+6)%7));monday.setHours(0,0,0,0);const next=new Date(monday);next.setDate(monday.getDate()+7);return d>=monday&&d<next;};
+  const workJobs=DB.jobHistory.filter(j=>inPeriodDate(j.date)),paidJobs=DB.jobHistory.filter(j=>j.paid&&inPeriodDate(j.paidAt?new Date(Number(j.paidAt)):parseLocalDate(j.date))),outstandingJobs=workJobs.filter(j=>!j.paid&&paymentStatus(j)!=='not_billable');
+  const totalJobs=workJobs.length,revenue=paidJobs.reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0),unpaidRevenue=outstandingJobs.reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0),timed=workJobs.filter(j=>Number(j.actualMin)>0),avgActual=timed.length?timed.reduce((a,j)=>a+Number(j.actualMin||0),0)/timed.length:0,mileageLog=getMileageLog().filter(e=>e&&inPeriodDate(e.date)),totalMiles=mileageLog.reduce((a,e)=>a+(Number(e.miles)||0),0),catMap={};
+  paidJobs.forEach(j=>{const c=DB.customers.find(x=>x.id===j.custId),amt=jobAmount(j,c),items=Array.isArray(j.lineItems)?j.lineItems.filter(x=>x&&x.name):[];if(items.length){const listed=items.reduce((a,x)=>a+Math.max(0,Number(x.price)||0),0),factor=listed>0?amt/listed:1/items.length;items.forEach(x=>{const key=String(x.name).trim()||'Service';if(!catMap[key])catMap[key]={count:0,revenue:0};catMap[key].count++;catMap[key].revenue+=listed>0?Math.max(0,Number(x.price)||0)*factor:amt*factor;});return;}const desc=String(j.serviceDesc||'').trim(),parts=desc?desc.split(/\s*\+\s*/).filter(Boolean):[jobTypeLabel(j.jobType||'mow')||svcShort(c&&c.serviceType)];parts.forEach(x=>{const key=String(x).trim()||'Service';if(!catMap[key])catMap[key]={count:0,revenue:0};catMap[key].count++;catMap[key].revenue+=amt/Math.max(1,parts.length);});});
+  const cats=Object.entries(catMap).sort((a,b)=>b[1].revenue-a[1].revenue),sorted=[...workJobs].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  el.innerHTML=`<div class="dash-grid"><div class="dash-card"><div class="dash-val">${totalJobs}</div><div class="dash-lbl">Jobs completed</div></div><div class="dash-card"><div class="dash-val" style="color:var(--green)">$${revenue.toFixed(0)}</div><div class="dash-lbl">Payments collected</div></div><div class="dash-card"><div class="dash-val" style="color:var(--red)">$${unpaidRevenue.toFixed(0)}</div><div class="dash-lbl">Outstanding from work period</div></div><div class="dash-card"><div class="dash-val">${avgActual?Math.round(avgActual)+'m':'—'}</div><div class="dash-lbl">Avg job time</div></div></div>
+  ${cats.length?`<div class="card"><div class="card-title">Collected revenue by service</div>${cats.map(([name,d])=>`<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--s3)"><div><div style="font-weight:600;font-size:13px">${esc(name)}</div><div style="font-size:11px;color:var(--ink3)">${d.count} item${d.count!==1?'s':''}</div></div><div style="font-weight:700;color:var(--green)">$${d.revenue.toFixed(0)}</div></div>`).join('')}</div>`:''}
+  <div class="card"><div class="card-title">All work completed (${sorted.length})</div>${sorted.length?sorted.map(j=>{const c=DB.customers.find(x=>x.id===j.custId),amt=jobAmount(j,c),desc=j.serviceDesc||jobTypeLabel(j.jobType||'mow'),ps=paymentStatus(j);return `<div style="display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):'Deleted customer'}</div><div style="font-size:11px;color:var(--ink3)">${esc(fmtDate(j.date))} · ${esc(desc)}</div>${j.notes?`<div style="font-size:11px;color:var(--ink3)">${esc(j.notes)}</div>`:''}</div><div style="text-align:right;flex-shrink:0"><div style="font-weight:700;font-size:13px;color:${j.paid?'var(--green)':ps==='not_billable'?'var(--ink3)':'var(--red)'}">${ps==='not_billable'?'—':'$'+amt.toFixed(2)}</div><span class="tag ${j.paid?'tag-green':ps==='not_billable'?'tag-gray':'tag-red'}" style="font-size:9px">${esc(paymentStatusDetail(j))}</span><div><button class="btn bxsm fin-action" onclick="openEditJobModal('${jsStr(j.id)}')" style="margin-top:4px"><i class="ti ti-edit"></i></button></div></div></div>`;}).join(''):'<div class="empty-state" style="padding:1rem"><small>No jobs recorded yet</small></div>'}</div>
   <div class="card"><div class="card-title">Mileage log</div><div class="mile-badge"><i class="ti ti-car"></i> ${totalMiles.toFixed(1)} miles in selected period</div>${mileageLog.length?mileageLog.slice(-10).reverse().map(e=>`<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--s3);font-size:13px"><span>${esc(fmtDate(e.date))}</span><span style="font-weight:600;color:var(--blue)">${(Number(e.miles)||0).toFixed(1)} mi · ${Number(e.stops)||0} stops</span></div>`).join(''):'<div style="font-size:13px;color:var(--ink3)">No mileage logged in this period.</div>'}</div>
-  <div class="card"><div class="card-title">Customer breakdown</div>${DB.customers.filter(c=>c.sched!=='inactive').map(c=>{const jobs=filtered.filter(j=>j.custId===c.id),rev=jobs.filter(j=>j.paid).reduce((a,j)=>a+jobAmount(j,c),0),times=jobs.filter(j=>Number(j.actualMin)>0),avg=times.length?times.reduce((a,j)=>a+Number(j.actualMin),0)/times.length:0;return `<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div class="cust-avatar" style="width:32px;height:32px;font-size:15px">${esc(initials(c))}</div><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${esc(custFullName(c))}</div><div style="font-size:11px;color:var(--ink3)">${jobs.length} jobs${avg?' · '+Math.round(avg)+'m avg':''}</div></div><div style="font-weight:700;color:var(--green)">$${rev.toFixed(0)}</div></div>`;}).join('')}</div>`;
+  <div class="card"><div class="card-title">Customer breakdown</div>${DB.customers.filter(c=>c.sched!=='inactive').map(c=>{const jobs=workJobs.filter(j=>j.custId===c.id),rev=paidJobs.filter(j=>j.custId===c.id).reduce((a,j)=>a+jobAmount(j,c),0),times=jobs.filter(j=>Number(j.actualMin)>0),avg=times.length?times.reduce((a,j)=>a+Number(j.actualMin),0)/times.length:0;return `<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div class="cust-avatar" style="width:32px;height:32px;font-size:15px">${esc(initials(c))}</div><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${esc(custFullName(c))}</div><div style="font-size:11px;color:var(--ink3)">${jobs.length} jobs${avg?' · '+Math.round(avg)+'m avg':''}</div></div><div style="font-weight:700;color:var(--green)">$${rev.toFixed(0)}</div></div>`;}).join('')}</div>`;
 }
 
 function openReportModal(){
@@ -3918,26 +3570,27 @@ function updateBackupStats(){
 
 function backupData(){
   const cleanDB=JSON.parse(JSON.stringify(DB));if(cleanDB.settings){delete cleanDB.settings.hubspotKey;delete cleanDB.settings.mapsKey;}
-  const payload={version:4,exportedAt:new Date().toISOString(),db:cleanDB,extras:{services:getServices(),mileage:safeParseJSON(localStorage.getItem('ros_mileage_log'),[]),bizName:getBizName()}};
+  const payload={version:5,exportedAt:new Date().toISOString(),db:cleanDB,extras:{services:getServices(),mileage:getMileageLog(),bizName:getBizName()}};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ROS-Backup-'+todayStr()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   localStorage.setItem('ros_last_backup',new Date().toISOString());updateBackupStats();showRestoreMsg('Backup downloaded. It includes customers, jobs, invoice/payment history, schedules, job types, services, mileage, and settings (but excludes API keys).','var(--gp)','var(--green)');
 }
 
+async function clearRestoreTombstones(restoredDB){
+  if(!supabaseClient)return false;const groups=[['customers',(restoredDB.customers||[]).map(x=>x.id)],['job_history',(restoredDB.jobHistory||[]).map(x=>x.id)],['scheduled_jobs',(restoredDB.scheduledJobs||[]).map(x=>x.id)],['rain_shifts',(restoredDB.rainShifts||[]).map(x=>x.id)]];
+  try{for(const [table,ids] of groups){for(let i=0;i<ids.length;i+=100){const chunk=ids.slice(i,i+100).filter(Boolean);if(!chunk.length)continue;const {error}=await withTimeout(supabaseClient.from('deleted_records').delete().eq('table_name',table).in('record_id',chunk.map(String)),8000,'restore tombstone clear');if(error)throw error;chunk.forEach(id=>_cloudTombstones.delete(tombstoneKey(table,id)));}}return true;}catch(e){console.log('Restore tombstone clear error',e);return false;}
+}
+
 function restoreData(input){
-  const file=input.files&&input.files[0];if(!file)return;if(file.size>25*1024*1024){showRestoreMsg('Backup is too large to restore safely in the browser.','var(--rp)','var(--red)');input.value='';return;}
-  const reader=new FileReader();reader.onload=async function(e){
-    try{
-      const payload=JSON.parse(e.target.result);if(!payload||!payload.db||!Array.isArray(payload.db.customers)||!Array.isArray(payload.db.jobHistory)){throw new Error('Invalid ROS backup');}
-      const exported=payload.exportedAt?new Date(payload.exportedAt):null,when=exported&&!isNaN(exported)?exported.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'unknown date';
-      if(!confirm('Restore this backup? This replaces the app data on this device and reconciles cloud records.\n\nBackup date: '+when+'\nCustomers: '+payload.db.customers.length+'\nJobs: '+payload.db.jobHistory.length)){input.value='';return;}
-      const old={customers:new Set(DB.customers.map(x=>x.id)),jobs:new Set(DB.jobHistory.map(x=>x.id)),scheduled:new Set((DB.scheduledJobs||[]).map(x=>x.id))};
-      DB=Object.assign({customers:[],jobHistory:[],jobTypes:[],scheduledJobs:[],rainShifts:[],pendingDeletes:[],settings:{}},payload.db);normalizeDB();if(DB.settings){delete DB.settings.hubspotKey;delete DB.settings.mapsKey;}
-      old.customers.forEach(id=>{if(!DB.customers.some(x=>x.id===id))queueDelete('customers',id);});old.jobs.forEach(id=>{if(!DB.jobHistory.some(x=>x.id===id))queueDelete('job_history',id);});old.scheduled.forEach(id=>{if(!DB.scheduledJobs.some(x=>x.id===id))queueDelete('scheduled_jobs',id);});
-      const ex=payload.extras||{};if(Array.isArray(ex.services))saveServices(ex.services);if(Array.isArray(ex.mileage))localStorage.setItem('ros_mileage_log',JSON.stringify(ex.mileage));if(ex.bizName)DB.settings.bizName=String(ex.bizName).slice(0,120);
-      await saveDB();retryPendingDeletes();
-      if(DB.settings.homeBase)document.getElementById('plan-home').value=DB.settings.homeBase;if(DB.settings.startTime)document.getElementById('plan-start').value=DB.settings.startTime;if(DB.settings.hours)document.getElementById('plan-hours').value=DB.settings.hours;
-      renderDash();renderCustomers();renderReports();renderCalendar();renderTypeList();loadServicesUI();loadStripeSettingsUI();updateBackupStats();refreshInvoicePageIfOpen();showRestoreMsg('✓ Restore complete. Cloud deletions, if any, will retry automatically if the connection is unavailable.','var(--gp)','var(--green)');
-    }catch(err){showRestoreMsg('Could not restore that file. Make sure it is a valid ROS backup.','var(--rp)','var(--red)');}finally{input.value='';}
+  const file=input.files&&input.files[0];if(!file)return;if(file.size>25*1024*1024){showRestoreMsg('Backup is too large to restore safely in the browser.','var(--rp)','var(--red)');input.value='';return;}const reader=new FileReader();reader.onload=async function(e){
+    try{const payload=JSON.parse(e.target.result);if(!payload||!payload.db||!Array.isArray(payload.db.customers)||!Array.isArray(payload.db.jobHistory))throw new Error('Invalid ROS backup');const exported=payload.exportedAt?new Date(payload.exportedAt):null,when=exported&&!isNaN(exported)?exported.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'unknown date';if(!confirm('Restore this backup? This replaces the app data on this device and reconciles cloud records.\n\nBackup date: '+when+'\nCustomers: '+payload.db.customers.length+'\nJobs: '+payload.db.jobHistory.length)){input.value='';return;}
+      // Build/normalize the restore in memory only after deletion markers for records
+      // intentionally being restored have been cleared. Otherwise a valid backup row
+      // could immediately disappear again because of an old tombstone.
+      const restored=Object.assign({customers:[],jobHistory:[],jobTypes:[],scheduledJobs:[],mileageLog:[],rainShifts:[],pendingDeletes:[],settings:{}},payload.db);const ex=payload.extras||{};if(!Array.isArray(restored.mileageLog)&&Array.isArray(ex.mileage))restored.mileageLog=ex.mileage;
+      const tombOk=await clearRestoreTombstones(restored);if(!tombOk){showRestoreMsg('Restore stopped: cloud deletion markers could not be safely cleared. Try again when connected.','var(--rp)','var(--red)');return;}
+      const old={customers:new Set(DB.customers.map(x=>x.id)),jobs:new Set(DB.jobHistory.map(x=>x.id)),scheduled:new Set((DB.scheduledJobs||[]).map(x=>x.id)),rain:new Set((DB.rainShifts||[]).map(x=>x.id))};DB=restored;normalizeDB();if(DB.settings){delete DB.settings.hubspotKey;delete DB.settings.mapsKey;}old.customers.forEach(id=>{if(!DB.customers.some(x=>x.id===id))queueDelete('customers',id);});old.jobs.forEach(id=>{if(!DB.jobHistory.some(x=>x.id===id))queueDelete('job_history',id);});old.scheduled.forEach(id=>{if(!DB.scheduledJobs.some(x=>x.id===id))queueDelete('scheduled_jobs',id);});old.rain.forEach(id=>{if(!DB.rainShifts.some(x=>x.id===id))queueDelete('rain_shifts',id);});if(Array.isArray(ex.services))saveServices(ex.services);if(Array.isArray(ex.mileage))setMileageLog(ex.mileage);if(ex.bizName)DB.settings.bizName=String(ex.bizName).slice(0,120);
+      const ok=await saveDB();await retryPendingDeletes();await hydrateSignedPhotoUrls();if(DB.settings.homeBase)document.getElementById('plan-home').value=DB.settings.homeBase;if(DB.settings.startTime)document.getElementById('plan-start').value=DB.settings.startTime;if(DB.settings.hours)document.getElementById('plan-hours').value=DB.settings.hours;renderDash();renderCustomers();renderReports();renderCalendar();renderTypeList();loadServicesUI();loadStripeSettingsUI();updateBackupStats();refreshInvoicePageIfOpen();showRestoreMsg(ok?'✓ Restore complete and cloud synced.':'Restore loaded locally, but cloud sync is still pending. Keep this device open and retry when connected.',ok?'var(--gp)':'var(--ambp)',ok?'var(--green)':'var(--amb)');
+    }catch(err){console.log(err);showRestoreMsg('Could not restore that file. Make sure it is a valid ROS backup.','var(--rp)','var(--red)');}finally{input.value='';}
   };reader.onerror=()=>{showRestoreMsg('Could not read that backup file.','var(--rp)','var(--red)');input.value='';};reader.readAsText(file);
 }
 
@@ -3963,8 +3616,10 @@ async function startApp(){
   document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open'));
   const pv=document.getElementById('pviewer'); if(pv)pv.classList.remove('open');
 
+  await checkR8Schema();
   await loadDB();
-  await reconcileLocalOnlyToCloud();
+  await retryPendingStorageDeletes();
+  if(_r8SchemaReady){await reconcileLocalOnlyToCloud();await saveDB();}
   cleanupOldRainShifts();
 
 
@@ -3986,6 +3641,9 @@ async function startApp(){
 
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   tryAutoLoadTracker();
+  if(!trackerRoute)await loadActiveTrackerCheckpoint();
+  else hydrateTrackerSignedPhotoUrls().then(()=>{saveTrackerStates();renderTracker();}).catch(()=>{});
+  if(!_r8SchemaReady)setTimeout(()=>alert('R8 needs the one-time Supabase database migration before cloud syncing is enabled. Run the R8 SQL migration, then reload this page. Your existing local data has not been deleted.'),500);
   renderDash();
   renderCustomers();
   renderReports();
@@ -4069,8 +3727,11 @@ if(supabaseClient){
 }
 
 // ══ PWA SERVICE WORKER ═══════════════════════════════════════════
-// This single-file build does not register or unregister service workers.
-// A hosted deployment can add a scoped service-worker file separately.
+// R8 adds a tiny same-origin app-shell cache. Navigations remain network-first
+// so deploying a new index.html is not trapped behind an old offline copy.
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./ros-sw.js').catch(e=>console.log('Service worker registration error',e)));
+}
 
 // PWA install prompt
 let deferredInstallPrompt=null;
@@ -4151,6 +3812,7 @@ window.addEventListener('load',()=>{
       <select id="ej-paid">
         <option value="unpaid">Unpaid — Invoice not sent</option>
         <option value="invoice">Invoice Sent — Awaiting Payment</option>
+        <option value="not_billable">No Charge / Not Billable</option>
         <option value="cash">Paid — Cash</option>
         <option value="check">Paid — Check</option>
         <option value="card">Paid — Card</option>
