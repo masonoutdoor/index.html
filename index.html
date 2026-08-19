@@ -940,7 +940,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.08.19-production-audit-r2';
+const APP_VERSION='2026.08.19-production-audit-r3';
 const supabaseClient = window.supabase&&window.supabase.createClient?window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY):null;
 
 function isUuid(value){
@@ -1046,6 +1046,9 @@ let DB = {
 
 // Tracks the last-synced signature of each record so we only push changes.
 const _syncedSig = {customers:{}, jobs:{}, scheduled:{}, appSettings:{}};
+// Cloud tombstones prevent a deleted record from being resurrected by stale localStorage on another device.
+const _cloudTombstones = new Set();
+function tombstoneKey(table,id){return String(table||'')+':'+String(id||'');}
 function _sig(obj){return JSON.stringify(obj);}
 
 function jobType(id){
@@ -1153,16 +1156,44 @@ function loadSyncSignatures(){
 function persistSyncSignatures(){
   try{localStorage.setItem('ros_sync_signatures',JSON.stringify(_syncedSig));}catch(e){}
 }
-function isPendingDelete(table,id){return Array.isArray(DB.pendingDeletes)&&DB.pendingDeletes.some(x=>x.table===table&&x.id===id);}
+function isPendingDelete(table,id){
+  const local=Array.isArray(DB.pendingDeletes)&&DB.pendingDeletes.some(x=>x.table===table&&x.id===id);
+  return local||_cloudTombstones.has(tombstoneKey(table,id));
+}
 function queueDelete(table,id){
   if(!Array.isArray(DB.pendingDeletes))DB.pendingDeletes=[];
-  if(!isPendingDelete(table,id))DB.pendingDeletes.push({table,id});
+  if(!DB.pendingDeletes.some(x=>x.table===table&&x.id===id))DB.pendingDeletes.push({table,id});
   try{localStorage.setItem('ros_db',JSON.stringify(DB));}catch(e){}
+}
+function applyCloudTombstones(){
+  DB.customers=DB.customers.filter(x=>!_cloudTombstones.has(tombstoneKey('customers',x.id)));
+  DB.jobHistory=DB.jobHistory.filter(x=>!_cloudTombstones.has(tombstoneKey('job_history',x.id)));
+  DB.scheduledJobs=DB.scheduledJobs.filter(x=>!_cloudTombstones.has(tombstoneKey('scheduled_jobs',x.id)));
+}
+async function loadCloudTombstones(){
+  if(!supabaseClient)return;
+  try{
+    const {data,error}=await withTimeout(supabaseClient.from('deleted_records').select('table_name,record_id'),6000,'deletion sync');
+    if(error){console.log('Deletion sync error',error);return;}
+    _cloudTombstones.clear();
+    (data||[]).forEach(r=>_cloudTombstones.add(tombstoneKey(r.table_name,r.record_id)));
+    applyCloudTombstones();
+  }catch(e){console.log('Deletion sync error',e);}
 }
 async function deleteCloudRecord(table,id){
   queueDelete(table,id);
   if(!supabaseClient)return false;
   try{
+    // Record the deletion FIRST. Other devices consult this tombstone before
+    // reconciling local-only records, so a stale browser cannot resurrect it.
+    const tombstone={table_name:table,record_id:String(id),deleted_at:new Date().toISOString()};
+    const {error:tombErr}=await withTimeout(
+      supabaseClient.from('deleted_records').upsert(tombstone,{onConflict:'table_name,record_id'}),
+      8000,'deletion tombstone'
+    );
+    if(tombErr){console.log('Deletion tombstone error',tombErr);return false;}
+    _cloudTombstones.add(tombstoneKey(table,id));
+
     const {error}=await withTimeout(supabaseClient.from(table).delete().eq('id',id),8000,table+' delete');
     if(error&&error.code!=='42P01'){console.log(table+' delete error',error);return false;}
     DB.pendingDeletes=DB.pendingDeletes.filter(x=>!(x.table===table&&x.id===id));
@@ -1243,6 +1274,9 @@ function saveDB(){
 
 async function syncDBToCloud(localOk=true){
   if(!supabaseClient){setSaveStatus('error');return;}
+  // Refresh deletion markers before any upsert so a long-open stale device cannot revive deleted rows.
+  await loadCloudTombstones();
+  applyCloudTombstones();
   let cloudError=false;
   let sigChanged=false;
 
@@ -1340,7 +1374,10 @@ async function loadDB(){
     if(d){DB=Object.assign(DB,safeParseJSON(d,{}));}
   }catch(e){console.log('Local load error',e);}
   normalizeDB();
+  // Pull cross-device deletion tombstones before merging any stale local records.
+  await loadCloudTombstones();
   await retryPendingDeletes();
+  applyCloudTombstones();
 
   // Save a copy of the local records before fetching cloud copies. A record that
   // differs from its last successful cloud signature is an unsynced local edit
@@ -1432,6 +1469,7 @@ async function loadDB(){
     }catch(err){console.log('App settings load error',err);}
   }
 
+  applyCloudTombstones();
   normalizeDB();
   try{localStorage.setItem('ros_db',JSON.stringify(DB));}catch(e){}
 
@@ -1449,6 +1487,8 @@ async function loadDB(){
 // or scheduled jobs can survive in localStorage but never reach a fresh device.
 async function reconcileLocalOnlyToCloud(){
   if(!supabaseClient)return;
+  await loadCloudTombstones();
+  applyCloudTombstones();
   const groups=[
     {table:'customers',records:DB.customers,rowFn:_customerRow,sigKey:'customers',deleteKey:'customers'},
     {table:'job_history',records:DB.jobHistory,rowFn:_jobRow,sigKey:'jobs',deleteKey:'job_history'},
