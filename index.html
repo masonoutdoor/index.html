@@ -383,6 +383,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
         <button class="btn" onclick="goTab('track')"><i class="ti ti-device-mobile"></i> Field Tracker</button>
         <button class="btn" onclick="goTab('customers')"><i class="ti ti-users"></i> Customers</button>
         <button class="btn" onclick="openReportModal()"><i class="ti ti-chart-bar"></i> Reports</button>
+        <button class="btn btnb" onclick="goTab('invoices')" style="grid-column:span 2"><i class="ti ti-file-invoice"></i> Invoices &amp; Payments</button>
         <button class="btn btna" onclick="openQuickJobModal()" style="grid-column:span 2"><i class="ti ti-plus"></i> Log One-Off Job</button>
       </div>
     </div>
@@ -455,6 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <div id="track-jobs"></div>
   <div id="track-export-wrap" style="display:none;margin-top:.5rem">
     <button class="btn btng" style="width:100%" onclick="exportDaySummary()"><i class="ti ti-package-export"></i> Export Day Summary + Photos</button>
+    <button id="end-day-btn" class="btn btnb" style="width:100%;margin-top:8px;display:none" onclick="endDay()"><i class="ti ti-sunset-2"></i> End Day</button>
   </div>
 </div>
 
@@ -575,38 +577,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   </div>
 </div>
 
-<!-- ══ BUSINESS ════════════════════════════════════════════════════ -->
-<div class="page" id="pg-biz">
+<!-- ══ INVOICES / PAYMENTS ════════════════════════════════════════ -->
+<div class="page" id="pg-invoices">
   <div class="page-hdr">
-    <div><div class="page-title">Business</div><div class="page-sub">Profitability &amp; KPIs</div></div>
-    <select id="biz-period" onchange="renderBiz()" style="height:32px;border-radius:var(--r);border:1px solid var(--bd);background:var(--s);font-size:13px;padding:0 8px;font-family:'DM Sans',sans-serif">
-      <option value="month">This month</option>
-      <option value="year">This year</option>
-      <option value="all">All time</option>
-    </select>
+    <div><div class="page-title">Invoices &amp; Payments</div><div class="page-sub">What is owed, invoiced, and paid</div></div>
   </div>
 
-  <div class="card">
-    <div class="card-title">From your data</div>
-    <p style="font-size:12px;color:var(--ink3);margin-bottom:.75rem">Pulled automatically from paid jobs for the selected period.</p>
-    <div class="detail-grid" id="biz-auto"></div>
-  </div>
+  <div class="dash-grid" id="invoice-summary"></div>
 
   <div class="card" style="margin-top:.5rem">
-    <div class="card-title">Your costs &amp; inputs</div>
-    <p style="font-size:12px;color:var(--ink3);margin-bottom:.75rem">Enter the things the app can't know. Leave the two revenue fields blank to use your app's auto totals, or type a figure (e.g. from your books) to override them. All inputs save automatically and sync across devices.</p>
-    <div id="biz-inputs"></div>
+    <div class="card-title">Payment status</div>
+    <input type="text" class="search-box" id="invoice-search" placeholder="Search customer or service..." oninput="renderInvoices()" style="margin-bottom:.75rem">
+    <div class="pill-tabs" id="invoice-filters" style="margin:0;display:flex;flex-wrap:wrap;gap:6px">
+      <button class="pill-tab active" data-invoice-filter="all" onclick="setInvoiceFilter('all',this)">All</button>
+      <button class="pill-tab" data-invoice-filter="needs_invoice" onclick="setInvoiceFilter('needs_invoice',this)">Needs Invoice</button>
+      <button class="pill-tab" data-invoice-filter="invoice_sent" onclick="setInvoiceFilter('invoice_sent',this)">Invoice Sent</button>
+      <button class="pill-tab" data-invoice-filter="paid" onclick="setInvoiceFilter('paid',this)">Paid</button>
+      <button class="pill-tab" data-invoice-filter="week" onclick="setInvoiceFilter('week',this)">This Week</button>
+      <button class="pill-tab" data-invoice-filter="month" onclick="setInvoiceFilter('month',this)">This Month</button>
+    </div>
   </div>
 
-  <div class="card" style="margin-top:.5rem">
-    <div class="card-title">Calculations</div>
-    <div id="biz-calcs"></div>
-  </div>
-
-  <div class="card" style="margin-top:.5rem">
-    <div class="card-title">KPI dashboard</div>
-    <div id="biz-kpis"></div>
-  </div>
+  <div id="invoice-list"></div>
 </div>
 
 <!-- ══ CALENDAR ════════════════════════════════════════════════════ -->
@@ -652,7 +644,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <div class="more-grip"></div>
   <button class="more-item" id="more-customers" onclick="goTabFromMore('customers')"><i class="ti ti-users"></i> Clients</button>
   <button class="more-item" id="more-reports" onclick="goTabFromMore('reports')"><i class="ti ti-chart-bar"></i> Reports</button>
-  <button class="more-item" id="more-biz" onclick="goTabFromMore('biz')"><i class="ti ti-calculator"></i> Business</button>
+  <button class="more-item" id="more-invoices" onclick="goTabFromMore('invoices')"><i class="ti ti-file-invoice"></i> Invoices &amp; Payments</button>
 </div>
 
 
@@ -940,7 +932,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.08.19-production-audit-r3';
+const APP_VERSION='2026.08.19-production-audit-r6-invoices-payments';
 const supabaseClient = window.supabase&&window.supabase.createClient?window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY):null;
 
 function isUuid(value){
@@ -1226,6 +1218,11 @@ function normalizeDB(){
   DB.jobHistory.forEach(j=>{const old=String(j.id||'');if(!isUuid(old)){const nu=makeUuid();if(old)jobMap.set(old,nu);j.id=nu;}else j.id=old;if(custMap.has(String(j.custId)))j.custId=custMap.get(String(j.custId));
     j.jobType=j.jobType||j.typeId||'mow';if(!validDateString(j.date))j.date=todayStr();['beforePhotos','afterPhotos','extraPhotos','beforePhotoUrls','afterPhotoUrls','extraPhotoUrls'].forEach(k=>{if(!Array.isArray(j[k]))j[k]=[];});
     j.actualMin=clampNum(j.actualMin,0,1440,0);j.estMin=clampNum(j.estMin,0,1440,0);
+    if(j.paid){j.paymentStatus='paid';}
+    else if(j.paymentStatus==='invoice_sent'||j.invoiceSentAt){j.paymentStatus='invoice_sent';}
+    else{j.paymentStatus='unpaid';}
+    if(j.invoiceSentAt!=null)j.invoiceSentAt=Number(j.invoiceSentAt)||null;
+    if(j.paidAt!=null)j.paidAt=Number(j.paidAt)||null;
   });
   DB.scheduledJobs.forEach(x=>{const old=String(x.id||'');if(!isUuid(old)){const nu=makeUuid();if(old)schedMap.set(old,nu);x.id=nu;}else x.id=old;if(custMap.has(String(x.custId)))x.custId=custMap.get(String(x.custId));
     x.jobType=x.jobType||x.typeId||'other';x.durationMin=clampNum(x.durationMin!=null?x.durationMin:x.estMin,5,600,jobType(x.jobType).defaultMin||60);x.price=clampNum(x.price,0,100000,jobType(x.jobType).defaultPrice||0);if(!validDateString(x.date))x.date=todayStr();x.done=x.done===undefined?x.status==='done':!!x.done;if(x.movesWithRain===undefined)x.movesWithRain=true;
@@ -1248,7 +1245,10 @@ function _jobMetaPayload(){
       departedAt:j.departedAt||null,
       driveMin:j.driveMin??null,
       schedId:j.schedId||null,
-      price:j.price??null
+      price:j.price??null,
+      paymentStatus:paymentStatus(j),
+      invoiceSentAt:j.invoiceSentAt||null,
+      paidAt:j.paidAt||null
     };
   });
   return out;
@@ -1519,10 +1519,10 @@ async function reconcileLocalOnlyToCloud(){
 }
 
 // ══ NAVIGATION ════════════════════════════════════════════════════
-const TABS=['dash','plan','track','cal','customers','reports','biz'];
+const TABS=['dash','plan','track','cal','customers','reports','invoices'];
 // Which tabs live in the bottom bar vs. the More sheet.
 const BOTTOM_TABS=['dash','cal','plan','track'];
-const MORE_TABS=['customers','reports','biz'];
+const MORE_TABS=['customers','reports','invoices'];
 function goTab(t){
   // Show the right page
   TABS.forEach(id=>{
@@ -1546,7 +1546,7 @@ function goTab(t){
   if(t==='cal')renderCalendar();
   if(t==='customers')renderCustomers();
   if(t==='reports'){renderReports();renderTypeList();updateBackupStats();loadStripeSettingsUI();loadHubSpotKeyUI();loadServicesUI();}
-  if(t==='biz')renderBiz();
+  if(t==='invoices')renderInvoices();
 }
 
 function openMore(){
@@ -1587,6 +1587,27 @@ function jobAmount(j,c){
   if(j&&j.price!==undefined&&j.price!==null&&j.price!=='')return Number(j.price)||0;
   return Number(c&&c.price)||0;
 }
+function paymentStatus(j){
+  if(!j)return 'unpaid';
+  if(j.paid)return 'paid';
+  if(j.paymentStatus==='invoice_sent'||j.invoiceSentAt)return 'invoice_sent';
+  return 'unpaid';
+}
+function paymentStatusLabel(j){
+  const s=paymentStatus(j);
+  if(s==='paid')return 'Paid';
+  if(s==='invoice_sent')return 'Invoice Sent';
+  return 'Unpaid';
+}
+function paymentStatusDetail(j){
+  if(!j)return 'Unpaid';
+  if(j.paid){
+    const method={cash:'Cash',check:'Check',card:'Card',paid:'Other'}[j.paidMethod]||'Paid';
+    return j.invoiceSentAt?'Invoice sent · Paid '+method:'Paid '+method;
+  }
+  if(paymentStatus(j)==='invoice_sent')return 'Invoice sent · Awaiting payment';
+  return 'Unpaid · Invoice not yet marked sent';
+}
 function normPhone(v){return String(v||'').replace(/\D/g,'');}
 function normEmail(v){return String(v||'').trim().toLowerCase();}
 function normText(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,' ');}
@@ -1619,11 +1640,12 @@ function renderDash(){
   const todayJobs=getOperationalJobsForDate(new Date());
   const monthRevenue=getMonthRevenue();
   const unpaid=DB.jobHistory.filter(j=>!j.paid);
+  const invoiced=unpaid.filter(j=>paymentStatus(j)==='invoice_sent').length;
   document.getElementById('dash-metrics').innerHTML=
     `<div class="dash-card"><div class="dash-val">${active.length}</div><div class="dash-lbl">Active clients</div></div>`+
     `<div class="dash-card"><div class="dash-val">${todayJobs.length}</div><div class="dash-lbl">Jobs today</div></div>`+
     `<div class="dash-card"><div class="dash-val">$${monthRevenue.toFixed(0)}</div><div class="dash-lbl">This month</div></div>`+
-    `<div class="dash-card"><div class="dash-val" style="color:${unpaid.length>0?'var(--red)':'var(--green)'}">${unpaid.length}</div><div class="dash-lbl">Unpaid</div></div>`;
+    `<div class="dash-card"><div class="dash-val" style="color:${unpaid.length>0?'var(--red)':'var(--green)'}">${unpaid.length}</div><div class="dash-lbl">Outstanding${invoiced?' · '+invoiced+' invoiced':''}</div></div>`;
   renderWeekStrip();
   renderDayJobs();
   renderUpcoming();
@@ -1853,18 +1875,25 @@ function renderUnpaid(){
     const c=DB.customers.find(x=>x.id===j.custId);
     const price=jobAmount(j,c);
     const desc=j.serviceDesc||'';
+    const invoiced=paymentStatus(j)==='invoice_sent';
+    const statusText=invoiced?'Invoice Sent — Awaiting Payment':'Unpaid — Invoice Not Marked Sent';
+    const statusBg=invoiced?'#eef4ff':'#fff4f1';
+    const statusColor=invoiced?'var(--blue)':'var(--red)';
+    const stamp=invoiced&&j.invoiceSentAt?' · '+new Date(j.invoiceSentAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
     return `<div id="unpaid-job-${attr(j.id)}" style="padding:.75rem 0;border-bottom:1px solid var(--s3)">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.5rem;gap:8px">
         <div style="flex:1;min-width:0">
           <div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):esc(j.custId)}</div>
           <div style="font-size:11px;color:var(--ink3)">${esc(fmtDate(j.date))}${desc?' · '+esc(desc):''}</div>
+          <div style="display:inline-flex;align-items:center;margin-top:5px;padding:3px 7px;border-radius:999px;background:${statusBg};color:${statusColor};font-size:10px;font-weight:700">${statusText}${esc(stamp)}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           <span style="font-weight:700;font-size:15px;color:var(--red)">$${price.toFixed(2)}</span>
           <button class="btn bxsm" onclick="openEditJobModal('${jsStr(j.id)}')" style="font-size:10px"><i class="ti ti-edit" style="font-size:10px"></i></button>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
+      <div style="display:grid;grid-template-columns:${invoiced?'repeat(3,1fr)':'repeat(4,1fr)'};gap:5px">
+        ${!invoiced?`<button class="btn bxsm" style="background:#eef4ff;color:var(--blue);border-color:#b3c8f0;font-size:10px" onclick="markInvoiceSentDash('${jsStr(j.id)}')"><i class="ti ti-file-invoice" style="font-size:10px"></i> Invoice Sent</button>`:''}
         <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4;font-size:10px" onclick="markPaidDash('${jsStr(j.id)}','cash')">
           <i class="ti ti-cash" style="font-size:10px"></i> Cash
         </button>
@@ -1879,13 +1908,34 @@ function renderUnpaid(){
   }).join('');
 }
 
+function markInvoiceSentDash(jobId){
+  const j=DB.jobHistory.find(x=>x.id===jobId);
+  if(j){
+    const c=DB.customers.find(x=>x.id===j.custId);
+    if(j.chargedAmount==null||j.chargedAmount==='')j.chargedAmount=jobAmount(j,c);
+    j.paid=false;
+    j.paidMethod=null;
+    j.paidAt=null;
+    j.paymentStatus='invoice_sent';
+    j.invoiceSentAt=j.invoiceSentAt||Date.now();
+    saveDB();
+    renderDash();refreshInvoicePageIfOpen();
+    if(document.getElementById('pg-reports')&&document.getElementById('pg-reports').classList.contains('active'))renderReports();
+  }
+}
+
 function markPaidDash(jobId,method){
   const j=DB.jobHistory.find(x=>x.id===jobId);
   if(j){
+    const c=DB.customers.find(x=>x.id===j.custId);
+    if(j.chargedAmount==null||j.chargedAmount==='')j.chargedAmount=jobAmount(j,c);
     j.paid=true;
     j.paidMethod=method;
+    j.paymentStatus='paid';
+    j.paidAt=j.paidAt||Date.now();
     saveDB();
-    renderDash();
+    renderDash();refreshInvoicePageIfOpen();
+    if(document.getElementById('pg-reports')&&document.getElementById('pg-reports').classList.contains('active'))renderReports();
   }
 }
 
@@ -2620,7 +2670,12 @@ function loadTrackerRoute(data){
   trackerRoute=data;document.getElementById('track-empty').style.display=data.jobs.length?'none':'';document.getElementById('track-export-wrap').style.display=data.jobs.length?'':'none';
   const miles=data.totalMiles?` · ${Number(data.totalMiles).toFixed(1)} mi`:'';document.getElementById('track-sub').textContent=data.jobs.length+' stops · '+fmtDate(data.date||todayStr())+miles;renderTracker();
 }
-function renderTracker(){if(!trackerRoute)return;document.getElementById('track-jobs').innerHTML=trackerRoute.jobs.map((j,i)=>buildJobCard(j,i)).join('');trackerRoute.jobs.forEach((_,i)=>{if(getTS(i).status==='active')startTick(i);});}
+function updateEndDayUI(){
+  const btn=document.getElementById('end-day-btn');if(!btn)return;
+  const allDone=!!(trackerRoute&&Array.isArray(trackerRoute.jobs)&&trackerRoute.jobs.length&&trackerRoute.jobs.every((_,i)=>getTS(i).status==='done'));
+  btn.style.display=allDone?'':'none';
+}
+function renderTracker(){if(!trackerRoute)return;document.getElementById('track-jobs').innerHTML=trackerRoute.jobs.map((j,i)=>buildJobCard(j,i)).join('');trackerRoute.jobs.forEach((_,i)=>{if(getTS(i).status==='active')startTick(i);});updateEndDayUI();}
 
 function buildJobCard(j,i){
   const st=getTS(i),t=tType(i),c=DB.customers.find(x=>x.id===(j.custId||j.id)),el=getElap(i),minP=Math.max(0,Number(t.minPhotos)||1);
@@ -2742,9 +2797,26 @@ function buildPaymentUI(j,i,s){
   const price=(j.price!==undefined&&j.price!==null)?Math.max(0,Number(j.price)||0):Math.max(0,Number(c&&c.price)||0);
   const services=getServices().filter(svc=>svc.active);
 
-  // Already recorded
+  // Invoice has been sent but payment is still outstanding.
+  if(rec&&!rec.paid&&paymentStatus(rec)==='invoice_sent'){
+    const sentLabel=rec.invoiceSentAt?new Date(rec.invoiceSentAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'Recorded';
+    return `<div class="pay-done-badge" style="border-color:#b3c8f0;background:#eef4ff">
+      <i class="ti ti-file-invoice" style="font-size:24px;color:var(--blue);flex-shrink:0"></i>
+      <div><div style="font-weight:700;font-size:14px;color:var(--blue)">Invoice sent — awaiting payment</div>
+      <div style="font-size:12px;color:var(--ink3)">${sentLabel} · $${jobAmount(rec,c).toFixed(2)}${rec.serviceDesc?' · '+esc(rec.serviceDesc):''}</div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:2px">Keep this outstanding until the customer pays.</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:.875rem">
+      <button class="btn bxsm btng" onclick="confirmPayment('${jsStr(custId)}','${i}','cash')"><i class="ti ti-cash"></i> Cash</button>
+      <button class="btn bxsm btng" onclick="confirmPayment('${jsStr(custId)}','${i}','check')"><i class="ti ti-receipt"></i> Check</button>
+      <button class="btn bxsm" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="confirmPayment('${jsStr(custId)}','${i}','paid')"><i class="ti ti-check"></i> Paid</button>
+    </div>
+    <button class="btn bsm" onclick="textCustomer('${jsStr(custId)}')" style="margin-bottom:.875rem;width:100%"><i class="ti ti-message"></i> Text job summary</button>`;
+  }
+
+  // Already recorded as paid
   if(rec&&rec.paid){
-    const methodLabel={cash:'Cash',check:'Check',paid:'Paid'}[rec.paidMethod]||'Paid';
+    const methodLabel={cash:'Cash',check:'Check',card:'Card',paid:'Paid (other)'}[rec.paidMethod]||'Paid';
     return `<div class="pay-done-badge">
       <i class="ti ti-circle-check-filled" style="font-size:24px;color:var(--green);flex-shrink:0"></i>
       <div><div style="font-weight:700;font-size:14px;color:var(--green)">Payment recorded</div>
@@ -2792,7 +2864,8 @@ function buildPaymentUI(j,i,s){
       <button class="btn btng" style="height:46px" onclick="confirmPayment('${jsStr(custId)}','${i}','cash')"><i class="ti ti-cash"></i> Cash</button>
       <button class="btn btng" style="height:46px" onclick="confirmPayment('${jsStr(custId)}','${i}','check')"><i class="ti ti-receipt"></i> Check</button>
       <button class="btn" style="height:46px;background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="confirmPayment('${jsStr(custId)}','${i}','paid')"><i class="ti ti-circle-check"></i> Paid (other)</button>
-      <button class="btn" style="height:46px" onclick="leaveUnpaid('${jsStr(custId)}','${i}')"><i class="ti ti-clock-pause"></i> Leave unpaid</button>
+      <button class="btn" style="height:46px;background:#eef4ff;color:var(--blue);border-color:#b3c8f0" onclick="markInvoiceSent('${jsStr(custId)}','${i}')"><i class="ti ti-file-invoice"></i> Invoice Sent</button>
+      <button class="btn" style="height:46px;grid-column:span 2" onclick="leaveUnpaid('${jsStr(custId)}','${i}')"><i class="ti ti-clock-pause"></i> Leave unpaid / invoice not sent</button>
     </div>
   </div>`;
 }
@@ -2833,14 +2906,23 @@ function confirmPayment(custId,i,method){
   recordPayment(custId,i,method,price);
 }
 
+function markInvoiceSent(custId,i){
+  recordPayment(custId,i,'invoice_sent',getPayAmount(i));
+}
+
 function leaveUnpaid(custId,i){
-  // Records the completed job as unpaid so it shows in the unpaid list.
+  // Records the completed job as unpaid and explicitly notes that an invoice
+  // has not been marked sent yet.
   recordPayment(custId,i,'unpaid',getPayAmount(i));
 }
 
 function unmarkPaid(custId,i){
   const j=trackerRoute&&trackerRoute.jobs[Number(i)],rec=j?getJobRecordForTracker(j):null;
-  if(rec){rec.paid=false;rec.paidMethod=null;saveDB();}
+  if(rec){
+    rec.paid=false;rec.paidMethod=null;rec.paidAt=null;
+    rec.paymentStatus=rec.invoiceSentAt?'invoice_sent':'unpaid';
+    saveDB();refreshInvoicePageIfOpen();
+  }
   rerenderJCard(Number(i));
 }
 function recordPayment(custId,i,method,chargedAmount,serviceDesc){
@@ -2848,13 +2930,26 @@ function recordPayment(custId,i,method,chargedAmount,serviceDesc){
   const price=clampNum(chargedAmount,0,100000,j&&j.price!==undefined?Number(j.price)||0:Number(c&&c.price)||0);
   const desc=serviceDesc||getServiceDescription(i)||jobTypeLabel(j&&j.jobType||'mow');
   const lineItems=(getJobServices(i)||[]).map(x=>({id:x.id,name:x.name,price:Math.max(0,Number(x.price)||0)}));
-  const isPaid=method!=='unpaid';let rec=j?getJobRecordForTracker(j):null;
+  const isPaid=!['unpaid','invoice_sent'].includes(method);let rec=j?getJobRecordForTracker(j):null;
   if(!rec){
     rec={id:j&&j.jobId?j.jobId:uid(),custId,date:trackerDate(),jobType:j&&j.jobType||'mow',schedId:j&&j.schedId||null,actualMin:0,estMin:j?j.estMin:0,price:j?Number(j.price)||0:0,beforePhotos:[],afterPhotos:[],extraPhotos:[],beforePhotoUrls:[],afterPhotoUrls:[],extraPhotoUrls:[],notes:''};
     DB.jobHistory.push(rec);if(j)j.jobId=rec.id;
   }
   rec.paid=isPaid;rec.paidMethod=isPaid?method:null;rec.chargedAmount=price;rec.serviceDesc=desc;rec.lineItems=lineItems;
-  saveDB();rerenderJCard(i);
+  if(method==='invoice_sent'){
+    rec.paymentStatus='invoice_sent';
+    rec.invoiceSentAt=rec.invoiceSentAt||Date.now();
+    rec.paidAt=null;
+  }else if(method==='unpaid'){
+    rec.paymentStatus='unpaid';
+    rec.paidAt=null;
+  }else{
+    rec.paymentStatus='paid';
+    rec.paidAt=Date.now();
+    // invoiceSentAt is deliberately preserved so the history shows that
+    // the invoice was sent before it was paid.
+  }
+  saveDB();rerenderJCard(i);renderDash();refreshInvoicePageIfOpen();
 }
 
 function rerenderJCard(i){
@@ -2864,6 +2959,7 @@ function rerenderJCard(i){
   tmp.innerHTML=buildJobCard(trackerRoute.jobs[i],i);
   card.replaceWith(tmp.firstElementChild);
   if(getTS(i).status==='active')startTick(i);
+  updateEndDayUI();
 }
 
 let _lastTrackerPeriodicSave=0;
@@ -3069,17 +3165,75 @@ function delPhoto(){
 }
 
 async function exportDaySummary(){
-  if(!trackerRoute){alert('No route loaded.');return;}if(!window.JSZip){alert('ZIP export library did not load. Check your internet connection and reload.');return;}
+  if(!trackerRoute){alert('No route loaded.');return false;}if(!window.JSZip){alert('ZIP export library did not load. Check your internet connection and reload.');return false;}
   const displayDate=parseLocalDate(trackerRoute.date||todayStr()).toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}),zip=new JSZip();
   trackerRoute.jobs.forEach((j,i)=>{
     const st=getTS(i),actualMin=st.actualMin||Math.round(st.elapsed/60),c=DB.customers.find(x=>x.id===(j.custId||j.id)),rec=getJobRecordForTracker(j),price=jobAmount(rec||j,c);
     const safe=(j.name||'Job').replace(/[^a-z0-9]/gi,'_').slice(0,60)||'Job';
     function pSection(photos,urlPhotos,label,prefix){const srcs=(photos||[]).map((p,pi)=>(urlPhotos&&urlPhotos[pi])||p).filter(Boolean);if(!srcs.length)return `<p style="color:#aaa;font-size:13px">No ${esc(label.toLowerCase())} taken</p>`;return srcs.map((src,pi)=>{const p=safeUrl(src)||(/^data:image\//i.test(src)?src:'');if(!p)return '';return `<div style="margin-bottom:12px"><img src="${attr(p)}" style="width:100%;max-width:340px;border-radius:8px;border:1px solid #ddd;display:block;margin-bottom:6px"><a href="${attr(p)}" ${isBase64Photo(p)?`download="${attr(prefix+'-'+(pi+1)+'.jpg')}"`:'target="_blank" rel="noopener"'} style="font-size:12px;color:#2d5a27;font-weight:600">${isBase64Photo(p)?'⬇ Save':'🔗 View'} ${esc(label)} ${pi+1}</a></div>`;}).join('');}
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(j.name||'Job')} — Job Summary</title><style>body{font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:2rem 1.25rem;color:#1a1a1a}h1{color:#2d5a27}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}.box,.nbox{background:#f7f8f5;border-radius:8px;padding:.875rem}.lbl,.stitle{font-size:10px;font-weight:700;text-transform:uppercase;color:#888}.val{font-size:18px;font-weight:600}@media(max-width:420px){.grid{grid-template-columns:1fr}}</style></head><body><h1>${esc(j.name||'Job')}</h1><p>Richardson Outdoor Solutions · ${esc(displayDate)}</p><p><strong>${st.status==='done'?'✓ Complete':'In Progress'}</strong> · ${esc(jobTypeLabel(j.jobType||'mow'))}</p><p>${esc(j.addr||'')}</p><div class="grid"><div class="box"><div class="lbl">Actual</div><div class="val">${actualMin>0?actualMin+' min':'—'}</div></div><div class="box"><div class="lbl">Estimated</div><div class="val">${Number(j.estMin)||0} min</div></div><div class="box"><div class="lbl">Amount</div><div class="val">$${price.toFixed(2)}</div></div></div>${j.notes?`<h3 class="stitle">Job notes</h3><div class="nbox">${esc(j.notes)}</div>`:''}${st.notes?`<h3 class="stitle">Field notes</h3><div class="nbox">${esc(st.notes)}</div>`:''}<h3 class="stitle">Before photos</h3>${pSection(st.beforePhotos,st.beforePhotoUrls,'Before',safe+'-before')}<h3 class="stitle">After photos</h3>${pSection(st.afterPhotos,st.afterPhotoUrls,'After',safe+'-after')}${st.extraPhotos.length?`<h3 class="stitle">Extra photos</h3>${pSection(st.extraPhotos,st.extraPhotoUrls,'Extra',safe+'-extra')}`:''}</body></html>`;
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(j.name||'Job')} — Job Summary</title><style>body{font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:2rem 1.25rem;color:#1a1a1a}h1{color:#2d5a27}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}.box,.nbox{background:#f7f8f5;border-radius:8px;padding:.875rem}.lbl,.stitle{font-size:10px;font-weight:700;text-transform:uppercase;color:#888}.val{font-size:18px;font-weight:600}@media(max-width:420px){.grid{grid-template-columns:1fr}}</style></head><body><h1>${esc(j.name||'Job')}</h1><p>Richardson Outdoor Solutions · ${esc(displayDate)}</p><p><strong>${st.status==='done'?'✓ Complete':'In Progress'}</strong> · ${esc(jobTypeLabel(j.jobType||'mow'))}</p><p>${esc(j.addr||'')}</p><p><strong>Payment:</strong> ${esc(paymentStatusDetail(rec||j))}${(rec||j).invoiceSentAt?' · Invoice sent '+esc(new Date((rec||j).invoiceSentAt).toLocaleString()):''}${(rec||j).paidAt?' · Paid '+esc(new Date((rec||j).paidAt).toLocaleString()):''}</p><div class="grid"><div class="box"><div class="lbl">Actual</div><div class="val">${actualMin>0?actualMin+' min':'—'}</div></div><div class="box"><div class="lbl">Estimated</div><div class="val">${Number(j.estMin)||0} min</div></div><div class="box"><div class="lbl">Amount</div><div class="val">$${price.toFixed(2)}</div></div></div>${j.notes?`<h3 class="stitle">Job notes</h3><div class="nbox">${esc(j.notes)}</div>`:''}${st.notes?`<h3 class="stitle">Field notes</h3><div class="nbox">${esc(st.notes)}</div>`:''}<h3 class="stitle">Before photos</h3>${pSection(st.beforePhotos,st.beforePhotoUrls,'Before',safe+'-before')}<h3 class="stitle">After photos</h3>${pSection(st.afterPhotos,st.afterPhotoUrls,'After',safe+'-after')}${st.extraPhotos.length?`<h3 class="stitle">Extra photos</h3>${pSection(st.extraPhotos,st.extraPhotoUrls,'Extra',safe+'-extra')}`:''}</body></html>`;
     zip.file('Stop-'+(i+1)+'-'+safe+'.html',html);const folder=safe;
     [['before',st.beforePhotos],['after',st.afterPhotos],['extra',st.extraPhotos]].forEach(([type,arr])=>(arr||[]).forEach((x,pi)=>{if(isBase64Photo(x)){const b=x.split(',')[1];if(b)zip.file(folder+'/'+type+'-'+(pi+1)+'.jpg',b,{base64:true});}}));
   });
-  try{const blob=await zip.generateAsync({type:'blob'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ROS-Day-'+(trackerRoute.date||todayStr())+'.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(e){alert('Export failed: '+(e&&e.message?e.message:e));}
+  try{const blob=await zip.generateAsync({type:'blob'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ROS-Day-'+(trackerRoute.date||todayStr())+'.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return true;}catch(e){alert('Export failed: '+(e&&e.message?e.message:e));return false;}
+}
+
+async function endDay(){
+  if(!trackerRoute||!Array.isArray(trackerRoute.jobs)||!trackerRoute.jobs.length){alert('No route is loaded.');return;}
+
+  const incomplete=trackerRoute.jobs.map((j,i)=>({j,i,st:getTS(i)})).filter(x=>x.st.status!=='done');
+  if(incomplete.length){
+    const names=incomplete.slice(0,5).map(x=>x.j.name||('Stop '+(x.i+1))).join(', ');
+    alert('Finish every job before ending the day. Still open: '+names+(incomplete.length>5?' and '+(incomplete.length-5)+' more.':'.'));
+    return;
+  }
+
+  if(_finishingJobs.size){
+    alert('Job photos are still uploading. Wait until saving finishes, then tap End Day again.');
+    return;
+  }
+
+  // A payment choice writes chargedAmount even when the choice is Leave unpaid.
+  // This prevents a completed job from disappearing from the payment follow-up flow
+  // simply because End Day was tapped before its payment status was reviewed.
+  const paymentMissing=[];
+  trackerRoute.jobs.forEach((j,i)=>{
+    const rec=getJobRecordForTracker(j);
+    if(!rec||!Object.prototype.hasOwnProperty.call(rec,'chargedAmount'))paymentMissing.push(j.name||('Stop '+(i+1)));
+  });
+  if(paymentMissing.length){
+    alert('Review payment for every completed job before ending the day. Choose Cash, Check, Paid, Invoice Sent, or Leave unpaid for: '+paymentMissing.slice(0,5).join(', ')+(paymentMissing.length>5?' and '+(paymentMissing.length-5)+' more.':'.'));
+    return;
+  }
+
+  const needsInvoices=trackerRoute.jobs.map((j,i)=>({j,i,rec:getJobRecordForTracker(j)})).filter(x=>x.rec&&!x.rec.paid&&paymentStatus(x.rec)!=='invoice_sent');
+  if(needsInvoices.length){
+    const names=needsInvoices.slice(0,5).map(x=>x.j.name||('Stop '+(x.i+1))).join(', ');
+    if(!confirm(needsInvoices.length+' completed job'+(needsInvoices.length===1?' still needs an invoice.':'s still need invoices.')+'\n\n'+names+(needsInvoices.length>5?' and '+(needsInvoices.length-5)+' more.':'')+'\n\nEnd the day anyway?'))return;
+  }
+
+  const exportFirst=confirm('Download another Day Summary before closing today?\n\nOK = Export first\nCancel = Skip export');
+  if(exportFirst){const exported=await exportDaySummary();if(!exported)return;}
+
+  if(!confirm('End this workday now?\n\nCompleted jobs, payments, times, notes, and synced photos will stay in Job History. The current Field Tracker route will be cleared.'))return;
+
+  try{await saveDB();}catch(e){console.log('End day sync error',e);}
+
+  Object.keys(trackerStates).forEach(i=>stopTick(Number(i)));
+  trackerStates={};trackerRoute=null;
+  try{localStorage.removeItem('ros_tracker_states');localStorage.removeItem('ros_track_route');localStorage.setItem('ros_last_ended_day',new Date().toISOString());}catch(e){}
+
+  // Clear the in-memory planner too so the next workday starts clean.
+  planJobs=[];planDT={};planMiles={};
+  try{renderPlan();}catch(e){}
+
+  const jobsEl=document.getElementById('track-jobs');if(jobsEl)jobsEl.innerHTML='';
+  const empty=document.getElementById('track-empty');if(empty)empty.style.display='';
+  const wrap=document.getElementById('track-export-wrap');if(wrap)wrap.style.display='none';
+  const sub=document.getElementById('track-sub');if(sub)sub.textContent='No route loaded';
+  updateEndDayUI();renderDash();
+  goTab('dash');
+  alert('Day ended. Completed jobs are saved. Any money still owed remains on Invoices & Payments, and Field Tracker is ready for the next route.');
 }
 
 // Load modal
@@ -3545,7 +3699,7 @@ function openEditJobModal(jobId){
   populateJobTypeSelect('ej-type',j.jobType||'mow');
   document.getElementById('ej-date').value=j.date||todayStr();const c=DB.customers.find(x=>x.id===j.custId);
   document.getElementById('ej-amount').value=jobAmount(j,c).toFixed(2);document.getElementById('ej-desc').value=j.serviceDesc||'';document.getElementById('ej-notes').value=j.notes||'';
-  const paidVal=!j.paid?'unpaid':j.paidMethod||'cash';document.getElementById('ej-paid').value=paidVal;document.getElementById('editjob-modal').classList.add('open');
+  const paidVal=j.paid?(j.paidMethod||'paid'):(paymentStatus(j)==='invoice_sent'?'invoice':'unpaid');document.getElementById('ej-paid').value=paidVal;document.getElementById('editjob-modal').classList.add('open');
 }
 
 function saveEditJob(){
@@ -3554,206 +3708,145 @@ function saveEditJob(){
   const date=document.getElementById('ej-date').value;if(!validDateString(date)){alert('Choose a valid date.');return;}
   const custId=document.getElementById('ej-cust').value;if(!DB.customers.some(c=>c.id===custId)){alert('Choose a valid customer.');return;}
   const paidVal=document.getElementById('ej-paid').value;
+  const wasPaid=!!j.paid,wasInvoice=paymentStatus(j)==='invoice_sent';
+  const now=Date.now();
+  const paidNow=!['unpaid','invoice'].includes(paidVal);
   Object.assign(j,{custId,date,jobType:document.getElementById('ej-type').value||j.jobType||'mow',chargedAmount:clampNum(document.getElementById('ej-amount').value,0,100000,0),
-    serviceDesc:document.getElementById('ej-desc').value.trim(),notes:document.getElementById('ej-notes').value.trim(),paid:paidVal!=='unpaid',paidMethod:paidVal==='unpaid'?null:paidVal});
-  window._editJobBusy=true;setTimeout(()=>{window._editJobBusy=false;},350);saveDB();closeModal('editjob-modal');renderDash();renderReports();renderCalendar();
+    serviceDesc:document.getElementById('ej-desc').value.trim(),notes:document.getElementById('ej-notes').value.trim(),paid:paidNow,paidMethod:paidNow?paidVal:null});
+  if(paidVal==='invoice'){
+    j.paymentStatus='invoice_sent';j.invoiceSentAt=j.invoiceSentAt||now;j.paidAt=null;
+  }else if(paidVal==='unpaid'){
+    j.paymentStatus='unpaid';j.paidAt=null;
+  }else{
+    j.paymentStatus='paid';j.paidAt=(wasPaid&&j.paidAt)?j.paidAt:now;
+    if(wasInvoice&&!j.invoiceSentAt)j.invoiceSentAt=now;
+  }
+  window._editJobBusy=true;setTimeout(()=>{window._editJobBusy=false;},350);saveDB();closeModal('editjob-modal');renderDash();renderReports();renderCalendar();refreshInvoicePageIfOpen();
 }
 
 async function deleteJob(){
   const id=document.getElementById('ej-id').value;if(!id)return;if(!confirm('Delete this job record? This cannot be undone.'))return;
-  DB.jobHistory=DB.jobHistory.filter(x=>x.id!==id);queueDelete('job_history',id);saveDB();closeModal('editjob-modal');renderDash();renderReports();renderCalendar();await deleteCloudRecord('job_history',id);
+  DB.jobHistory=DB.jobHistory.filter(x=>x.id!==id);queueDelete('job_history',id);saveDB();closeModal('editjob-modal');renderDash();renderReports();renderCalendar();refreshInvoicePageIfOpen();await deleteCloudRecord('job_history',id);
 }
 
-// ══ BUSINESS CALCULATOR ══════════════════════════════════════════
-// Business inputs are cached locally for speed/offline, and synced to the
-// Supabase `app_settings` table so they follow you across devices and are
-// included in cloud data. Local is written immediately; cloud is debounced.
-function getBizInputs(){
-  try{return JSON.parse(localStorage.getItem('ros_business')||'{}');}catch(e){return {};}
-}
-function saveBizInputs(obj){
-  localStorage.setItem('ros_business',JSON.stringify(obj));
-}
-let _bizCloudTimer=null;
-function setBizInput(key,val){
-  const obj=getBizInputs();
-  obj[key]=val;
-  saveBizInputs(obj);              // instant local save
-  renderBizCalcs();                // recompute without rebuilding inputs (keeps focus)
-  // Debounced cloud save: wait until typing pauses so we don't spam the DB.
-  clearTimeout(_bizCloudTimer);
-  _bizCloudTimer=setTimeout(()=>syncBizInputsToCloud(obj),700);
+// ══ INVOICES / PAYMENTS ══════════════════════════════════════════
+// Operational accounts-receivable view. The durable status fields live on each
+// completed job and are included in ros_job_metadata, so they sync across devices.
+let invoiceFilter='all';
+
+function setInvoiceFilter(filter,btn){
+  invoiceFilter=filter||'all';
+  document.querySelectorAll('#invoice-filters .pill-tab').forEach(b=>b.classList.toggle('active',b===btn));
+  renderInvoices();
 }
 
-async function syncBizInputsToCloud(obj){
-  try{
-    setSaveStatus('saving');
-    const {error}=await withTimeout(supabaseClient
-      .from('app_settings')
-      .upsert({key:'business_inputs',value:JSON.stringify(obj)}),8000,'business settings sync');
-    if(error){setSaveStatus('error');console.log('Biz settings sync error',error);}
-    else setSaveStatus('saved');
-  }catch(e){
-    setSaveStatus('error');
-    console.log('Biz settings sync error',e);
+function invoicePaidMethodLabel(j){
+  if(!j||!j.paid)return '';
+  return ({cash:'Cash',check:'Check',card:'Card',paid:'Other Paid'}[j.paidMethod]||'Paid');
+}
+
+function invoiceStatusInfo(j){
+  if(j&&j.paid){
+    const method=invoicePaidMethodLabel(j);
+    return {key:'paid',label:method||'Paid',badge:'PAID',bg:'var(--gp)',color:'var(--green)'};
   }
+  if(paymentStatus(j)==='invoice_sent')return {key:'invoice_sent',label:'Invoice Sent — Awaiting Payment',badge:'INVOICE SENT',bg:'#eef4ff',color:'var(--blue)'};
+  return {key:'needs_invoice',label:'Invoice Not Sent',badge:'NEEDS INVOICE',bg:'#fff4f1',color:'var(--red)'};
 }
 
-// Pull business inputs from the cloud (called on load). Cloud wins over local
-// so a fresh device gets your saved numbers.
-async function loadBizInputsFromCloud(){
-  try{
-    const {data,error}=await withTimeout(supabaseClient
-      .from('app_settings')
-      .select('value')
-      .eq('key','business_inputs')
-      .maybeSingle(),6000,'business settings load');
-    if(error){console.log('Biz settings load error',error);return;}
-    if(data&&data.value){
-      const obj=JSON.parse(data.value);
-      if(obj&&typeof obj==='object')saveBizInputs(obj); // refresh local cache
+function invoiceDateText(ms,label){
+  if(!ms)return '';
+  try{return label+' '+new Date(ms).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});}catch(e){return '';}
+}
+
+function invoiceInCurrentWeek(date){
+  const d=parseLocalDate(date),now=new Date();
+  const monday=new Date(now);monday.setDate(now.getDate()-((now.getDay()+6)%7));monday.setHours(0,0,0,0);
+  const next=new Date(monday);next.setDate(monday.getDate()+7);
+  return d>=monday&&d<next;
+}
+function invoiceInCurrentMonth(date){
+  const d=parseLocalDate(date),now=new Date();
+  return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
+}
+function paidThisMonth(j){
+  if(!j||!j.paid)return false;
+  if(j.paidAt){const d=new Date(j.paidAt),now=new Date();return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();}
+  return invoiceInCurrentMonth(j.date);
+}
+
+function renderInvoices(){
+  const summary=document.getElementById('invoice-summary'),listEl=document.getElementById('invoice-list');
+  if(!summary||!listEl)return;
+  const jobs=[...(DB.jobHistory||[])];
+  const outstanding=jobs.filter(j=>!j.paid);
+  const awaiting=outstanding.filter(j=>paymentStatus(j)==='invoice_sent');
+  const needsInvoice=outstanding.filter(j=>paymentStatus(j)!=='invoice_sent');
+  const outstandingAmt=outstanding.reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0);
+  const collectedMonth=jobs.filter(paidThisMonth).reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0);
+
+  summary.innerHTML=
+    `<div class="dash-card"><div class="dash-val" style="color:${outstandingAmt>0?'var(--red)':'var(--green)'}">$${outstandingAmt.toFixed(0)}</div><div class="dash-lbl">Outstanding</div></div>`+
+    `<div class="dash-card"><div class="dash-val" style="color:${awaiting.length?'var(--blue)':'var(--green)'}">${awaiting.length}</div><div class="dash-lbl">Awaiting payment</div></div>`+
+    `<div class="dash-card"><div class="dash-val" style="color:${needsInvoice.length?'var(--red)':'var(--green)'}">${needsInvoice.length}</div><div class="dash-lbl">Need invoice</div></div>`+
+    `<div class="dash-card"><div class="dash-val" style="color:var(--green)">$${collectedMonth.toFixed(0)}</div><div class="dash-lbl">Collected this month</div></div>`;
+
+  const q=((document.getElementById('invoice-search')||{}).value||'').trim().toLowerCase();
+  let filtered=jobs.filter(j=>{
+    const st=invoiceStatusInfo(j),c=DB.customers.find(x=>x.id===j.custId);
+    if(invoiceFilter==='needs_invoice'&&st.key!=='needs_invoice')return false;
+    if(invoiceFilter==='invoice_sent'&&st.key!=='invoice_sent')return false;
+    if(invoiceFilter==='paid'&&st.key!=='paid')return false;
+    if(invoiceFilter==='week'&&!invoiceInCurrentWeek(j.date))return false;
+    if(invoiceFilter==='month'&&!invoiceInCurrentMonth(j.date))return false;
+    if(q){const hay=[custFullName(c),j.serviceDesc||'',jobTypeLabel(j.jobType||'mow'),j.date,j.paidMethod||'',st.label].join(' ').toLowerCase();if(!hay.includes(q))return false;}
+    return true;
+  });
+
+  const rank={needs_invoice:0,invoice_sent:1,paid:2};
+  filtered.sort((a,b)=>{
+    if(invoiceFilter==='all'){
+      const ar=rank[invoiceStatusInfo(a).key],br=rank[invoiceStatusInfo(b).key];
+      if(ar!==br)return ar-br;
     }
-  }catch(e){
-    console.log('Biz settings load error',e);
+    return String(b.date||'').localeCompare(String(a.date||''))||String(b.paidAt||b.invoiceSentAt||0).localeCompare(String(a.paidAt||a.invoiceSentAt||0));
+  });
+
+  if(!filtered.length){
+    listEl.innerHTML='<div class="card"><div class="empty-state" style="padding:1.25rem"><i class="ti ti-file-invoice"></i><strong>No jobs match this filter</strong><small>Completed jobs will appear here with their invoice and payment status.</small></div></div>';
+    return;
   }
-}
 
-// Numbers the app knows, for the chosen period.
-function getBizAutoData(){
-  const period=(document.getElementById('biz-period')||{}).value||'month',now=new Date();
-  let jobs=DB.jobHistory;
-  if(period==='month'){const start=new Date(now.getFullYear(),now.getMonth(),1);jobs=jobs.filter(j=>parseLocalDate(j.date)>=start);}
-  else if(period==='year'){const start=new Date(now.getFullYear(),0,1);jobs=jobs.filter(j=>parseLocalDate(j.date)>=start);}
-  const paid=jobs.filter(j=>j.paid);
-  const revenue=paid.reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);return a+jobAmount(j,c);},0);
-  const recurringRevenue=paid.reduce((a,j)=>{const c=DB.customers.find(x=>x.id===j.custId);if(!c)return a;return a+(['weekly','biweekly','monthly'].includes(c.sched)?jobAmount(j,c):0);},0);
-  const clientsServed=new Set(paid.map(j=>j.custId).filter(Boolean)).size;
-  const activeClients=DB.customers.filter(c=>!['inactive','paused'].includes(c.sched)).length;
-  return {revenue,recurringRevenue,clientsServed,activeClients,period};
-}
-
-// Field definitions for the manual inputs (key, label, prefix, default)
-const BIZ_FIELDS=[
-  {k:'revenueOverride',label:'Total revenue (manual — overrides app data)',pre:'$',def:0},
-  {k:'recurringOverride',label:'Recurring revenue (manual)',pre:'$',def:0},
-  {k:'laborCost',label:'Labor cost',pre:'$',def:0},
-  {k:'fuelCost',label:'Fuel cost',pre:'$',def:0},
-  {k:'equipmentWear',label:'Equipment wear',pre:'$',def:0},
-  {k:'fixedCosts',label:'Fixed costs',pre:'$',def:0},
-  {k:'laborHours',label:'Labor hours worked',pre:'',def:0},
-  {k:'budgetedHours',label:'Budgeted hours',pre:'',def:0},
-  {k:'neighborhoods',label:'Neighborhoods',pre:'',def:1},
-  {k:'marketingSpend',label:'Marketing spend',pre:'$',def:0},
-  {k:'newClients',label:'New clients',pre:'',def:0},
-  {k:'yearlyNewClients',label:'Yearly new clients',pre:'',def:0},
-  {k:'yearlyTotalClients',label:'Yearly total clients',pre:'',def:0}
-];
-
-function renderBiz(){
-  const inputs=getBizInputs();
-  // Build the manual input fields (only once per render of the tab)
-  document.getElementById('biz-inputs').innerHTML=`
-    <div class="detail-grid">
-      ${BIZ_FIELDS.map(f=>{
-        const v=inputs[f.k]!=null?inputs[f.k]:'';
-        return `<div class="f" style="margin:0">
-          <label>${f.label}</label>
-          <input type="number" inputmode="decimal" step="any" min="0"
-            value="${attr(v)}" placeholder="${f.def}"
-            oninput="setBizInput('${f.k}',this.value===''?null:parseFloat(this.value))">
-        </div>`;
-      }).join('')}
-    </div>`;
-  renderBizCalcs();
-}
-
-function renderBizCalcs(){
-  const a=getBizAutoData();
-  const inp=getBizInputs();
-  const n=(k)=>{const v=inp[k];return (v==null||isNaN(v))?0:parseFloat(v);};
-
-  // Revenue: use the manual override when entered, otherwise the app's auto total.
-  const hasRevOverride=inp.revenueOverride!=null&&!isNaN(inp.revenueOverride);
-  const hasRecOverride=inp.recurringOverride!=null&&!isNaN(inp.recurringOverride);
-  const totalRevenue=hasRevOverride?parseFloat(inp.revenueOverride):a.revenue;
-  const recurringRevenue=hasRecOverride?parseFloat(inp.recurringOverride):a.recurringRevenue;
-  const totalClients=a.clientsServed||a.activeClients||0;
-  document.getElementById('biz-auto').innerHTML=`
-    <div class="detail-item"><div class="dl">Total revenue${hasRevOverride?' (manual)':''}</div><div class="dv" style="color:var(--green)">$${totalRevenue.toFixed(2)}</div></div>
-    <div class="detail-item"><div class="dl">Recurring revenue${hasRecOverride?' (manual)':''}</div><div class="dv">$${recurringRevenue.toFixed(2)}</div></div>
-    <div class="detail-item"><div class="dl">Clients served</div><div class="dv">${a.clientsServed}</div></div>
-    <div class="detail-item"><div class="dl">Active clients</div><div class="dv">${a.activeClients}</div></div>`;
-
-  // Safe division helper
-  const div=(x,y)=>y?x/y:0;
-
-  const directCosts=n('laborCost')+n('fuelCost')+n('equipmentWear');
-  const grossProfit=totalRevenue-directCosts;
-  const grossMargin=div(grossProfit,totalRevenue); // fraction
-  const laborPctRev=div(n('laborCost'),totalRevenue);
-  const avgRevPerClient=div(totalRevenue,totalClients);
-  const avgProfitPerClient=div(grossProfit,totalClients);
-  const revPerLaborHour=div(totalRevenue,n('laborHours'));
-  const laborEfficiency=div(n('budgetedHours'),n('laborHours'));
-  const routeDensity=div(totalClients,n('neighborhoods'));
-  const cac=div(n('marketingSpend'),n('newClients'));
-  const churnYearly=div(n('yearlyNewClients'),n('yearlyTotalClients')); // fraction
-  const custLifetimeMths=churnYearly?(1/churnYearly)*12:0;
-  const ltv=avgProfitPerClient*(custLifetimeMths/12); // profit per client × lifetime in years
-  const ltvCac=div(ltv,cac);
-  const recurringPct=div(recurringRevenue,totalRevenue);
-  const breakEvenRev=grossMargin?n('fixedCosts')/grossMargin:0;
-
-  const money=(x)=>'$'+x.toFixed(2);
-  const pct=(x)=>(x*100).toFixed(2)+'%';
-  const num=(x,d=2)=>x.toFixed(d);
-
-  document.getElementById('biz-calcs').innerHTML=`
-    <div class="detail-grid">
-      <div class="detail-item"><div class="dl">Direct costs</div><div class="dv">${money(directCosts)}</div></div>
-      <div class="detail-item"><div class="dl">Gross profit</div><div class="dv" style="color:${grossProfit>=0?'var(--green)':'var(--red)'}">${money(grossProfit)}</div></div>
-      <div class="detail-item"><div class="dl">Gross margin</div><div class="dv">${pct(grossMargin)}</div></div>
-      <div class="detail-item"><div class="dl">Labor % revenue</div><div class="dv">${pct(laborPctRev)}</div></div>
-      <div class="detail-item"><div class="dl">Avg revenue / client</div><div class="dv">${money(avgRevPerClient)}</div></div>
-      <div class="detail-item"><div class="dl">Avg profit / client</div><div class="dv">${money(avgProfitPerClient)}</div></div>
-      <div class="detail-item"><div class="dl">Revenue / labor hour</div><div class="dv">${money(revPerLaborHour)}</div></div>
-      <div class="detail-item"><div class="dl">Labor efficiency</div><div class="dv">${pct(laborEfficiency)}</div></div>
-      <div class="detail-item"><div class="dl">Route density</div><div class="dv">${num(routeDensity)}</div></div>
-      <div class="detail-item"><div class="dl">CAC</div><div class="dv">${money(cac)}</div></div>
-      <div class="detail-item"><div class="dl">LTV</div><div class="dv">${money(ltv)}</div></div>
-      <div class="detail-item"><div class="dl">LTV : CAC</div><div class="dv">${num(ltvCac)}</div></div>
-      <div class="detail-item"><div class="dl">Recurring revenue %</div><div class="dv">${pct(recurringPct)}</div></div>
-      <div class="detail-item"><div class="dl">Break-even revenue</div><div class="dv">${money(breakEvenRev)}</div></div>
-      <div class="detail-item"><div class="dl">Churn (yearly)</div><div class="dv">${pct(churnYearly)}</div></div>
-      <div class="detail-item"><div class="dl">Avg customer lifetime</div><div class="dv">${num(custLifetimeMths,1)} mo</div></div>
-    </div>`;
-
-  // KPI dashboard with benchmark coloring. status: 'good' | 'warn' | 'bad'
-  const kpis=[
-    {name:'Revenue',val:money(totalRevenue),bench:'Positive',status:totalRevenue>0?'good':'bad'},
-    {name:'Gross margin',val:pct(grossMargin),bench:'45–60%',status:grossMargin>=0.45&&grossMargin<=0.60?'good':(grossMargin>=0.35?'warn':'bad')},
-    {name:'Labor % of revenue',val:pct(laborPctRev),bench:'<40%',status:n('laborCost')===0?'warn':(laborPctRev<0.40?'good':'bad')},
-    {name:'Recurring revenue %',val:pct(recurringPct),bench:'≥30%',status:recurringPct>=0.30?'good':(recurringPct>=0.20?'warn':'bad')},
-    {name:'Revenue / labor hour',val:money(revPerLaborHour),bench:'$60–80',status:n('laborHours')===0?'warn':(revPerLaborHour>=60?'good':'bad')},
-    {name:'Labor efficiency',val:pct(laborEfficiency),bench:'70–90%',status:n('laborHours')===0?'warn':(laborEfficiency>=0.70&&laborEfficiency<=0.90?'good':'warn')},
-    {name:'Route density',val:num(routeDensity),bench:'6–12',status:routeDensity>=6&&routeDensity<=12?'good':'warn'},
-    {name:'CAC',val:money(cac),bench:'$50–250',status:n('newClients')===0?'warn':(cac<=250?'good':'bad')},
-    {name:'LTV',val:money(ltv),bench:'Lifetime value',status:ltv>0?'good':'warn'},
-    {name:'LTV : CAC',val:num(ltvCac),bench:'>3',status:ltvCac>3?'good':(ltvCac>=1?'warn':'bad')},
-    {name:'Break-even revenue',val:money(breakEvenRev),bench:'Below revenue',status:(breakEvenRev>0&&breakEvenRev<totalRevenue)?'good':'warn'}
-  ];
-  const dot={good:'var(--green)',warn:'#e0a020',bad:'var(--red)'};
-  document.getElementById('biz-kpis').innerHTML=kpis.map(k=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:.55rem 0;border-bottom:1px solid var(--s3)">
-      <div style="display:flex;align-items:center;gap:8px;min-width:0">
-        <span style="width:9px;height:9px;border-radius:50%;background:${dot[k.status]};flex-shrink:0"></span>
-        <span style="font-size:13px;font-weight:600">${esc(k.name)}</span>
+  listEl.innerHTML=filtered.map(j=>{
+    const c=DB.customers.find(x=>x.id===j.custId),st=invoiceStatusInfo(j),amt=jobAmount(j,c),desc=j.serviceDesc||jobTypeLabel(j.jobType||'mow');
+    const invoiceStamp=invoiceDateText(j.invoiceSentAt,'Invoice sent');
+    const paidStamp=invoiceDateText(j.paidAt,'Paid');
+    const timeline=[invoiceStamp,paidStamp].filter(Boolean).join(' · ');
+    const actions=st.key==='paid'
+      ? `<button class="btn bxsm" onclick="openEditJobModal('${jsStr(j.id)}')"><i class="ti ti-edit"></i> Edit</button>`
+      : `${st.key==='needs_invoice'?`<button class="btn bxsm" style="background:#eef4ff;color:var(--blue);border-color:#b3c8f0" onclick="markInvoiceSentDash('${jsStr(j.id)}')"><i class="ti ti-file-invoice"></i> Invoice Sent</button>`:''}
+         <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4" onclick="markPaidDash('${jsStr(j.id)}','cash')"><i class="ti ti-cash"></i> Cash</button>
+         <button class="btn bxsm" style="background:var(--gp);color:var(--green);border-color:#b8d5b4" onclick="markPaidDash('${jsStr(j.id)}','check')"><i class="ti ti-receipt"></i> Check</button>
+         <button class="btn bxsm" style="background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="markPaidDash('${jsStr(j.id)}','paid')"><i class="ti ti-check"></i> Paid</button>
+         <button class="btn bxsm" onclick="openEditJobModal('${jsStr(j.id)}')"><i class="ti ti-edit"></i></button>`;
+    return `<div class="card" style="margin-top:.5rem">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:15px">${c?esc(custFullName(c)):'Deleted customer'}</div>
+          <div style="font-size:12px;color:var(--ink3);margin-top:2px">${esc(fmtDate(j.date))} · ${esc(desc)}</div>
+          <div style="display:inline-flex;align-items:center;margin-top:7px;padding:4px 8px;border-radius:999px;background:${st.bg};color:${st.color};font-size:10px;font-weight:800;letter-spacing:.03em">${esc(st.badge)}</div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:6px">${esc(st.label)}${timeline?' · '+esc(timeline):''}</div>
+        </div>
+        <div style="font-weight:800;font-size:18px;color:${st.key==='paid'?'var(--green)':'var(--red)'};flex-shrink:0">$${amt.toFixed(2)}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-        <span style="font-size:13px;font-weight:700">${k.val}</span>
-        <span style="font-size:11px;color:var(--ink3);min-width:64px;text-align:right">${esc(k.bench)}</span>
-      </div>
-    </div>`).join('');
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:.75rem">${actions}</div>
+    </div>`;
+  }).join('');
+}
+
+function refreshInvoicePageIfOpen(){
+  const page=document.getElementById('pg-invoices');
+  if(page&&page.classList.contains('active'))renderInvoices();
 }
 
 function renderReports(){
@@ -3777,7 +3870,7 @@ function renderReports(){
   const cats=Object.entries(catMap).sort((a,b)=>b[1].revenue-a[1].revenue),sorted=[...filtered].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
   el.innerHTML=`<div class="dash-grid"><div class="dash-card"><div class="dash-val">${totalJobs}</div><div class="dash-lbl">Jobs completed</div></div><div class="dash-card"><div class="dash-val" style="color:var(--green)">$${revenue.toFixed(0)}</div><div class="dash-lbl">Revenue collected</div></div><div class="dash-card"><div class="dash-val" style="color:var(--red)">$${unpaidRevenue.toFixed(0)}</div><div class="dash-lbl">Outstanding</div></div><div class="dash-card"><div class="dash-val">${avgActual?Math.round(avgActual)+'m':'—'}</div><div class="dash-lbl">Avg job time</div></div></div>
   ${cats.length?`<div class="card"><div class="card-title">Revenue by service</div>${cats.map(([name,d])=>`<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--s3)"><div><div style="font-weight:600;font-size:13px">${esc(name)}</div><div style="font-size:11px;color:var(--ink3)">${d.count} item${d.count!==1?'s':''}</div></div><div style="font-weight:700;color:var(--green)">$${d.revenue.toFixed(0)}</div></div>`).join('')}</div>`:''}
-  <div class="card"><div class="card-title">All jobs (${sorted.length})</div>${sorted.length?sorted.map(j=>{const c=DB.customers.find(x=>x.id===j.custId),amt=jobAmount(j,c),desc=j.serviceDesc||jobTypeLabel(j.jobType||'mow');return `<div style="display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):'Deleted customer'}</div><div style="font-size:11px;color:var(--ink3)">${esc(fmtDate(j.date))} · ${esc(desc)}</div>${j.notes?`<div style="font-size:11px;color:var(--ink3)">${esc(j.notes)}</div>`:''}</div><div style="text-align:right;flex-shrink:0"><div style="font-weight:700;font-size:13px;color:${j.paid?'var(--green)':'var(--red)'}">$${amt.toFixed(2)}</div><span class="tag ${j.paid?'tag-green':'tag-red'}" style="font-size:9px">${j.paid?esc(j.paidMethod||'paid'):'Unpaid'}</span><div><button class="btn bxsm" onclick="openEditJobModal('${jsStr(j.id)}')" style="margin-top:4px"><i class="ti ti-edit"></i></button></div></div></div>`;}).join(''):'<div class="empty-state" style="padding:1rem"><small>No jobs recorded yet</small></div>'}</div>
+  <div class="card"><div class="card-title">All jobs (${sorted.length})</div>${sorted.length?sorted.map(j=>{const c=DB.customers.find(x=>x.id===j.custId),amt=jobAmount(j,c),desc=j.serviceDesc||jobTypeLabel(j.jobType||'mow');return `<div style="display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):'Deleted customer'}</div><div style="font-size:11px;color:var(--ink3)">${esc(fmtDate(j.date))} · ${esc(desc)}</div>${j.notes?`<div style="font-size:11px;color:var(--ink3)">${esc(j.notes)}</div>`:''}</div><div style="text-align:right;flex-shrink:0"><div style="font-weight:700;font-size:13px;color:${j.paid?'var(--green)':'var(--red)'}">$${amt.toFixed(2)}</div><span class="tag ${j.paid?'tag-green':'tag-red'}" style="font-size:9px">${j.paid?esc((j.invoiceSentAt?'Invoice → ':'')+(j.paidMethod||'paid')):esc(paymentStatus(j)==='invoice_sent'?'Invoice Sent':'Unpaid')}</span><div><button class="btn bxsm" onclick="openEditJobModal('${jsStr(j.id)}')" style="margin-top:4px"><i class="ti ti-edit"></i></button></div></div></div>`;}).join(''):'<div class="empty-state" style="padding:1rem"><small>No jobs recorded yet</small></div>'}</div>
   <div class="card"><div class="card-title">Mileage log</div><div class="mile-badge"><i class="ti ti-car"></i> ${totalMiles.toFixed(1)} miles in selected period</div>${mileageLog.length?mileageLog.slice(-10).reverse().map(e=>`<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--s3);font-size:13px"><span>${esc(fmtDate(e.date))}</span><span style="font-weight:600;color:var(--blue)">${(Number(e.miles)||0).toFixed(1)} mi · ${Number(e.stops)||0} stops</span></div>`).join(''):'<div style="font-size:13px;color:var(--ink3)">No mileage logged in this period.</div>'}</div>
   <div class="card"><div class="card-title">Customer breakdown</div>${DB.customers.filter(c=>c.sched!=='inactive').map(c=>{const jobs=filtered.filter(j=>j.custId===c.id),rev=jobs.filter(j=>j.paid).reduce((a,j)=>a+jobAmount(j,c),0),times=jobs.filter(j=>Number(j.actualMin)>0),avg=times.length?times.reduce((a,j)=>a+Number(j.actualMin),0)/times.length:0;return `<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div class="cust-avatar" style="width:32px;height:32px;font-size:15px">${esc(initials(c))}</div><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${esc(custFullName(c))}</div><div style="font-size:11px;color:var(--ink3)">${jobs.length} jobs${avg?' · '+Math.round(avg)+'m avg':''}</div></div><div style="font-weight:700;color:var(--green)">$${rev.toFixed(0)}</div></div>`;}).join('')}</div>`;
 }
@@ -3808,9 +3901,9 @@ function updateBackupStats(){
 
 function backupData(){
   const cleanDB=JSON.parse(JSON.stringify(DB));if(cleanDB.settings){delete cleanDB.settings.hubspotKey;delete cleanDB.settings.mapsKey;}
-  const payload={version:3,exportedAt:new Date().toISOString(),db:cleanDB,extras:{services:getServices(),business:getBizInputs(),mileage:safeParseJSON(localStorage.getItem('ros_mileage_log'),[]),bizName:getBizName()}};
+  const payload={version:4,exportedAt:new Date().toISOString(),db:cleanDB,extras:{services:getServices(),mileage:safeParseJSON(localStorage.getItem('ros_mileage_log'),[]),bizName:getBizName()}};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ROS-Backup-'+todayStr()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-  localStorage.setItem('ros_last_backup',new Date().toISOString());updateBackupStats();showRestoreMsg('Backup downloaded. It includes customers, jobs, schedules, job types, services, business inputs, mileage, and settings (but excludes API keys).','var(--gp)','var(--green)');
+  localStorage.setItem('ros_last_backup',new Date().toISOString());updateBackupStats();showRestoreMsg('Backup downloaded. It includes customers, jobs, invoice/payment history, schedules, job types, services, mileage, and settings (but excludes API keys).','var(--gp)','var(--green)');
 }
 
 function restoreData(input){
@@ -3823,10 +3916,10 @@ function restoreData(input){
       const old={customers:new Set(DB.customers.map(x=>x.id)),jobs:new Set(DB.jobHistory.map(x=>x.id)),scheduled:new Set((DB.scheduledJobs||[]).map(x=>x.id))};
       DB=Object.assign({customers:[],jobHistory:[],jobTypes:[],scheduledJobs:[],rainShifts:[],pendingDeletes:[],settings:{}},payload.db);normalizeDB();if(DB.settings){delete DB.settings.hubspotKey;delete DB.settings.mapsKey;}
       old.customers.forEach(id=>{if(!DB.customers.some(x=>x.id===id))queueDelete('customers',id);});old.jobs.forEach(id=>{if(!DB.jobHistory.some(x=>x.id===id))queueDelete('job_history',id);});old.scheduled.forEach(id=>{if(!DB.scheduledJobs.some(x=>x.id===id))queueDelete('scheduled_jobs',id);});
-      const ex=payload.extras||{};if(Array.isArray(ex.services))saveServices(ex.services);if(ex.business&&typeof ex.business==='object')saveBizInputs(ex.business);if(Array.isArray(ex.mileage))localStorage.setItem('ros_mileage_log',JSON.stringify(ex.mileage));if(ex.bizName)DB.settings.bizName=String(ex.bizName).slice(0,120);
+      const ex=payload.extras||{};if(Array.isArray(ex.services))saveServices(ex.services);if(Array.isArray(ex.mileage))localStorage.setItem('ros_mileage_log',JSON.stringify(ex.mileage));if(ex.bizName)DB.settings.bizName=String(ex.bizName).slice(0,120);
       await saveDB();retryPendingDeletes();
       if(DB.settings.homeBase)document.getElementById('plan-home').value=DB.settings.homeBase;if(DB.settings.startTime)document.getElementById('plan-start').value=DB.settings.startTime;if(DB.settings.hours)document.getElementById('plan-hours').value=DB.settings.hours;
-      renderDash();renderCustomers();renderReports();renderCalendar();renderTypeList();loadServicesUI();loadStripeSettingsUI();updateBackupStats();showRestoreMsg('✓ Restore complete. Cloud deletions, if any, will retry automatically if the connection is unavailable.','var(--gp)','var(--green)');
+      renderDash();renderCustomers();renderReports();renderCalendar();renderTypeList();loadServicesUI();loadStripeSettingsUI();updateBackupStats();refreshInvoicePageIfOpen();showRestoreMsg('✓ Restore complete. Cloud deletions, if any, will retry automatically if the connection is unavailable.','var(--gp)','var(--green)');
     }catch(err){showRestoreMsg('Could not restore that file. Make sure it is a valid ROS backup.','var(--rp)','var(--red)');}finally{input.value='';}
   };reader.onerror=()=>{showRestoreMsg('Could not read that backup file.','var(--rp)','var(--red)');input.value='';};reader.readAsText(file);
 }
@@ -3857,11 +3950,6 @@ async function startApp(){
   await reconcileLocalOnlyToCloud();
   cleanupOldRainShifts();
 
-  // Pull synced business calculator inputs (non-blocking; refresh tab if showing).
-  loadBizInputsFromCloud().then(()=>{
-    const bizPage=document.getElementById('pg-biz');
-    if(bizPage&&bizPage.classList.contains('active'))renderBiz();
-  });
 
   if(DB.settings.homeBase)document.getElementById('plan-home').value=DB.settings.homeBase;
   if(DB.settings.startTime)document.getElementById('plan-start').value=DB.settings.startTime;
@@ -4044,10 +4132,12 @@ window.addEventListener('load',()=>{
   <div class="fr">
     <div class="f" style="flex:0 0 140px"><label>Payment status</label>
       <select id="ej-paid">
-        <option value="unpaid">Unpaid</option>
+        <option value="unpaid">Unpaid — Invoice not sent</option>
+        <option value="invoice">Invoice Sent — Awaiting Payment</option>
         <option value="cash">Paid — Cash</option>
+        <option value="check">Paid — Check</option>
         <option value="card">Paid — Card</option>
-        <option value="invoice">Invoice sent</option>
+        <option value="paid">Paid — Other</option>
       </select>
     </div>
   </div>
