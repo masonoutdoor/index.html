@@ -932,7 +932,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.08.19-production-audit-r6-invoices-payments';
+const APP_VERSION='2026.08.19-production-audit-r7-payment-field-sync';
 const supabaseClient = window.supabase&&window.supabase.createClient?window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY):null;
 
 function isUuid(value){
@@ -1919,7 +1919,7 @@ function markInvoiceSentDash(jobId){
     j.paymentStatus='invoice_sent';
     j.invoiceSentAt=j.invoiceSentAt||Date.now();
     saveDB();
-    renderDash();refreshInvoicePageIfOpen();
+    renderDash();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(jobId);
     if(document.getElementById('pg-reports')&&document.getElementById('pg-reports').classList.contains('active'))renderReports();
   }
 }
@@ -1934,7 +1934,7 @@ function markPaidDash(jobId,method){
     j.paymentStatus='paid';
     j.paidAt=j.paidAt||Date.now();
     saveDB();
-    renderDash();refreshInvoicePageIfOpen();
+    renderDash();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(jobId);
     if(document.getElementById('pg-reports')&&document.getElementById('pg-reports').classList.contains('active'))renderReports();
   }
 }
@@ -2962,6 +2962,23 @@ function rerenderJCard(i){
   updateEndDayUI();
 }
 
+// Keep the Field Tracker payment badge/actions in sync when a completed job is
+// edited from Invoices, the dashboard, or Reports. The underlying job record
+// was already updated; this refreshes any currently loaded route card that
+// points at that history record so the user immediately sees Paid/Invoice Sent.
+function refreshTrackerJobByHistoryId(jobId){
+  if(!jobId||!trackerRoute||!Array.isArray(trackerRoute.jobs))return;
+  trackerRoute.jobs.forEach((routeJob,i)=>{
+    let matches=String(routeJob&&routeJob.jobId||'')===String(jobId);
+    if(!matches&&routeJob&&!routeJob.jobId){
+      const rec=getJobRecordForTracker(routeJob);
+      matches=!!(rec&&String(rec.id)===String(jobId));
+    }
+    if(matches)rerenderJCard(i);
+  });
+  updateEndDayUI();
+}
+
 let _lastTrackerPeriodicSave=0;
 function startTick(i){
   const st=getTS(i);if(st.interval)return;
@@ -3721,7 +3738,7 @@ function saveEditJob(){
     j.paymentStatus='paid';j.paidAt=(wasPaid&&j.paidAt)?j.paidAt:now;
     if(wasInvoice&&!j.invoiceSentAt)j.invoiceSentAt=now;
   }
-  window._editJobBusy=true;setTimeout(()=>{window._editJobBusy=false;},350);saveDB();closeModal('editjob-modal');renderDash();renderReports();renderCalendar();refreshInvoicePageIfOpen();
+  window._editJobBusy=true;setTimeout(()=>{window._editJobBusy=false;},350);saveDB();closeModal('editjob-modal');renderDash();renderReports();renderCalendar();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(id);
 }
 
 async function deleteJob(){
