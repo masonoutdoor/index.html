@@ -940,7 +940,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.08.19-production-audit';
+const APP_VERSION='2026.08.19-production-audit-r2';
 const supabaseClient = window.supabase&&window.supabase.createClient?window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY):null;
 
 function isUuid(value){
@@ -1442,6 +1442,40 @@ async function loadDB(){
   DB.jobHistory.forEach(j=>{if(!_syncedSig.jobs[j.id])_syncedSig.jobs[j.id]=_sig(_jobRow(j));});
   DB.scheduledJobs.forEach(j=>{if(!_syncedSig.scheduled[j.id])_syncedSig.scheduled[j.id]=_sig(_scheduledJobRow(j));});
   persistSyncSignatures();
+}
+
+// Reconcile records that exist only on this device back to Supabase.
+// This repairs a real cross-device edge case: older/local-only customers, jobs,
+// or scheduled jobs can survive in localStorage but never reach a fresh device.
+async function reconcileLocalOnlyToCloud(){
+  if(!supabaseClient)return;
+  const groups=[
+    {table:'customers',records:DB.customers,rowFn:_customerRow,sigKey:'customers',deleteKey:'customers'},
+    {table:'job_history',records:DB.jobHistory,rowFn:_jobRow,sigKey:'jobs',deleteKey:'job_history'},
+    {table:'scheduled_jobs',records:DB.scheduledJobs,rowFn:_scheduledJobRow,sigKey:'scheduled',deleteKey:'scheduled_jobs'}
+  ];
+  let repaired=0,hadError=false;
+  for(const g of groups){
+    try{
+      const {data,error}=await withTimeout(supabaseClient.from(g.table).select('id'),7000,g.table+' reconciliation read');
+      if(error){hadError=true;console.log(g.table+' reconciliation read error',error);continue;}
+      const cloudIds=new Set((data||[]).map(r=>String(r.id)));
+      const missing=(g.records||[]).filter(r=>r&&r.id&&!cloudIds.has(String(r.id))&&!isPendingDelete(g.deleteKey,r.id));
+      if(!missing.length)continue;
+      const rows=missing.map(g.rowFn);
+      const {error:writeError}=await withTimeout(supabaseClient.from(g.table).upsert(rows),10000,g.table+' reconciliation write');
+      if(writeError){hadError=true;console.log(g.table+' reconciliation write error',writeError);continue;}
+      missing.forEach(r=>{_syncedSig[g.sigKey][r.id]=_sig(g.rowFn(r));});
+      repaired+=missing.length;
+    }catch(err){hadError=true;console.log(g.table+' reconciliation error',err);}
+  }
+  if(repaired){
+    persistSyncSignatures();
+    // Also push current app settings/job metadata now that all record IDs exist in cloud.
+    try{await syncDBToCloud(true);}catch(e){hadError=true;}
+    console.log('ROS cloud reconciliation uploaded '+repaired+' local-only record(s).');
+  }
+  if(hadError)setSaveStatus('error');
 }
 
 // ══ NAVIGATION ════════════════════════════════════════════════════
@@ -3780,6 +3814,7 @@ async function startApp(){
   const pv=document.getElementById('pviewer'); if(pv)pv.classList.remove('open');
 
   await loadDB();
+  await reconcileLocalOnlyToCloud();
   cleanupOldRainShifts();
 
   // Pull synced business calculator inputs (non-blocking; refresh tab if showing).
