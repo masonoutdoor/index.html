@@ -899,10 +899,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 </div>
 </div>
 
+<!-- Weather delay options modal -->
+<div class="modal-bg" id="weather-delay-modal" onclick="handleModalBg(event,'weather-delay-modal')">
+<div class="modal">
+  <div class="modal-title"><i class="ti ti-cloud-rain"></i> Weather Delay</div>
+  <div id="weather-delay-content"></div>
+  <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:1rem">
+    <button class="btn btnb" id="weather-shift-week-btn" style="min-height:50px;white-space:normal;line-height:1.3"><i class="ti ti-calendar-forward"></i> Shift the rest of this week forward 1 day</button>
+    <button class="btn btng" id="weather-stack-btn" style="min-height:50px;white-space:normal;line-height:1.3"><i class="ti ti-layers-intersect"></i> Move only this day to tomorrow — stack jobs</button>
+    <button class="btn" onclick="closeModal('weather-delay-modal')">Cancel</button>
+  </div>
+</div>
+</div>
+
 <!-- Rain result modal -->
 <div class="modal-bg" id="rain-result-modal" onclick="handleModalBg(event,'rain-result-modal')">
 <div class="modal">
-  <div class="modal-title"><i class="ti ti-cloud-rain"></i> Rain Delay Applied</div>
+  <div class="modal-title"><i class="ti ti-cloud-rain"></i> Weather Delay Applied</div>
   <div id="rain-result-content"></div>
   <button class="btn btng" onclick="closeModal('rain-result-modal')" style="width:100%;margin-top:1rem"><i class="ti ti-check"></i> Done</button>
 </div>
@@ -957,7 +970,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.08.19-r8-critical-recommended';
+const APP_VERSION='2026.08.24-r10-weather-message';
 const supabaseClient = window.supabase&&window.supabase.createClient?window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY):null;
 
 function isUuid(value){
@@ -2028,18 +2041,44 @@ function rainDayLoadMinutes(dateStr){
   return {mowMin,schedMin:sched,total:mowMin+sched,stops:mows.length};
 }
 
-// Confirm before applying a rain delay
+// Weather delay options: either cascade the remaining work week forward one day,
+// or move only the selected day's work to tomorrow and stack it with tomorrow's route.
 function confirmRainDelay(rainDateStr){
-  const d=_rainParse(rainDateStr),cascade=rainComputeCascade(rainDateStr);if(!cascade){alert('Rain delay auto-shift applies Monday through Thursday. Weekend work must be moved manually.');return;}if(cascade.fridayManual){alert('Friday is your buffer day. A Friday rainout is not automatically pushed into Saturday; move those jobs manually to the next workable date.');return;}
-  const msg=`Mark ${_DOW[d.getDay()]} ${fmtDate(rainDateStr)} as rained out?\n\nAffected jobs move forward one day through Thursday. Thursday's work lands on Friday, while Friday's normal jobs stay Friday. Everyone returns to their normal recurring day next week.`;if(confirm(msg))applyRainDelay(rainDateStr);
+  const d=_rainParse(rainDateStr),cascade=rainComputeCascade(rainDateStr);
+  if(!cascade){alert('Automatic weather shifting applies Monday through Thursday. Weekend work must be moved manually.');return;}
+  if(cascade.fridayManual){alert('Friday is your buffer day. A Friday weather delay is not automatically pushed into Saturday; move those jobs manually to the next workable date.');return;}
+  const tomorrow=_rainAdd(rainDateStr,1);
+  const selectedLoad=rainDayLoadMinutes(rainDateStr),tomorrowLoad=rainDayLoadMinutes(tomorrow),hours=parseFloat((DB.settings&&DB.settings.hours)||8);
+  const el=document.getElementById('weather-delay-content');
+  if(el)el.innerHTML=`<div style="font-size:13px;line-height:1.55;color:var(--ink2)">
+    <strong>${_DOW[d.getDay()]} ${esc(fmtDate(rainDateStr))}</strong> is too wet to mow. Choose how you want to recover the route. All recurring customers return to their normal schedule next week.
+    <div style="background:var(--s2);border-radius:var(--r);padding:.7rem .8rem;margin-top:.75rem">
+      <div><strong>Shift week:</strong> this day's route moves to tomorrow, then each remaining Mon–Thu route moves forward one day. Thursday joins Friday.</div>
+      <div style="margin-top:.45rem"><strong>Stack tomorrow:</strong> only this day's route moves to ${esc(fmtDate(tomorrow))}. Tomorrow's normal route stays there, so both routes are combined.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:.75rem">
+      <div class="dash-card" style="padding:.65rem"><div class="dash-val" style="font-size:22px">${selectedLoad.stops}</div><div class="dash-lbl">Stops moving</div></div>
+      <div class="dash-card" style="padding:.65rem"><div class="dash-val" style="font-size:22px;color:${(selectedLoad.total+tomorrowLoad.total)>hours*60?'var(--red)':'var(--green)'}">${fmtMins(selectedLoad.total+tomorrowLoad.total)}</div><div class="dash-lbl">Tomorrow if stacked</div></div>
+    </div>
+  </div>`;
+  const weekBtn=document.getElementById('weather-shift-week-btn'),stackBtn=document.getElementById('weather-stack-btn');
+  if(weekBtn)weekBtn.onclick=()=>{closeModal('weather-delay-modal');applyRainDelay(rainDateStr,'cascade');};
+  if(stackBtn)stackBtn.onclick=()=>{closeModal('weather-delay-modal');applyRainDelay(rainDateStr,'stack');};
+  document.getElementById('weather-delay-modal').classList.add('open');
 }
 
-// Apply a rain delay for the given date: store the shift, prompt for landscaping
-// jobs, warn on overflow, snap back automatically next week.
-function applyRainDelay(rainDateStr){
-  if(rainDateAlreadyShifted(rainDateStr)){alert(_DOW[_rainParse(rainDateStr).getDay()]+' '+fmtDate(rainDateStr)+' is already marked as rained out.');return;}const cascade=rainComputeCascade(rainDateStr);if(!cascade){alert('Rain auto-shift applies Monday through Thursday.');return;}if(cascade.fridayManual){alert('Friday is the buffer day and will not auto-shift into Saturday. Move Friday jobs manually.');return;}
-  const shiftedDates=cascade.redirects.map(r=>r.from),affectedSched=(DB.scheduledJobs||[]).filter(s=>shiftedDates.includes(s.date)&&!s.done),shift={id:uid(),rainDate:rainDateStr,redirects:cascade.redirects,createdAt:new Date().toISOString()};if(!DB.rainShifts)DB.rainShifts=[];DB.rainShifts.push(shift);const askAbout=[];
-  affectedSched.forEach(s=>{if(s.movesWithRain){s.rainPrevDate=s.date;s.rainShiftId=shift.id;s.date=_rainAdd(s.date,1);askAbout.push({job:s,moved:true});}else askAbout.push({job:s,moved:false});});saveDB();renderCalendar();showRainResult(shift,cascade,askAbout);
+// Apply a weather delay. "cascade" moves each remaining Mon–Thu route forward one day.
+// "stack" moves only the selected day's jobs onto the following day.
+function applyRainDelay(rainDateStr,mode='cascade'){
+  if(rainDateAlreadyShifted(rainDateStr)){alert(_DOW[_rainParse(rainDateStr).getDay()]+' '+fmtDate(rainDateStr)+' is already marked as weather delayed.');return;}
+  const base=rainComputeCascade(rainDateStr);if(!base||base.fridayManual){alert('Automatic weather shifting applies Monday through Thursday.');return;}
+  const cascade=mode==='stack'
+    ? {redirects:[{from:rainDateStr,to:_rainAdd(rainDateStr,1)}],overflowFrom:rainDateStr,chain:[rainDateStr],fridayManual:false,mode:'stack'}
+    : Object.assign({},base,{mode:'cascade'});
+  const shiftedDates=cascade.redirects.map(r=>r.from),affectedSched=(DB.scheduledJobs||[]).filter(s=>shiftedDates.includes(s.date)&&!s.done),shift={id:uid(),rainDate:rainDateStr,redirects:cascade.redirects,createdAt:new Date().toISOString()};
+  if(!DB.rainShifts)DB.rainShifts=[];DB.rainShifts.push(shift);const askAbout=[];
+  affectedSched.forEach(s=>{if(s.movesWithRain){const redir=cascade.redirects.find(r=>r.from===s.date);s.rainPrevDate=s.date;s.rainShiftId=shift.id;s.date=redir?redir.to:_rainAdd(s.date,1);askAbout.push({job:s,moved:true});}else askAbout.push({job:s,moved:false});});
+  saveDB();renderCalendar();showRainResult(shift,cascade,askAbout);
 }
 
 // Undo a rain shift (snap everything back)
@@ -2052,16 +2091,14 @@ function cleanupOldRainShifts(){
   const cutoff=_rainYmd(new Date()),old=DB.rainShifts||[],removed=old.filter(sh=>!sh.redirects.some(r=>r.to>=cutoff));DB.rainShifts=old.filter(sh=>sh.redirects.some(r=>r.to>=cutoff));removed.forEach(sh=>queueDelete('rain_shifts',sh.id));if(removed.length){saveDB();retryPendingDeletes();}
 }
 
-// Show the rain result modal: overflow warning + landscaping job summary
+// Show the weather result modal, capacity/stacking load, and one-tap customer notifications.
 function showRainResult(shift,cascade,askAbout){
   const hours=parseFloat((DB.settings&&DB.settings.hours)||8);
   const budgetMin=hours*60;
-  // Check each target day for overflow
   const targetDays=[...new Set(cascade.redirects.map(r=>r.to))];
   let overflowRows='';
   targetDays.forEach(t=>{
-    const load=rainDayLoadMinutes(t);
-    const over=load.total>budgetMin;
+    const load=rainDayLoadMinutes(t),over=load.total>budgetMin;
     overflowRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--s3);font-size:13px">
       <span>${_DOW[_rainParse(t).getDay()]} ${esc(fmtDate(t))}</span>
       <span style="font-weight:700;color:${over?'var(--red)':'var(--green)'}">${load.stops} stop${load.stops!==1?'s':''} · ${fmtMins(load.total)}${over?' ⚠':''}</span>
@@ -2069,43 +2106,62 @@ function showRainResult(shift,cascade,askAbout){
   });
   const anyOverflow=targetDays.some(t=>rainDayLoadMinutes(t).total>budgetMin);
 
+  // Recurring mowing customers affected by each redirect. Each one gets their actual new date.
+  const affectedMows=[];
+  cascade.redirects.forEach(r=>{
+    const originDate=_rainParse(r.from);
+    (DB.customers||[]).forEach(c=>{if(Schedule.isDue(c,originDate))affectedMows.push({cust:c,from:r.from,to:r.to});});
+  });
+  let mowSummary='';
+  if(affectedMows.length){
+    mowSummary=`<div style="margin-top:1rem"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">Mowing customers to notify (${affectedMows.length})</div>`;
+    affectedMows.forEach(a=>{
+      mowSummary+=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:.55rem 0;border-bottom:1px solid var(--s3)">
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(custFullName(a.cust))}</div><div style="font-size:11px;color:var(--amb)">${esc(fmtDate(a.from))} → ${esc(fmtDate(a.to))}</div></div>
+        ${a.cust.phone?`<button class="btn bsm btnb" onclick="textWeatherMow('${jsStr(a.cust.id)}','${jsStr(a.to)}')"><i class="ti ti-message"></i> Notify</button>`:'<span style="font-size:10px;color:var(--red)">No phone</span>'}
+      </div>`;
+    });
+    mowSummary+='</div>';
+  }
+
   let schedSummary='';
   if(askAbout.length){
-    schedSummary=`<div style="margin-top:1rem"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">Landscaping jobs on shifted days</div>`;
+    schedSummary=`<div style="margin-top:1rem"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">Other scheduled jobs on shifted days</div>`;
     askAbout.forEach(a=>{
       const c=a.job.custId?DB.customers.find(x=>x.id===a.job.custId):null;
       schedSummary+=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--s3)">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600">${esc(jobTypeLabel(a.job.jobType))}${c?' · '+esc(custFullName(c)):''}</div>
-          <div style="font-size:11px;color:${a.moved?'var(--amb)':'var(--ink3)'}">${a.moved?'Moved to '+fmtDate(a.job.date)+' — review & notify':'Kept on '+fmtDate(a.job.date)+' (locked to date)'}</div>
-        </div>
-        ${a.moved&&c&&c.phone?`<button class="btn bxsm" onclick="textRescheduled('${jsStr(a.job.custId)}','${jsStr(a.job.date)}','${jsStr(a.job.time||'')}')"><i class="ti ti-message" style="font-size:10px"></i> Notify</button>`:''}
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(jobTypeLabel(a.job.jobType))}${c?' · '+esc(custFullName(c)):''}</div><div style="font-size:11px;color:${a.moved?'var(--amb)':'var(--ink3)'}">${a.moved?'Moved to '+fmtDate(a.job.date)+' — review & notify':'Kept on '+fmtDate(a.job.date)+' (locked to date)'}</div></div>
+        ${a.moved&&c&&c.phone?`<button class="btn bsm" onclick="textRescheduled('${jsStr(a.job.custId)}','${jsStr(a.job.date)}','${jsStr(a.job.time||'')}')"><i class="ti ti-message"></i> Notify</button>`:''}
       </div>`;
     });
     schedSummary+='</div>';
   }
 
-  const body=`
-    <div style="background:${anyOverflow?'#fff3cd':'var(--gp)'};border:1px solid ${anyOverflow?'#ffc107':'var(--gl)'};border-radius:var(--r);padding:.75rem .875rem;font-size:13px;color:${anyOverflow?'#856404':'var(--green)'};line-height:1.5;margin-bottom:.875rem">
-      ${anyOverflow
-        ? '⚠ One or more days now run over your '+hours+'-hour day. Drag overflow onto your buffer day or the weekend from the day view.'
-        : '✓ Affected work shifted forward through Friday. Friday remains the buffer; nothing was auto-scheduled into Saturday.'}
+  const modeText=cascade.mode==='stack'
+    ? 'Only the selected route moved to the following day and was stacked with that day’s normal work. The rest of the week stayed in place.'
+    : 'Each affected Mon–Thu route moved forward exactly one day. Thursday lands on Friday, so Friday may contain both Thursday and Friday work.';
+  const body=`<div style="background:${anyOverflow?'#fff3cd':'var(--gp)'};border:1px solid ${anyOverflow?'#ffc107':'var(--gl)'};border-radius:var(--r);padding:.75rem .875rem;font-size:13px;color:${anyOverflow?'#856404':'var(--green)'};line-height:1.5;margin-bottom:.875rem">
+      ${anyOverflow?'⚠ One or more resulting days exceed your '+hours+'-hour target. The jobs are still scheduled, but review the day and move overflow manually if needed.':'✓ '+modeText}
+      <div style="margin-top:.35rem;color:inherit">Normal recurring schedules automatically resume next week.</div>
     </div>
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">Shifted week load</div>
-    ${overflowRows}
-    ${schedSummary}`;
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">Resulting workload</div>
+    ${overflowRows}${mowSummary}${schedSummary}`;
   document.getElementById('rain-result-content').innerHTML=body;
   document.getElementById('rain-result-modal').classList.add('open');
 }
 
-// Text a customer that their landscaping appointment moved
+// Text a mowing customer after a weather delay.
+function textWeatherMow(custId,newDate){
+  const c=DB.customers.find(x=>x.id===custId);if(!c||!c.phone){alert('No phone number for this customer.');return;}
+  const msg=`Hi ${c.first}, just a heads up, it’s too wet to mow today, so I’m moving your service to tomorrow if the weather cooperates. We’ll be back to your normal schedule next week. Thanks!`;
+  sendSMS(c.phone,msg);
+}
+
+// Text a customer that another scheduled service moved because of weather.
 function textRescheduled(custId,newDate,newTime){
-  const c=DB.customers.find(x=>x.id===custId);
-  if(!c||!c.phone){alert('No phone number for this customer.');return;}
-  const bizName=getBizName();
-  const whenTime=newTime?' at '+fmtTime12(newTime):'';
-  const msg=`Hi ${c.first}! Due to weather, we've moved your service to ${fmtDate(newDate)}${whenTime}. Sorry for the change and thanks for your patience! — ${bizName}`;
-  window.open('sms:'+c.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg));
+  const c=DB.customers.find(x=>x.id===custId);if(!c||!c.phone){alert('No phone number for this customer.');return;}
+  const msg=`Hi ${c.first}, due to weather, your service has been rescheduled for the following day, if weather allows. We will resume your normal schedule next week. — ${getBizName()}`;
+  sendSMS(c.phone,msg);
 }
 
 function renderCalDayPanel(dateStr){
@@ -2140,12 +2196,12 @@ function renderCalDayPanel(dateStr){
   const owningShift=(DB.rainShifts||[]).find(sh=>sh.redirects.some(r=>r.from===dateStr));
   if(alreadyShifted&&owningShift){
     h+=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bp);border:1px solid #b3c8f0;border-radius:var(--r);padding:.6rem .75rem;margin-bottom:.625rem">
-      <div style="font-size:12px;color:var(--blue);line-height:1.4"><i class="ti ti-cloud-rain" style="font-size:13px"></i> <strong>Rained out</strong> — jobs shifted forward. Snaps back next week.</div>
+      <div style="font-size:12px;color:var(--blue);line-height:1.4"><i class="ti ti-cloud-rain" style="font-size:13px"></i> <strong>Weather delayed</strong> — affected jobs moved forward. Normal schedule resumes next week.</div>
       <button class="btn bxsm" onclick="undoRainDelay('${jsStr(owningShift.id)}')"><i class="ti ti-arrow-back-up" style="font-size:11px"></i> Undo</button>
     </div>`;
   } else if(isWorkDay&&(mows.length||sched.length)){
     h+=`<div style="margin-bottom:.625rem">
-      <button class="btn bsm" style="width:100%;background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="confirmRainDelay('${jsStr(dateStr)}')"><i class="ti ti-cloud-rain"></i> Mark rained out — push week forward</button>
+      <button class="btn bsm" style="width:100%;background:var(--bp);color:var(--blue);border-color:#b3c8f0" onclick="confirmRainDelay('${jsStr(dateStr)}')"><i class="ti ti-cloud-rain"></i> Too wet / weather delay — choose move</button>
     </div>`;
   }
 
