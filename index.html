@@ -970,7 +970,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.08.24-r11-weather-messages-by-day';
+const APP_VERSION='2026.08.24-r12-weather-notify-lists';
 const supabaseClient = window.supabase&&window.supabase.createClient?window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY):null;
 
 function isUuid(value){
@@ -2114,12 +2114,32 @@ function showRainResult(shift,cascade,askAbout){
   });
   let mowSummary='';
   if(affectedMows.length){
-    mowSummary=`<div style="margin-top:1rem"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.5rem">Mowing customers to notify (${affectedMows.length})</div>`;
-    affectedMows.forEach(a=>{
-      mowSummary+=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:.55rem 0;border-bottom:1px solid var(--s3)">
-        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(custFullName(a.cust))}</div><div style="font-size:11px;color:var(--amb)">${esc(fmtDate(a.from))} → ${esc(fmtDate(a.to))}</div></div>
-        ${a.cust.phone?`<button class="btn bsm btnb" onclick="textWeatherMow('${jsStr(a.cust.id)}','${jsStr(a.from)}','${jsStr(a.to)}')"><i class="ti ti-message"></i> Notify</button>`:'<span style="font-size:10px;color:var(--red)">No phone</span>'}
-      </div>`;
+    // Group notifications by the customer's ORIGINAL mowing day so it is obvious
+    // which Monday, Tuesday, Wednesday, etc. customers still need to be contacted.
+    const groups={};
+    affectedMows.forEach(a=>{if(!groups[a.from])groups[a.from]=[];groups[a.from].push(a);});
+    const groupDates=Object.keys(groups).sort();
+    mowSummary=`<div style="margin-top:1rem"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.6rem">Customers to notify (${affectedMows.length})</div>`;
+    groupDates.forEach(fromDate=>{
+      const list=groups[fromDate],toDate=list[0]&&list[0].to;
+      const fromDay=_rainParse(fromDate).toLocaleDateString('en-US',{weekday:'long'});
+      const toDay=toDate?_rainParse(toDate).toLocaleDateString('en-US',{weekday:'long'}):'';
+      const isToday=fromDate===todayStr();
+      const preview=isToday
+        ? `Too wet today — moving ${fromDay} customers to ${toDay}.`
+        : `${fromDay} customers are moving to ${toDay} because of this week's wet weather.`;
+      mowSummary+=`<div style="margin:.7rem 0 1rem;border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;background:var(--s1)">
+        <div style="padding:.65rem .75rem;background:var(--s2);border-bottom:1px solid var(--bd)">
+          <div style="font-size:13px;font-weight:800;text-transform:uppercase;color:var(--ink)">${esc(fromDay)} CUSTOMERS — ${list.length} TO NOTIFY</div>
+          <div style="font-size:11px;color:var(--amb);margin-top:2px">${esc(preview)}</div>
+        </div>`;
+      list.forEach(a=>{
+        mowSummary+=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:.65rem .75rem;border-bottom:1px solid var(--s3)">
+          <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(custFullName(a.cust))}</div><div style="font-size:11px;color:var(--ink3)">${esc(fromDay)} → ${esc(toDay)}</div></div>
+          ${a.cust.phone?`<button class="btn bsm btnb" onclick="textWeatherMow('${jsStr(a.cust.id)}','${jsStr(a.from)}','${jsStr(a.to)}')"><i class="ti ti-message"></i> Notify</button>`:'<span style="font-size:10px;color:var(--red)">No phone</span>'}
+        </div>`;
+      });
+      mowSummary+='</div>';
     });
     mowSummary+='</div>';
   }
