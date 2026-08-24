@@ -970,7 +970,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.08.24-r10-weather-message';
+const APP_VERSION='2026.08.24-r11-weather-messages-by-day';
 const supabaseClient = window.supabase&&window.supabase.createClient?window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY):null;
 
 function isUuid(value){
@@ -2118,7 +2118,7 @@ function showRainResult(shift,cascade,askAbout){
     affectedMows.forEach(a=>{
       mowSummary+=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:.55rem 0;border-bottom:1px solid var(--s3)">
         <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(custFullName(a.cust))}</div><div style="font-size:11px;color:var(--amb)">${esc(fmtDate(a.from))} → ${esc(fmtDate(a.to))}</div></div>
-        ${a.cust.phone?`<button class="btn bsm btnb" onclick="textWeatherMow('${jsStr(a.cust.id)}','${jsStr(a.to)}')"><i class="ti ti-message"></i> Notify</button>`:'<span style="font-size:10px;color:var(--red)">No phone</span>'}
+        ${a.cust.phone?`<button class="btn bsm btnb" onclick="textWeatherMow('${jsStr(a.cust.id)}','${jsStr(a.from)}','${jsStr(a.to)}')"><i class="ti ti-message"></i> Notify</button>`:'<span style="font-size:10px;color:var(--red)">No phone</span>'}
       </div>`;
     });
     mowSummary+='</div>';
@@ -2151,9 +2151,19 @@ function showRainResult(shift,cascade,askAbout){
 }
 
 // Text a mowing customer after a weather delay.
-function textWeatherMow(custId,newDate){
+function textWeatherMow(custId,fromDate,newDate){
   const c=DB.customers.find(x=>x.id===custId);if(!c||!c.phone){alert('No phone number for this customer.');return;}
-  const msg=`Hi ${c.first}, just a heads up, it’s too wet to mow today, so I’m moving your service to tomorrow if the weather cooperates. We’ll be back to your normal schedule next week. Thanks!`;
+  const today=todayStr();
+  let msg;
+  if(fromDate===today){
+    // Keep the simple message for customers whose service was actually scheduled for today.
+    msg=`Hi ${c.first}, just a heads up, it’s too wet to mow today, so I’m moving your service to tomorrow if the weather cooperates. We’ll be back to your normal schedule next week. Thanks!`;
+  }else{
+    // Customers later in the week are not being serviced "tomorrow". Tell them the exact day change.
+    const fromDay=_rainParse(fromDate).toLocaleDateString('en-US',{weekday:'long'});
+    const toDay=_rainParse(newDate).toLocaleDateString('en-US',{weekday:'long'});
+    msg=`Hi ${c.first}, just a heads up, because of the wet weather this week, I’m moving your service from ${fromDay} to ${toDay} if the weather cooperates. We’ll be back to your normal schedule next week. Thanks!`;
+  }
   sendSMS(c.phone,msg);
 }
 
