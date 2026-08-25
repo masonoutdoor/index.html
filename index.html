@@ -153,10 +153,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .job-card{background:var(--s);border:1.5px solid var(--bd);border-radius:var(--rl);margin-bottom:.875rem;overflow:hidden;transition:border-color .2s,box-shadow .2s}
 .job-card.active{border-color:var(--green);box-shadow:0 0 0 3px rgba(45,90,39,.1)}
 .job-card.done{border-color:#b8d5b4;background:#f9fdf8}
+.job-card.skipped{border-color:#d7d7d7;background:#fafafa}
+.job-card.done.collapsed .job-body2{display:none}
 .job-hdr{display:flex;align-items:center;gap:12px;padding:.875rem 1rem;cursor:pointer}
 .job-num2{width:34px;height:34px;border-radius:50%;background:var(--s2);color:var(--ink3);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;flex-shrink:0}
 .job-card.active .job-num2{background:var(--green);color:#fff}
 .job-card.done .job-num2{background:var(--gl);color:#fff}
+.job-card.skipped .job-num2{background:#e6e6e6;color:#777}
 .job-meta2{flex:1;min-width:0}
 .job-name2{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .job-addr2{font-size:12px;color:var(--ink3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -164,6 +167,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .js-p{background:var(--s2);color:var(--ink3)}
 .js-a{background:var(--gp);color:var(--green)}
 .js-d{background:#d4edda;color:#155724}
+.js-s{background:#ececec;color:#666}
 .job-body2{display:none;padding:.875rem 1rem 1rem;border-top:1px solid var(--s3)}
 .job-card.active .job-body2,.job-card.done .job-body2,.job-card.exp .job-body2{display:block}
 .timer-big{font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:.04em;color:var(--green);line-height:1}
@@ -179,10 +183,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 .photo-add-btn:active{background:var(--gp);border-color:var(--gl)}
 .req-warn{background:#fff8e1;border:1px solid #ffc107;border-radius:10px;padding:.75rem;margin-bottom:.75rem;font-size:13px;color:#856404;display:flex;gap:8px;align-items:flex-start}
 .req-warn i{font-size:18px;flex-shrink:0}
-.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.875rem}
+.sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.875rem}
 .sum-box{background:var(--s2);border-radius:var(--r);padding:.75rem;text-align:center;border:1px solid var(--bd)}
 .sum-v{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);line-height:1}
 .sum-l{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+.hr-badge{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--bd);border-radius:999px;padding:4px 8px;font-size:10px;font-weight:800;letter-spacing:.025em;white-space:nowrap}
+.hr-badge.hr-low{background:var(--rp);border-color:#f0c0bc;color:var(--red)}
+.hr-badge.hr-good{background:var(--ambp);border-color:#efd39a;color:var(--amb)}
+.hr-badge.hr-strong{background:var(--gp);border-color:#b8d5b4;color:var(--green)}
+.hr-badge.hr-excellent{background:#e3f2e6;border-color:#9bc9a3;color:#174d23}
+.hr-badge.hr-none{background:var(--s2);color:var(--ink3)}
+.hr-badge.hr-lg{font-size:12px;padding:6px 10px}
+.hr-sum-value{font-family:'Bebas Neue',sans-serif;font-size:21px;line-height:1;margin-bottom:3px}
+.hr-sum-value.hr-low{color:var(--red)}.hr-sum-value.hr-good{color:var(--amb)}.hr-sum-value.hr-strong{color:var(--green)}.hr-sum-value.hr-excellent{color:#174d23}.hr-sum-value.hr-none{color:var(--ink3)}
 .notes-area{width:100%;border-radius:var(--r);border:1px solid var(--bd);background:var(--s2);color:var(--ink);padding:.625rem 10px;font-size:14px;font-family:'DM Sans',sans-serif;resize:none;min-height:72px}
 .notes-area:focus{outline:none;border-color:var(--gl);background:#fff}
 .est-info{font-size:12px;color:var(--ink3);display:flex;gap:12px;flex-wrap:wrap;padding:.4rem 0;margin-bottom:.625rem}
@@ -970,7 +983,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.08.24-r12-weather-notify-lists';
+const APP_VERSION='2026.08.25-r14-hourly-rate-performance';
 const supabaseClient = window.supabase&&window.supabase.createClient?window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY):null;
 
 function isUuid(value){
@@ -1592,6 +1605,26 @@ function jobAmount(j,c){
   if(j&&j.price!==undefined&&j.price!==null&&j.price!=='')return Number(j.price)||0;
   return Number(c&&c.price)||0;
 }
+function hourlyRateValue(j,c,minutesOverride,amountOverride){
+  if(!j)return null;
+  if(paymentStatus(j)==='not_billable')return null;
+  const mins=minutesOverride!==undefined&&minutesOverride!==null?Number(minutesOverride):Number(j.actualMin);
+  const amount=amountOverride!==undefined&&amountOverride!==null?Number(amountOverride):jobAmount(j,c);
+  if(!Number.isFinite(mins)||mins<=0||!Number.isFinite(amount)||amount<=0)return null;
+  return amount/(mins/60);
+}
+function hourlyRateInfo(rate){
+  const r=Number(rate);
+  if(!Number.isFinite(r)||r<=0)return {key:'none',label:'—',className:'hr-none'};
+  if(r<70)return {key:'low',label:'LOW',className:'hr-low'};
+  if(r<95)return {key:'good',label:'GOOD',className:'hr-good'};
+  if(r<120)return {key:'strong',label:'STRONG',className:'hr-strong'};
+  return {key:'excellent',label:'EXCELLENT',className:'hr-excellent'};
+}
+function hourlyRateText(rate){const r=Number(rate);return Number.isFinite(r)&&r>0?'$'+Math.round(r)+'/hr':'—';}
+function hourlyRateBadgeFromRate(rate,large=false){const info=hourlyRateInfo(rate);return `<span class="hr-badge ${info.className}${large?' hr-lg':''}">${esc(hourlyRateText(rate))}${info.key!=='none'?' · '+esc(info.label):''}</span>`;}
+function hourlyRateBadge(j,c,large=false){return hourlyRateBadgeFromRate(hourlyRateValue(j,c),large);}
+function hourlyRateSummary(rate){const info=hourlyRateInfo(rate);return `<div class="hr-sum-value ${info.className}">${esc(hourlyRateText(rate))}</div><div class="sum-l">Hourly${info.key!=='none'?' · '+esc(info.label):''}</div>`;}
 function paymentStatus(j){
   if(!j)return 'unpaid';
   if(j.paymentStatus==='not_billable')return 'not_billable';
@@ -2616,7 +2649,7 @@ let trackerRoute=null, trackerStates={}, pvJob=null, pvType=null, pvIdx=0;
 // FIX: Persist tracker states (including photos) to localStorage so data survives reloads
 let _trackerSaveTimer=null,_trackerCheckpointTimer=null;
 function trackerCheckpointPayload(){
-  if(!trackerRoute)return {updatedAt:Date.now(),route:null,states:{}};const states={};Object.keys(trackerStates).forEach(i=>{const st=trackerStates[i]||{},x={status:st.status||'pending',elapsed:st.elapsed+(st.startMs?Math.floor((Date.now()-st.startMs)/1000):0),wasActive:st.status==='active',notes:st.notes||'',actualMin:st.actualMin||0,expanded:!!st.expanded,arrivedAt:st.arrivedAt||null,departedAt:st.departedAt||null,preSentAt:st.preSentAt||null,postSentAt:st.postSentAt||null};['before','after','extra'].forEach(type=>{const urls=st[type+'PhotoUrls']||[],paths=st[type+'PhotoPaths']||[],safeUrls=[],safePaths=[];for(let n=0;n<Math.max(urls.length,paths.length);n++){if(paths[n]){safePaths.push(paths[n]);safeUrls.push(urls[n]||null);}}x[type+'PhotoUrls']=safeUrls;x[type+'PhotoPaths']=safePaths;x[type+'Photos']=safeUrls.filter(Boolean);});states[i]=x;});return {updatedAt:Date.now(),route:trackerRoute,states};
+  if(!trackerRoute)return {updatedAt:Date.now(),route:null,states:{}};const states={};Object.keys(trackerStates).forEach(i=>{const st=trackerStates[i]||{},x={status:st.status||'pending',elapsed:st.elapsed+(st.startMs?Math.floor((Date.now()-st.startMs)/1000):0),wasActive:st.status==='active',notes:st.notes||'',actualMin:st.actualMin||0,expanded:!!st.expanded,collapsed:!!st.collapsed,arrivedAt:st.arrivedAt||null,departedAt:st.departedAt||null,preSentAt:st.preSentAt||null,postSentAt:st.postSentAt||null,skippedAt:st.skippedAt||null,skipReason:st.skipReason||'',skipOccurrenceDate:st.skipOccurrenceDate||null};['before','after','extra'].forEach(type=>{const urls=st[type+'PhotoUrls']||[],paths=st[type+'PhotoPaths']||[],safeUrls=[],safePaths=[];for(let n=0;n<Math.max(urls.length,paths.length);n++){if(paths[n]){safePaths.push(paths[n]);safeUrls.push(urls[n]||null);}}x[type+'PhotoUrls']=safeUrls;x[type+'PhotoPaths']=safePaths;x[type+'Photos']=safeUrls.filter(Boolean);});states[i]=x;});return {updatedAt:Date.now(),route:trackerRoute,states};
 }
 function queueTrackerCloudCheckpoint(){clearTimeout(_trackerCheckpointTimer);_trackerCheckpointTimer=setTimeout(async()=>{if(!supabaseClient||!_r8SchemaReady)return;try{const payload=trackerCheckpointPayload();await supabaseClient.from('app_settings').upsert({key:'ros_active_tracker',value:JSON.stringify(payload)});localStorage.setItem('ros_tracker_checkpoint_updated',String(payload.updatedAt));}catch(e){console.log('Tracker checkpoint error',e);}},1200);}
 async function loadActiveTrackerCheckpoint(){
@@ -2625,15 +2658,15 @@ async function loadActiveTrackerCheckpoint(){
 async function hydrateTrackerSignedPhotoUrls(){if(!supabaseClient?.storage)return;for(const i of Object.keys(trackerStates)){const st=trackerStates[i];for(const type of ['before','after','extra']){const paths=st[type+'PhotoPaths']||[];if(!paths.length)continue;try{const {data,error}=await supabaseClient.storage.from('job-photos').createSignedUrls(paths,60*60*24*7);if(!error&&Array.isArray(data)){st[type+'PhotoUrls']=data.map(x=>x?.signedUrl||null);st[type+'Photos']=st[type+'PhotoUrls'].filter(Boolean);}}catch(e){}}}}
 
 function saveTrackerStates(){
-  try{const toSave={};Object.keys(trackerStates).forEach(i=>{const st=trackerStates[i];toSave[i]={status:st.status,elapsed:st.elapsed+(st.startMs?Math.floor((Date.now()-st.startMs)/1000):0),wasActive:st.status==='active',beforePhotos:st.beforePhotos||[],afterPhotos:st.afterPhotos||[],extraPhotos:st.extraPhotos||[],beforePhotoUrls:st.beforePhotoUrls||[],afterPhotoUrls:st.afterPhotoUrls||[],extraPhotoUrls:st.extraPhotoUrls||[],beforePhotoPaths:st.beforePhotoPaths||[],afterPhotoPaths:st.afterPhotoPaths||[],extraPhotoPaths:st.extraPhotoPaths||[],notes:st.notes||'',actualMin:st.actualMin||0,expanded:!!st.expanded,arrivedAt:st.arrivedAt||null,departedAt:st.departedAt||null,preSentAt:st.preSentAt||null,postSentAt:st.postSentAt||null};});localStorage.setItem('ros_tracker_states',JSON.stringify(toSave));localStorage.setItem('ros_tracker_checkpoint_updated',String(Date.now()));queueTrackerCloudCheckpoint();}catch(e){console.log('saveTrackerStates error',e);if(e&&(e.name==='QuotaExceededError'||/quota/i.test(e.message||''))){setSaveStatus('error');const el=document.getElementById('save-status');if(el)el.innerHTML='<i class="ti ti-cloud-off"></i> Storage full — photos need to sync before adding more';}}
+  try{const toSave={};Object.keys(trackerStates).forEach(i=>{const st=trackerStates[i];toSave[i]={status:st.status,elapsed:st.elapsed+(st.startMs?Math.floor((Date.now()-st.startMs)/1000):0),wasActive:st.status==='active',beforePhotos:st.beforePhotos||[],afterPhotos:st.afterPhotos||[],extraPhotos:st.extraPhotos||[],beforePhotoUrls:st.beforePhotoUrls||[],afterPhotoUrls:st.afterPhotoUrls||[],extraPhotoUrls:st.extraPhotoUrls||[],beforePhotoPaths:st.beforePhotoPaths||[],afterPhotoPaths:st.afterPhotoPaths||[],extraPhotoPaths:st.extraPhotoPaths||[],notes:st.notes||'',actualMin:st.actualMin||0,expanded:!!st.expanded,collapsed:!!st.collapsed,arrivedAt:st.arrivedAt||null,departedAt:st.departedAt||null,preSentAt:st.preSentAt||null,postSentAt:st.postSentAt||null,skippedAt:st.skippedAt||null,skipReason:st.skipReason||'',skipOccurrenceDate:st.skipOccurrenceDate||null};});localStorage.setItem('ros_tracker_states',JSON.stringify(toSave));localStorage.setItem('ros_tracker_checkpoint_updated',String(Date.now()));queueTrackerCloudCheckpoint();}catch(e){console.log('saveTrackerStates error',e);if(e&&(e.name==='QuotaExceededError'||/quota/i.test(e.message||''))){setSaveStatus('error');const el=document.getElementById('save-status');if(el)el.innerHTML='<i class="ti ti-cloud-off"></i> Storage full — photos need to sync before adding more';}}
 }
 function queueTrackerStateSave(){clearTimeout(_trackerSaveTimer);_trackerSaveTimer=setTimeout(saveTrackerStates,350);}
 function loadTrackerStates(){
-  try{const saved=safeParseJSON(localStorage.getItem('ros_tracker_states'),null);if(!saved)return;trackerStates={};Object.keys(saved).forEach(i=>{const st=saved[i]||{};trackerStates[i]={status:st.status||'pending',elapsed:Number(st.elapsed)||0,startMs:st.wasActive?Date.now():null,interval:null,beforePhotos:st.beforePhotos||[],afterPhotos:st.afterPhotos||[],extraPhotos:st.extraPhotos||[],beforePhotoUrls:st.beforePhotoUrls||[],afterPhotoUrls:st.afterPhotoUrls||[],extraPhotoUrls:st.extraPhotoUrls||[],beforePhotoPaths:st.beforePhotoPaths||[],afterPhotoPaths:st.afterPhotoPaths||[],extraPhotoPaths:st.extraPhotoPaths||[],notes:st.notes||'',actualMin:Number(st.actualMin)||0,expanded:!!st.expanded,arrivedAt:st.arrivedAt||null,departedAt:st.departedAt||null,preSentAt:st.preSentAt||null,postSentAt:st.postSentAt||null};['before','after','extra'].forEach(type=>{const U=type+'PhotoUrls',P=type+'PhotoPaths';for(let n=0;n<trackerStates[i][U].length;n++){if(!trackerStates[i][P][n])trackerStates[i][P][n]=storagePathFromUrl(trackerStates[i][U][n])||null;}});});}catch(e){console.log('loadTrackerStates error',e);trackerStates={};}
+  try{const saved=safeParseJSON(localStorage.getItem('ros_tracker_states'),null);if(!saved)return;trackerStates={};Object.keys(saved).forEach(i=>{const st=saved[i]||{};trackerStates[i]={status:st.status||'pending',elapsed:Number(st.elapsed)||0,startMs:st.wasActive?Date.now():null,interval:null,beforePhotos:st.beforePhotos||[],afterPhotos:st.afterPhotos||[],extraPhotos:st.extraPhotos||[],beforePhotoUrls:st.beforePhotoUrls||[],afterPhotoUrls:st.afterPhotoUrls||[],extraPhotoUrls:st.extraPhotoUrls||[],beforePhotoPaths:st.beforePhotoPaths||[],afterPhotoPaths:st.afterPhotoPaths||[],extraPhotoPaths:st.extraPhotoPaths||[],notes:st.notes||'',actualMin:Number(st.actualMin)||0,expanded:!!st.expanded,collapsed:!!st.collapsed,arrivedAt:st.arrivedAt||null,departedAt:st.departedAt||null,preSentAt:st.preSentAt||null,postSentAt:st.postSentAt||null,skippedAt:st.skippedAt||null,skipReason:st.skipReason||'',skipOccurrenceDate:st.skipOccurrenceDate||null};['before','after','extra'].forEach(type=>{const U=type+'PhotoUrls',P=type+'PhotoPaths';for(let n=0;n<trackerStates[i][U].length;n++){if(!trackerStates[i][P][n])trackerStates[i][P][n]=storagePathFromUrl(trackerStates[i][U][n])||null;}});});}catch(e){console.log('loadTrackerStates error',e);trackerStates={};}
 }
 
 function getTS(i){
-  if(!trackerStates[i])trackerStates[i]={status:'pending',startMs:null,elapsed:0,interval:null,beforePhotos:[],afterPhotos:[],extraPhotos:[],beforePhotoUrls:[],afterPhotoUrls:[],extraPhotoUrls:[],beforePhotoPaths:[],afterPhotoPaths:[],extraPhotoPaths:[],notes:'',actualMin:0,expanded:false,arrivedAt:null,departedAt:null,preSentAt:null,postSentAt:null};return trackerStates[i];
+  if(!trackerStates[i])trackerStates[i]={status:'pending',startMs:null,elapsed:0,interval:null,beforePhotos:[],afterPhotos:[],extraPhotos:[],beforePhotoUrls:[],afterPhotoUrls:[],extraPhotoUrls:[],beforePhotoPaths:[],afterPhotoPaths:[],extraPhotoPaths:[],notes:'',actualMin:0,expanded:false,collapsed:false,arrivedAt:null,departedAt:null,preSentAt:null,postSentAt:null,skippedAt:null,skipReason:'',skipOccurrenceDate:null};return trackerStates[i];
 }
 function getElap(i){const st=getTS(i);return Math.max(0,st.elapsed+(st.startMs?Math.floor((Date.now()-st.startMs)/1000):0));}
 function tType(i){return jobType(trackerRoute&&trackerRoute.jobs[i]?trackerRoute.jobs[i].jobType||'mow':'mow');}
@@ -2663,15 +2696,15 @@ function loadTrackerRoute(data){
 }
 function updateEndDayUI(){
   const btn=document.getElementById('end-day-btn');if(!btn)return;
-  const allDone=!!(trackerRoute&&Array.isArray(trackerRoute.jobs)&&trackerRoute.jobs.length&&trackerRoute.jobs.every((_,i)=>getTS(i).status==='done'));
+  const allDone=!!(trackerRoute&&Array.isArray(trackerRoute.jobs)&&trackerRoute.jobs.length&&trackerRoute.jobs.every((_,i)=>['done','skipped'].includes(getTS(i).status)));
   btn.style.display=allDone?'':'none';
 }
 function renderTracker(){if(!trackerRoute)return;document.getElementById('track-jobs').innerHTML=trackerRoute.jobs.map((j,i)=>buildJobCard(j,i)).join('');trackerRoute.jobs.forEach((_,i)=>{if(getTS(i).status==='active')startTick(i);});updateEndDayUI();}
 
 function buildJobCard(j,i){
-  const st=getTS(i),t=tType(i),c=DB.customers.find(x=>x.id===(j.custId||j.id)),el=getElap(i),minP=Math.max(0,Number(t.minPhotos)||1);
-  const slbl={pending:'Not started',active:'In progress',done:'Complete'},scls={pending:'js-p',active:'js-a',done:'js-d'};
-  const ccls=st.status==='active'?'active':st.status==='done'?'done':(st.expanded?'exp':''),tcls=st.status==='active'?'':st.status==='done'?'fin':'paused';
+  const st=getTS(i),t=tType(i),c=DB.customers.find(x=>x.id===(j.custId||j.id)),el=getElap(i),minP=Math.max(0,Number(t.minPhotos)||1),doneRec=st.status==='done'?getJobRecordForTracker(j):null,actualForSummary=doneRec&&Number.isFinite(Number(doneRec.actualMin))?Number(doneRec.actualMin):Number(st.actualMin)||0,hourlyForSummary=doneRec?hourlyRateValue(doneRec,c):hourlyRateValue({actualMin:actualForSummary,price:Number(j.price)||0,paymentStatus:'unpaid'},c);
+  const slbl={pending:'Not started',active:'In progress',done:'Complete',skipped:'Skipped'},scls={pending:'js-p',active:'js-a',done:'js-d',skipped:'js-s'};
+  const ccls=st.status==='active'?'active':st.status==='done'?('done'+(st.collapsed?' collapsed':'')):st.status==='skipped'?('skipped'+(st.expanded?' exp':'')):(st.expanded?'exp':''),tcls=st.status==='active'?'':st.status==='done'?'fin':'paused';
   const srcs=(type)=>{const arr=st[type+'Photos']||[],urls=st[type+'PhotoUrls']||[];return arr.map((p,k)=>urls[k]||p);};
   const grid=(type)=>srcs(type).map((src,k)=>`<img class="pthumb" src="${attr(src)}" alt="${type} job photo" onclick="openPV(${i},'${type}',${k})" onerror="this.style.opacity='.3'">`).join('');
   const wantsPre=!!t.preMsg||!!(c&&c.alwaysPre),drive=actualDrive(i);
@@ -2683,10 +2716,11 @@ function buildJobCard(j,i){
     ${wantsPre&&st.status==='pending'?`<button class="btn ${st.preSentAt?'':'btnb'}" style="width:100%;margin-bottom:.875rem" onclick="sendPre(${i})"><i class="ti ti-message-2"></i> ${st.preSentAt?'Heads-up sent '+fmtStamp(st.preSentAt)+' — send again':'Text before I arrive'}</button>`:''}
     ${t.reqBefore?`<div class="photo-section"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink3)">Before photos</div><span class="photo-req-badge ${hasBefore(i)?'prb-done':'prb-need'}">${st.beforePhotos.length}/${minP}</span></div>${st.beforePhotos.length?`<div class="photo-grid">${grid('before')}</div>`:''}<button class="photo-add-btn" onclick="document.getElementById('bcam-${i}').click()"><i class="ti ti-camera"></i> Take before photo</button><input type="file" id="bcam-${i}" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(${i},'before',this)"></div>`:''}
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-top:1px solid var(--s3);border-bottom:1px solid var(--s3);margin-bottom:.875rem"><div class="timer-big ${tcls}" id="jtimer-${i}">${fmtTimer(el)}</div><div>${st.status==='active'?`<button class="btn btna" onclick="pauseJob(${i})"><i class="ti ti-player-pause"></i> Pause</button>`:''}${st.status==='done'?'<span style="font-family:\'Bebas Neue\',sans-serif;font-size:13px;color:var(--green)">DONE</span>':''}</div></div>
-    ${st.status==='pending'?`${!hasBefore(i)?`<div class="req-warn"><i class="ti ti-camera"></i><div><strong>${minP} before photo${minP!==1?'s':''} needed</strong> before starting.</div></div>`:''}<button class="btn btng" style="width:100%;margin-bottom:.875rem" onclick="startJob(${i})" ${hasBefore(i)?'':'disabled'}><i class="ti ti-player-play"></i> ${st.elapsed>0?'Resume job':'Start job — stamps arrival'}</button>`:''}
+    ${st.status==='pending'?`${!hasBefore(i)?`<div class="req-warn"><i class="ti ti-camera"></i><div><strong>${minP} before photo${minP!==1?'s':''} needed</strong> before starting.</div></div>`:''}<button class="btn btng" style="width:100%;margin-bottom:.5rem" onclick="startJob(${i})" ${hasBefore(i)?'':'disabled'}><i class="ti ti-player-play"></i> ${st.elapsed>0?'Resume job':'Start job — stamps arrival'}</button><button class="btn bsm" style="width:100%;margin-bottom:.875rem;color:var(--amb)" onclick="skipJobToday(${i})"><i class="ti ti-calendar-off"></i> Skip job today</button>`:''}
+    ${st.status==='skipped'?`<div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:.75rem;margin-bottom:.875rem;font-size:13px;color:var(--ink3)"><strong style="color:var(--ink)">Skipped for today</strong>${st.skipReason?' · '+esc(st.skipReason):''}<div style="font-size:11px;margin-top:3px">No completed job or invoice was created. Normal recurring schedule is unchanged.</div></div><button class="btn bsm" style="width:100%;margin-bottom:.875rem" onclick="undoSkipJob(${i})"><i class="ti ti-arrow-back-up"></i> Undo skip</button>`:''}
     ${(st.status==='active'||st.status==='done')&&t.reqAfter?`<div class="photo-section"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink3)">After photos</div><span class="photo-req-badge ${hasAfter(i)?'prb-done':'prb-need'}">${st.afterPhotos.length}/${minP}</span></div>${st.afterPhotos.length?`<div class="photo-grid">${grid('after')}</div>`:''}<button class="photo-add-btn" onclick="document.getElementById('acam-${i}').click()"><i class="ti ti-camera-check"></i> Take after photo</button><input type="file" id="acam-${i}" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(${i},'after',this)"></div>`:''}
     ${st.status==='active'?`${!hasAfter(i)?`<div class="req-warn"><i class="ti ti-camera-check"></i><div><strong>${minP} after photo${minP!==1?'s':''} needed</strong> to finish.</div></div>`:''}<button class="btn btng" style="width:100%;margin-bottom:.875rem" onclick="finishJob(${i})" ${hasAfter(i)?'':'disabled'}><i class="ti ti-flag-check"></i> Finish — stamps departure</button>`:''}
-    ${st.status==='done'?`<div class="sum-grid"><div class="sum-box"><div class="sum-v">${fmtMins(st.actualMin)}</div><div class="sum-l">Actual</div></div><div class="sum-box"><div class="sum-v">${fmtMins(j.estMin)}</div><div class="sum-l">Estimated</div></div></div><button class="btn ${st.postSentAt?'':'btnb'}" style="width:100%;margin-bottom:.625rem" onclick="sendPost(${i})"><i class="ti ti-message-check"></i> ${st.postSentAt?'Sent '+fmtStamp(st.postSentAt)+' — send again':'Text customer job is done'}</button>${buildPaymentUI(j,i,st)}`:''}
+    ${st.status==='done'?`<div class="sum-grid"><div class="sum-box"><div class="sum-v">${fmtMins(actualForSummary)}</div><div class="sum-l">Actual</div></div><div class="sum-box"><div class="sum-v">${fmtMins(j.estMin)}</div><div class="sum-l">Estimated</div></div><div class="sum-box">${hourlyRateSummary(hourlyForSummary)}</div></div><button class="btn ${st.postSentAt?'':'btnb'}" style="width:100%;margin-bottom:.625rem" onclick="sendPost(${i})"><i class="ti ti-message-check"></i> ${st.postSentAt?'Sent '+fmtStamp(st.postSentAt)+' — send again':'Text customer job is done'}</button>${buildPaymentUI(j,i,st)}`:''}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.875rem"><button class="btn" onclick="document.getElementById('ecam-${i}').click()"><i class="ti ti-camera-plus"></i> Extra photo</button><button class="btn" onclick="navTo('${jsStr(j.addr||'')}')"><i class="ti ti-navigation"></i> Navigate</button><button class="btn" style="grid-column:span 2" onclick="sendOnMyWayFromTracker('${jsStr(j.custId||j.id)}')"><i class="ti ti-send"></i> Generic on-my-way text</button><input type="file" id="ecam-${i}" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(${i},'extra',this)"></div>
     ${st.extraPhotos.length?`<div class="photo-section"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink3);margin-bottom:.5rem">Extra photos (${st.extraPhotos.length})</div><div class="photo-grid">${grid('extra')}</div></div>`:''}
     <div><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink3);margin-bottom:.4rem">Field notes</div><textarea class="notes-area" id="jnotes-${i}" maxlength="4000" placeholder="Gate confirmed, issues found..." oninput="updateTrackerNotes(${i},this.value)">${esc(st.notes)}</textarea></div>
@@ -2858,7 +2892,7 @@ function unmarkPaid(custId,i){
 function recordPayment(custId,i,method,chargedAmount,serviceDesc){
   i=Number(i);const j=trackerRoute&&trackerRoute.jobs[i],c=DB.customers.find(x=>x.id===custId),price=clampNum(chargedAmount,0,100000,j&&j.price!==undefined?Number(j.price)||0:Number(c&&c.price)||0),desc=serviceDesc||getServiceDescription(i)||jobTypeLabel(j&&j.jobType||'mow'),lineItems=(getJobServices(i)||[]).map(x=>({id:x.id,name:x.name,price:Math.max(0,Number(x.price)||0)}));let rec=j?getJobRecordForTracker(j):null;
   if(!rec){rec={id:j&&j.jobId?j.jobId:uid(),custId,date:trackerDate(),jobType:j&&j.jobType||'mow',schedId:j&&j.schedId||null,actualMin:0,estMin:j?j.estMin:0,price:j?Number(j.price)||0:0,beforePhotos:[],afterPhotos:[],extraPhotos:[],beforePhotoUrls:[],afterPhotoUrls:[],extraPhotoUrls:[],beforePhotoPaths:[],afterPhotoPaths:[],extraPhotoPaths:[],notes:''};DB.jobHistory.push(rec);if(j)j.jobId=rec.id;}
-  const before=paymentSnapshot(rec);rec.serviceDesc=desc;rec.lineItems=lineItems;applyPaymentState(rec,method==='invoice_sent'?'invoice_sent':method==='unpaid'?'unpaid':method==='not_billable'?'not_billable':'paid',method,price);saveDB();rerenderJCard(i);renderDash();refreshInvoicePageIfOpen();if(document.getElementById('pg-reports')?.classList.contains('active'))renderReports();showPaymentUndo(rec.id,before,method==='invoice_sent'?'Marked Invoice Sent':method==='unpaid'?'Marked Invoice Not Sent':method==='not_billable'?'Marked No Charge':'Marked '+({cash:'Cash',check:'Check',paid:'Paid'}[method]||'Paid'));
+  const before=paymentSnapshot(rec);rec.serviceDesc=desc;rec.lineItems=lineItems;applyPaymentState(rec,method==='invoice_sent'?'invoice_sent':method==='unpaid'?'unpaid':method==='not_billable'?'not_billable':'paid',method,price);const st=getTS(i);st.collapsed=true;saveTrackerStates();saveDB();rerenderJCard(i);renderDash();refreshInvoicePageIfOpen();if(document.getElementById('pg-reports')?.classList.contains('active'))renderReports();showPaymentUndo(rec.id,before,method==='invoice_sent'?'Marked Invoice Sent':method==='unpaid'?'Marked Invoice Not Sent':method==='not_billable'?'Marked No Charge':'Marked '+({cash:'Cash',check:'Check',paid:'Paid'}[method]||'Paid'));
 }
 
 function rerenderJCard(i){
@@ -2991,11 +3025,64 @@ function textCustomer(custId){
 }
 
 function toggleJCard(i){
-  const s=getTS(i);if(s.status!=='pending')return;
+  const s=getTS(i);
+  if(s.status==='active')return;
+  if(s.status==='done'){
+    s.collapsed=!s.collapsed;
+    saveTrackerStates();
+    rerenderJCard(i);
+    return;
+  }
+  if(!['pending','skipped'].includes(s.status))return;
   s.expanded=!s.expanded;
+  saveTrackerStates();
   const card=document.getElementById('jcard-'+i);if(!card)return;
   if(s.expanded)card.classList.add('exp');else card.classList.remove('exp');
 }
+function customerSkipOccurrenceDate(c,targetYmd){
+  if(!c)return targetYmd;
+  // If this route date contains customers shifted in by a weather delay, skip
+  // the customer's original recurring occurrence so rebuilding the route does
+  // not bring the skipped stop back on the shifted day.
+  for(const sh of (DB.rainShifts||[])){
+    for(const r of (sh.redirects||[])){
+      if(r.to!==targetYmd)continue;
+      const origin=new Date(r.from+'T12:00:00');
+      if(Schedule.isDue(c,origin))return r.from;
+    }
+  }
+  return targetYmd;
+}
+
+function skipJobToday(i){
+  i=Number(i);if(!trackerRoute||!trackerRoute.jobs[i])return;
+  const st=getTS(i),j=trackerRoute.jobs[i];
+  if(st.status!=='pending'){alert('Only a job that has not been started can be skipped.');return;}
+  const c=DB.customers.find(x=>x.id===(j.custId||j.id)),name=j.name||custFullName(c)||('Stop '+(i+1));
+  if(!confirm('Skip '+name+' for today?\n\nNo completed job or invoice will be created. Their normal recurring schedule stays the same next week.'))return;
+  st.status='skipped';st.skippedAt=Date.now();st.skipReason='Client requested skip';st.expanded=false;st.collapsed=true;
+  if(c){
+    const occurrenceDate=customerSkipOccurrenceDate(c,trackerDate());
+    st.skipOccurrenceDate=occurrenceDate;
+    if(!Array.isArray(c.skipWeeks))c.skipWeeks=[];
+    if(!c.skipWeeks.includes(occurrenceDate))c.skipWeeks.push(occurrenceDate);
+    c.skipWeeks=[...new Set(c.skipWeeks)].filter(validDateString);
+  }
+  saveTrackerStates();saveDB();rerenderJCard(i);renderDash();if(document.getElementById('pg-cal')?.classList.contains('active'))renderCalendar();
+}
+
+function undoSkipJob(i){
+  i=Number(i);if(!trackerRoute||!trackerRoute.jobs[i])return;
+  const st=getTS(i),j=trackerRoute.jobs[i];if(st.status!=='skipped')return;
+  const c=DB.customers.find(x=>x.id===(j.custId||j.id));
+  if(c&&Array.isArray(c.skipWeeks)){
+    const occurrenceDate=st.skipOccurrenceDate||customerSkipOccurrenceDate(c,trackerDate());
+    c.skipWeeks=c.skipWeeks.filter(d=>d!==occurrenceDate);
+  }
+  st.status='pending';st.skippedAt=null;st.skipReason='';st.skipOccurrenceDate=null;st.collapsed=false;st.expanded=true;
+  saveTrackerStates();saveDB();rerenderJCard(i);renderDash();if(document.getElementById('pg-cal')?.classList.contains('active'))renderCalendar();
+}
+
 function navTo(addr){window.open('https://maps.google.com/?q='+encodeURIComponent(addr),'_blank');}
 
 function shrinkImage(dataUrl,maxDim=1400,quality=.72){
@@ -3054,7 +3141,7 @@ async function exportDaySummary(){
         }
         sections[type]=items.length?items.join(''):`<p style="color:#aaa;font-size:13px">No ${esc(type)} photos taken</p>`;
       }
-      const payment=rec||j,amountText=paymentStatus(payment)==='not_billable'?'No charge':'$'+price.toFixed(2),html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(j.name||'Job')} — Job Summary</title><style>body{font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:2rem 1.25rem;color:#1a1a1a}h1{color:#2d5a27}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}.box,.nbox{background:#f7f8f5;border-radius:8px;padding:.875rem}.lbl,.stitle{font-size:10px;font-weight:700;text-transform:uppercase;color:#888}.val{font-size:18px;font-weight:600}@media(max-width:420px){.grid{grid-template-columns:1fr}}</style></head><body><h1>${esc(j.name||'Job')}</h1><p>Richardson Outdoor Solutions · ${esc(displayDate)}</p><p><strong>${st.status==='done'?'✓ Complete':'In Progress'}</strong> · ${esc(jobTypeLabel(j.jobType||'mow'))}</p><p>${esc(j.addr||'')}</p><p><strong>Payment:</strong> ${esc(paymentStatusDetail(payment))}${payment.invoiceSentAt?' · Invoice sent '+esc(new Date(payment.invoiceSentAt).toLocaleString()):''}${payment.paidAt?' · Paid '+esc(new Date(payment.paidAt).toLocaleString()):''}</p><div class="grid"><div class="box"><div class="lbl">Actual</div><div class="val">${actualMin>0?actualMin+' min':'—'}</div></div><div class="box"><div class="lbl">Estimated</div><div class="val">${Number(j.estMin)||0} min</div></div><div class="box"><div class="lbl">Amount</div><div class="val">${amountText}</div></div></div>${j.notes?`<h3 class="stitle">Job notes</h3><div class="nbox">${esc(j.notes)}</div>`:''}${st.notes?`<h3 class="stitle">Field notes</h3><div class="nbox">${esc(st.notes)}</div>`:''}<h3 class="stitle">Before photos</h3>${sections.before}<h3 class="stitle">After photos</h3>${sections.after}${(st.extraPhotos||[]).length?`<h3 class="stitle">Extra photos</h3>${sections.extra}`:''}</body></html>`;zip.file('Stop-'+(i+1)+'-'+safe+'.html',html);
+      const skipped=st.status==='skipped',payment=rec||j,amountText=skipped?'—':paymentStatus(payment)==='not_billable'?'No charge':'$'+price.toFixed(2),paymentText=skipped?'Not serviced — client requested skip':paymentStatusDetail(payment),exportHourly=skipped?null:hourlyRateValue(payment,c,actualMin,price),exportHourlyInfo=hourlyRateInfo(exportHourly),html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(j.name||'Job')} — Job Summary</title><style>body{font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:2rem 1.25rem;color:#1a1a1a}h1{color:#2d5a27}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}.box,.nbox{background:#f7f8f5;border-radius:8px;padding:.875rem}.lbl,.stitle{font-size:10px;font-weight:700;text-transform:uppercase;color:#888}.val{font-size:18px;font-weight:600}@media(max-width:420px){.grid{grid-template-columns:1fr}}</style></head><body><h1>${esc(j.name||'Job')}</h1><p>Richardson Outdoor Solutions · ${esc(displayDate)}</p><p><strong>${st.status==='done'?'✓ Complete':st.status==='skipped'?'Skipped':'In Progress'}</strong> · ${esc(jobTypeLabel(j.jobType||'mow'))}</p><p>${esc(j.addr||'')}</p><p><strong>Payment:</strong> ${esc(paymentText)}${!skipped&&payment.invoiceSentAt?' · Invoice sent '+esc(new Date(payment.invoiceSentAt).toLocaleString()):''}${!skipped&&payment.paidAt?' · Paid '+esc(new Date(payment.paidAt).toLocaleString()):''}</p><div class="grid"><div class="box"><div class="lbl">Actual</div><div class="val">${actualMin>0?actualMin+' min':'—'}</div></div><div class="box"><div class="lbl">Estimated</div><div class="val">${Number(j.estMin)||0} min</div></div><div class="box"><div class="lbl">Amount</div><div class="val">${amountText}</div></div><div class="box"><div class="lbl">Hourly rate</div><div class="val">${esc(hourlyRateText(exportHourly))}</div><div style="font-size:10px;font-weight:700;margin-top:3px">${exportHourlyInfo.key!=='none'?esc(exportHourlyInfo.label):''}</div></div></div>${j.notes?`<h3 class="stitle">Job notes</h3><div class="nbox">${esc(j.notes)}</div>`:''}${st.notes?`<h3 class="stitle">Field notes</h3><div class="nbox">${esc(st.notes)}</div>`:''}<h3 class="stitle">Before photos</h3>${sections.before}<h3 class="stitle">After photos</h3>${sections.after}${(st.extraPhotos||[]).length?`<h3 class="stitle">Extra photos</h3>${sections.extra}`:''}</body></html>`;zip.file('Stop-'+(i+1)+'-'+safe+'.html',html);
     }
     const blob=await zip.generateAsync({type:'blob'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ROS-Day-'+(trackerRoute.date||todayStr())+'.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return true;
   }catch(e){console.log('Export failed',e);alert('Export stopped because a job photo could not be safely included. Nothing was cleared. Try again when connected.\n\n'+(e&&e.message?e.message:e));return false;}
@@ -3062,18 +3149,18 @@ async function exportDaySummary(){
 
 async function endDay(){
   if(!trackerRoute||!Array.isArray(trackerRoute.jobs)||!trackerRoute.jobs.length){alert('No route is loaded.');return;}
-  const rows=trackerRoute.jobs.map((j,i)=>({j,i,st:getTS(i),rec:getJobRecordForTracker(j)})),incomplete=rows.filter(x=>x.st.status!=='done');
-  if(incomplete.length){const names=incomplete.slice(0,5).map(x=>x.j.name||('Stop '+(x.i+1))).join(', ');alert('Finish every job before ending the day. Still open: '+names+(incomplete.length>5?' and '+(incomplete.length-5)+' more.':'.'));return;}
+  const rows=trackerRoute.jobs.map((j,i)=>({j,i,st:getTS(i),rec:getJobRecordForTracker(j)})),incomplete=rows.filter(x=>!['done','skipped'].includes(x.st.status)),completedRows=rows.filter(x=>x.st.status==='done'),skippedRows=rows.filter(x=>x.st.status==='skipped');
+  if(incomplete.length){const names=incomplete.slice(0,5).map(x=>x.j.name||('Stop '+(x.i+1))).join(', ');alert('Finish or skip every job before ending the day. Still open: '+names+(incomplete.length>5?' and '+(incomplete.length-5)+' more.':'.'));return;}
   if(_finishingJobs.size){alert('A job is still finalizing photos. Wait until it finishes, then tap End Day again.');return;}
   let ps=photoSyncState();if(ps.pending){alert(ps.pending+' photo upload'+(ps.pending===1?' is':'s are')+' still running. Wait before ending the day.');return;}
   // A browser refresh clears the in-memory failed-upload set, so also inspect the
   // tracker itself for base64 photos. Retry them before allowing the day to close.
   let unsyncedPhotos=countUnsyncedTrackerPhotos();if(unsyncedPhotos||ps.failed){setSaveStatus('saving');unsyncedPhotos=await retryUnsyncedTrackerPhotos();ps=photoSyncState();if(unsyncedPhotos||ps.failed){alert((unsyncedPhotos||ps.failed)+' photo'+((unsyncedPhotos||ps.failed)===1?' is':'s are')+' still stored only on this device. End Day will keep the route open. Check your connection and try again.');return;}}
-  const paymentMissing=rows.filter(x=>!x.rec||!Object.prototype.hasOwnProperty.call(x.rec,'chargedAmount'));if(paymentMissing.length){alert('Review payment for every completed job before ending the day. Choose Cash, Check, Paid, Invoice Sent, Invoice Not Sent, or No Charge for: '+paymentMissing.slice(0,5).map(x=>x.j.name||('Stop '+(x.i+1))).join(', ')+(paymentMissing.length>5?' and '+(paymentMissing.length-5)+' more.':'.'));return;}
+  const paymentMissing=completedRows.filter(x=>!x.rec||!Object.prototype.hasOwnProperty.call(x.rec,'chargedAmount'));if(paymentMissing.length){alert('Review payment for every completed job before ending the day. Choose Cash, Check, Paid, Invoice Sent, Invoice Not Sent, or No Charge for: '+paymentMissing.slice(0,5).map(x=>x.j.name||('Stop '+(x.i+1))).join(', ')+(paymentMissing.length>5?' and '+(paymentMissing.length-5)+' more.':'.'));return;}
   const syncOk=await saveDB();if(!syncOk){alert('This day is saved on this device, but the cloud is not fully synced yet. End Day will not clear the route until cloud sync succeeds. Check your connection and try again.');return;}
-  const needsInvoices=rows.filter(x=>x.rec&&!x.rec.paid&&paymentStatus(x.rec)==='unpaid'),awaiting=rows.filter(x=>x.rec&&paymentStatus(x.rec)==='invoice_sent'),paid=rows.filter(x=>x.rec&&x.rec.paid),noCharge=rows.filter(x=>x.rec&&paymentStatus(x.rec)==='not_billable');
-  const collected=paid.reduce((a,x)=>a+jobAmount(x.rec,DB.customers.find(c=>c.id===x.rec.custId)),0),awaitingAmt=awaiting.reduce((a,x)=>a+jobAmount(x.rec,DB.customers.find(c=>c.id===x.rec.custId)),0),miles=Number(trackerRoute.totalMiles)||0;
-  const summary=document.getElementById('endday-summary');summary.innerHTML=`<div class="dash-grid" style="margin-bottom:.875rem"><div class="dash-card"><div class="dash-val">${rows.length}</div><div class="dash-lbl">Jobs completed</div></div><div class="dash-card"><div class="dash-val" style="color:var(--green)">$${collected.toFixed(0)}</div><div class="dash-lbl">Collected</div></div><div class="dash-card"><div class="dash-val" style="color:var(--blue)">$${awaitingAmt.toFixed(0)}</div><div class="dash-lbl">Invoice sent / owed</div></div><div class="dash-card"><div class="dash-val" style="color:${needsInvoices.length?'var(--red)':'var(--green)'}">${needsInvoices.length}</div><div class="dash-lbl">Still need invoice</div></div></div><div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:.75rem;font-size:13px;line-height:1.7"><div>✓ Cloud synced</div><div>✓ Photos synced</div><div>${miles>0?'✓ '+miles.toFixed(1)+' route miles':'• Mileage not recorded'}</div><div>${noCharge.length?'• '+noCharge.length+' no-charge job'+(noCharge.length===1?'':'s'):''}</div>${needsInvoices.length?`<div style="color:var(--red);font-weight:700">⚠ ${needsInvoices.length} completed job${needsInvoices.length===1?' still needs':'s still need'} an invoice</div>`:'<div style="color:var(--green)">✓ Every billable job is paid or invoiced</div>'}</div><label style="display:flex;align-items:center;gap:8px;margin-top:.875rem;font-size:13px;font-weight:600"><input id="endday-export-check" type="checkbox" checked style="width:18px;height:18px;accent-color:var(--green)"> Download Day Summary + Photos before closing</label>`;
+  const needsInvoices=completedRows.filter(x=>x.rec&&!x.rec.paid&&paymentStatus(x.rec)==='unpaid'),awaiting=completedRows.filter(x=>x.rec&&paymentStatus(x.rec)==='invoice_sent'),paid=completedRows.filter(x=>x.rec&&x.rec.paid),noCharge=completedRows.filter(x=>x.rec&&paymentStatus(x.rec)==='not_billable');
+  const collected=paid.reduce((a,x)=>a+jobAmount(x.rec,DB.customers.find(c=>c.id===x.rec.custId)),0),awaitingAmt=awaiting.reduce((a,x)=>a+jobAmount(x.rec,DB.customers.find(c=>c.id===x.rec.custId)),0),perfRows=completedRows.filter(x=>x.rec&&paymentStatus(x.rec)!=='not_billable'&&Number(x.rec.actualMin)>0&&jobAmount(x.rec,DB.customers.find(c=>c.id===x.rec.custId))>0),perfMinutes=perfRows.reduce((a,x)=>a+Number(x.rec.actualMin||0),0),perfAmount=perfRows.reduce((a,x)=>a+jobAmount(x.rec,DB.customers.find(c=>c.id===x.rec.custId)),0),dayHourly=perfMinutes?perfAmount/(perfMinutes/60):null,miles=Number(trackerRoute.totalMiles)||0;
+  const summary=document.getElementById('endday-summary');summary.innerHTML=`<div class="dash-grid" style="margin-bottom:.875rem"><div class="dash-card"><div class="dash-val">${completedRows.length}</div><div class="dash-lbl">Jobs completed</div></div><div class="dash-card"><div class="dash-val" style="color:var(--green)">$${collected.toFixed(0)}</div><div class="dash-lbl">Collected</div></div><div class="dash-card"><div class="dash-val" style="color:var(--blue)">$${awaitingAmt.toFixed(0)}</div><div class="dash-lbl">Invoice sent / owed</div></div><div class="dash-card"><div class="dash-val" style="color:${needsInvoices.length?'var(--red)':'var(--green)'}">${needsInvoices.length}</div><div class="dash-lbl">Still need invoice</div></div><div class="dash-card"><div style="margin-bottom:4px">${hourlyRateBadgeFromRate(dayHourly,true)}</div><div class="dash-lbl">Day hourly rate</div></div></div><div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:.75rem;font-size:13px;line-height:1.7"><div>✓ Cloud synced</div><div>✓ Photos synced</div><div>${miles>0?'✓ '+miles.toFixed(1)+' route miles':'• Mileage not recorded'}</div><div>${noCharge.length?'• '+noCharge.length+' no-charge job'+(noCharge.length===1?'':'s'):''}</div><div>${skippedRows.length?'• '+skippedRows.length+' job'+(skippedRows.length===1?'':'s')+' skipped today':''}</div>${needsInvoices.length?`<div style="color:var(--red);font-weight:700">⚠ ${needsInvoices.length} completed job${needsInvoices.length===1?' still needs':'s still need'} an invoice</div>`:'<div style="color:var(--green)">✓ Every billable job is paid or invoiced</div>'}</div><label style="display:flex;align-items:center;gap:8px;margin-top:.875rem;font-size:13px;font-weight:600"><input id="endday-export-check" type="checkbox" checked style="width:18px;height:18px;accent-color:var(--green)"> Download Day Summary + Photos before closing</label>`;
   document.getElementById('endday-modal').classList.add('open');
 }
 
@@ -3327,7 +3414,7 @@ function doImport(){
 
 // ══ CUSTOMER HISTORY PHOTOS ══════════════════════════════════════
 function renderCustHistory(custId){
-  const jobs=DB.jobHistory.filter(j=>j.custId===custId).sort((a,b)=>b.date.localeCompare(a.date));
+  const c=DB.customers.find(x=>x.id===custId),jobs=DB.jobHistory.filter(j=>j.custId===custId).sort((a,b)=>b.date.localeCompare(a.date));
   if(!jobs.length)return '';
   let h=`<div style="margin-top:.875rem;border-top:1px solid var(--s3);padding-top:.875rem">
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:.625rem">Job history (${jobs.length})</div>`;
@@ -3342,6 +3429,7 @@ function renderCustHistory(custId){
         <div>
           <span style="font-size:13px;font-weight:600">${fmtDate(j.date)}</span>
           <span style="font-size:11px;color:var(--ink3);margin-left:8px">${j.actualMin?j.actualMin+'m':j.estMin?j.estMin+'m est':''}</span>
+          <span style="margin-left:6px">${hourlyRateBadge(j,c)}</span>
         </div>
         <span class="tag ${j.paid?'tag-green':paymentStatus(j)==='not_billable'?'tag-gray':paymentStatus(j)==='invoice_sent'?'tag-blue':'tag-red'}">${esc(j.paid?'Paid':paymentStatus(j)==='not_billable'?'No Charge':paymentStatus(j)==='invoice_sent'?'Invoice Sent':'Unpaid')}</span>
       </div>
@@ -3534,13 +3622,17 @@ function openEditJobModal(jobId){
   const sel=document.getElementById('ej-cust');sel.innerHTML=DB.customers.map(c=>`<option value="${attr(c.id)}" ${c.id===j.custId?'selected':''}>${esc(custFullName(c))}</option>`).join('');
   populateJobTypeSelect('ej-type',j.jobType||'mow');
   document.getElementById('ej-date').value=j.date||todayStr();const c=DB.customers.find(x=>x.id===j.custId);
-  document.getElementById('ej-amount').value=jobAmount(j,c).toFixed(2);document.getElementById('ej-desc').value=j.serviceDesc||'';document.getElementById('ej-notes').value=j.notes||'';
-  const ps=paymentStatus(j),paidVal=j.paid?(j.paidMethod||'paid'):(ps==='invoice_sent'?'invoice':ps==='not_billable'?'not_billable':'unpaid');document.getElementById('ej-paid').value=paidVal;document.getElementById('editjob-modal').classList.add('open');
+  document.getElementById('ej-actual-min').value=Number(j.actualMin)||0;document.getElementById('ej-amount').value=jobAmount(j,c).toFixed(2);document.getElementById('ej-desc').value=j.serviceDesc||'';document.getElementById('ej-notes').value=j.notes||'';
+  const ps=paymentStatus(j),paidVal=j.paid?(j.paidMethod||'paid'):(ps==='invoice_sent'?'invoice':ps==='not_billable'?'not_billable':'unpaid');document.getElementById('ej-paid').value=paidVal;updateEditJobHourlyPreview();document.getElementById('editjob-modal').classList.add('open');
+}
+
+function updateEditJobHourlyPreview(){
+  const el=document.getElementById('ej-hourly-preview');if(!el)return;const mins=Number((document.getElementById('ej-actual-min')||{}).value)||0,amount=Number((document.getElementById('ej-amount')||{}).value)||0,paidVal=(document.getElementById('ej-paid')||{}).value||'unpaid',dummy={actualMin:mins,chargedAmount:amount,paymentStatus:paidVal==='not_billable'?'not_billable':'unpaid',paid:false};const rate=hourlyRateValue(dummy,null);el.innerHTML=`<span style="font-size:12px;font-weight:700;color:var(--ink2)">Hourly performance</span>${hourlyRateBadgeFromRate(rate,true)}`;
 }
 
 function saveEditJob(){
   if(window._editJobBusy)return;const id=document.getElementById('ej-id').value,j=DB.jobHistory.find(x=>x.id===id);if(!j)return;const date=document.getElementById('ej-date').value;if(!validDateString(date)){alert('Choose a valid date.');return;}const custId=document.getElementById('ej-cust').value;if(!DB.customers.some(c=>c.id===custId)){alert('Choose a valid customer.');return;}const paidVal=document.getElementById('ej-paid').value,amount=clampNum(document.getElementById('ej-amount').value,0,100000,0);
-  Object.assign(j,{custId,date,jobType:document.getElementById('ej-type').value||j.jobType||'mow',chargedAmount:amount,serviceDesc:document.getElementById('ej-desc').value.trim(),notes:document.getElementById('ej-notes').value.trim()});applyPaymentState(j,paidVal==='invoice'?'invoice_sent':paidVal,paidVal,amount);window._editJobBusy=true;setTimeout(()=>window._editJobBusy=false,350);saveDB();closeModal('editjob-modal');renderDash();renderReports();renderCalendar();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(id);
+  const actualMin=clampNum(document.getElementById('ej-actual-min').value,0,1440,Number(j.actualMin)||0);Object.assign(j,{custId,date,jobType:document.getElementById('ej-type').value||j.jobType||'mow',actualMin,chargedAmount:amount,serviceDesc:document.getElementById('ej-desc').value.trim(),notes:document.getElementById('ej-notes').value.trim()});applyPaymentState(j,paidVal==='invoice'?'invoice_sent':paidVal,paidVal,amount);window._editJobBusy=true;setTimeout(()=>window._editJobBusy=false,350);saveDB();closeModal('editjob-modal');renderDash();renderCustomers();renderReports();renderCalendar();refreshInvoicePageIfOpen();refreshTrackerJobByHistoryId(id);
 }
 
 async function deleteJobStoredPhotos(job){
@@ -3620,14 +3712,15 @@ function renderReports(){
   const el=document.getElementById('report-content');if(!el)return;const period=(document.getElementById('report-period')||{}).value||'week',now=new Date();
   const inPeriodDate=(d)=>{if(!(d instanceof Date))d=parseLocalDate(d);if(period==='all')return true;if(period==='month'){const start=new Date(now.getFullYear(),now.getMonth(),1),next=new Date(now.getFullYear(),now.getMonth()+1,1);return d>=start&&d<next;}const monday=new Date(now);monday.setDate(now.getDate()-((now.getDay()+6)%7));monday.setHours(0,0,0,0);const next=new Date(monday);next.setDate(monday.getDate()+7);return d>=monday&&d<next;};
   const workJobs=DB.jobHistory.filter(j=>inPeriodDate(j.date)),paidJobs=DB.jobHistory.filter(j=>j.paid&&inPeriodDate(j.paidAt?new Date(Number(j.paidAt)):parseLocalDate(j.date))),outstandingJobs=workJobs.filter(j=>!j.paid&&paymentStatus(j)!=='not_billable');
-  const totalJobs=workJobs.length,revenue=paidJobs.reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0),unpaidRevenue=outstandingJobs.reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0),timed=workJobs.filter(j=>Number(j.actualMin)>0),avgActual=timed.length?timed.reduce((a,j)=>a+Number(j.actualMin||0),0)/timed.length:0,mileageLog=getMileageLog().filter(e=>e&&inPeriodDate(e.date)),totalMiles=mileageLog.reduce((a,e)=>a+(Number(e.miles)||0),0),catMap={};
+  const totalJobs=workJobs.length,revenue=paidJobs.reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0),unpaidRevenue=outstandingJobs.reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0),timed=workJobs.filter(j=>Number(j.actualMin)>0),avgActual=timed.length?timed.reduce((a,j)=>a+Number(j.actualMin||0),0)/timed.length:0,hourlyJobs=workJobs.filter(j=>paymentStatus(j)!=='not_billable'&&Number(j.actualMin)>0&&jobAmount(j,DB.customers.find(c=>c.id===j.custId))>0),hourlyRevenue=hourlyJobs.reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0),hourlyMinutes=hourlyJobs.reduce((a,j)=>a+Number(j.actualMin||0),0),avgHourly=hourlyMinutes>0?hourlyRevenue/(hourlyMinutes/60):null,mileageLog=getMileageLog().filter(e=>e&&inPeriodDate(e.date)),totalMiles=mileageLog.reduce((a,e)=>a+(Number(e.miles)||0),0),catMap={};
   paidJobs.forEach(j=>{const c=DB.customers.find(x=>x.id===j.custId),amt=jobAmount(j,c),items=Array.isArray(j.lineItems)?j.lineItems.filter(x=>x&&x.name):[];if(items.length){const listed=items.reduce((a,x)=>a+Math.max(0,Number(x.price)||0),0),factor=listed>0?amt/listed:1/items.length;items.forEach(x=>{const key=String(x.name).trim()||'Service';if(!catMap[key])catMap[key]={count:0,revenue:0};catMap[key].count++;catMap[key].revenue+=listed>0?Math.max(0,Number(x.price)||0)*factor:amt*factor;});return;}const desc=String(j.serviceDesc||'').trim(),parts=desc?desc.split(/\s*\+\s*/).filter(Boolean):[jobTypeLabel(j.jobType||'mow')||svcShort(c&&c.serviceType)];parts.forEach(x=>{const key=String(x).trim()||'Service';if(!catMap[key])catMap[key]={count:0,revenue:0};catMap[key].count++;catMap[key].revenue+=amt/Math.max(1,parts.length);});});
   const cats=Object.entries(catMap).sort((a,b)=>b[1].revenue-a[1].revenue),sorted=[...workJobs].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-  el.innerHTML=`<div class="dash-grid"><div class="dash-card"><div class="dash-val">${totalJobs}</div><div class="dash-lbl">Jobs completed</div></div><div class="dash-card"><div class="dash-val" style="color:var(--green)">$${revenue.toFixed(0)}</div><div class="dash-lbl">Payments collected</div></div><div class="dash-card"><div class="dash-val" style="color:var(--red)">$${unpaidRevenue.toFixed(0)}</div><div class="dash-lbl">Outstanding from work period</div></div><div class="dash-card"><div class="dash-val">${avgActual?Math.round(avgActual)+'m':'—'}</div><div class="dash-lbl">Avg job time</div></div></div>
+  el.innerHTML=`<div class="dash-grid"><div class="dash-card"><div class="dash-val">${totalJobs}</div><div class="dash-lbl">Jobs completed</div></div><div class="dash-card"><div class="dash-val" style="color:var(--green)">$${revenue.toFixed(0)}</div><div class="dash-lbl">Payments collected</div></div><div class="dash-card"><div class="dash-val" style="color:var(--red)">$${unpaidRevenue.toFixed(0)}</div><div class="dash-lbl">Outstanding from work period</div></div><div class="dash-card"><div class="dash-val">${avgActual?Math.round(avgActual)+'m':'—'}</div><div class="dash-lbl">Avg job time</div></div><div class="dash-card"><div style="margin-bottom:4px">${hourlyRateBadgeFromRate(avgHourly,true)}</div><div class="dash-lbl">Avg hourly rate</div></div></div>
+  <div style="font-size:11px;color:var(--ink3);margin:-.25rem 0 1rem;line-height:1.6"><strong>Hourly guide:</strong> <span style="color:var(--red);font-weight:700">LOW &lt;$70</span> · <span style="color:var(--amb);font-weight:700">GOOD $70–94</span> · <span style="color:var(--green);font-weight:700">STRONG $95–119</span> · <span style="color:#174d23;font-weight:700">EXCELLENT $120+</span></div>
   ${cats.length?`<div class="card"><div class="card-title">Collected revenue by service</div>${cats.map(([name,d])=>`<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--s3)"><div><div style="font-weight:600;font-size:13px">${esc(name)}</div><div style="font-size:11px;color:var(--ink3)">${d.count} item${d.count!==1?'s':''}</div></div><div style="font-weight:700;color:var(--green)">$${d.revenue.toFixed(0)}</div></div>`).join('')}</div>`:''}
-  <div class="card"><div class="card-title">All work completed (${sorted.length})</div>${sorted.length?sorted.map(j=>{const c=DB.customers.find(x=>x.id===j.custId),amt=jobAmount(j,c),desc=j.serviceDesc||jobTypeLabel(j.jobType||'mow'),ps=paymentStatus(j);return `<div style="display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):'Deleted customer'}</div><div style="font-size:11px;color:var(--ink3)">${esc(fmtDate(j.date))} · ${esc(desc)}</div>${j.notes?`<div style="font-size:11px;color:var(--ink3)">${esc(j.notes)}</div>`:''}</div><div style="text-align:right;flex-shrink:0"><div style="font-weight:700;font-size:13px;color:${j.paid?'var(--green)':ps==='not_billable'?'var(--ink3)':'var(--red)'}">${ps==='not_billable'?'—':'$'+amt.toFixed(2)}</div><span class="tag ${j.paid?'tag-green':ps==='not_billable'?'tag-gray':'tag-red'}" style="font-size:9px">${esc(paymentStatusDetail(j))}</span><div><button class="btn bxsm fin-action" onclick="openEditJobModal('${jsStr(j.id)}')" style="margin-top:4px"><i class="ti ti-edit"></i></button></div></div></div>`;}).join(''):'<div class="empty-state" style="padding:1rem"><small>No jobs recorded yet</small></div>'}</div>
+  <div class="card"><div class="card-title">All work completed (${sorted.length})</div>${sorted.length?sorted.map(j=>{const c=DB.customers.find(x=>x.id===j.custId),amt=jobAmount(j,c),desc=j.serviceDesc||jobTypeLabel(j.jobType||'mow'),ps=paymentStatus(j);return `<div style="display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):'Deleted customer'}</div><div style="font-size:11px;color:var(--ink3)">${esc(fmtDate(j.date))} · ${esc(desc)}</div><div style="margin-top:5px">${hourlyRateBadge(j,c)}</div>${j.notes?`<div style="font-size:11px;color:var(--ink3);margin-top:4px">${esc(j.notes)}</div>`:''}</div><div style="text-align:right;flex-shrink:0"><div style="font-weight:700;font-size:13px;color:${j.paid?'var(--green)':ps==='not_billable'?'var(--ink3)':'var(--red)'}">${ps==='not_billable'?'—':'$'+amt.toFixed(2)}</div><span class="tag ${j.paid?'tag-green':ps==='not_billable'?'tag-gray':'tag-red'}" style="font-size:9px">${esc(paymentStatusDetail(j))}</span><div><button class="btn bxsm fin-action" onclick="openEditJobModal('${jsStr(j.id)}')" style="margin-top:4px"><i class="ti ti-edit"></i></button></div></div></div>`;}).join(''):'<div class="empty-state" style="padding:1rem"><small>No jobs recorded yet</small></div>'}</div>
   <div class="card"><div class="card-title">Mileage log</div><div class="mile-badge"><i class="ti ti-car"></i> ${totalMiles.toFixed(1)} miles in selected period</div>${mileageLog.length?mileageLog.slice(-10).reverse().map(e=>`<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--s3);font-size:13px"><span>${esc(fmtDate(e.date))}</span><span style="font-weight:600;color:var(--blue)">${(Number(e.miles)||0).toFixed(1)} mi · ${Number(e.stops)||0} stops</span></div>`).join(''):'<div style="font-size:13px;color:var(--ink3)">No mileage logged in this period.</div>'}</div>
-  <div class="card"><div class="card-title">Customer breakdown</div>${DB.customers.filter(c=>c.sched!=='inactive').map(c=>{const jobs=workJobs.filter(j=>j.custId===c.id),rev=paidJobs.filter(j=>j.custId===c.id).reduce((a,j)=>a+jobAmount(j,c),0),times=jobs.filter(j=>Number(j.actualMin)>0),avg=times.length?times.reduce((a,j)=>a+Number(j.actualMin),0)/times.length:0;return `<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div class="cust-avatar" style="width:32px;height:32px;font-size:15px">${esc(initials(c))}</div><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${esc(custFullName(c))}</div><div style="font-size:11px;color:var(--ink3)">${jobs.length} jobs${avg?' · '+Math.round(avg)+'m avg':''}</div></div><div style="font-weight:700;color:var(--green)">$${rev.toFixed(0)}</div></div>`;}).join('')}</div>`;
+  <div class="card"><div class="card-title">Customer breakdown</div>${DB.customers.filter(c=>c.sched!=='inactive').map(c=>{const jobs=workJobs.filter(j=>j.custId===c.id),rev=paidJobs.filter(j=>j.custId===c.id).reduce((a,j)=>a+jobAmount(j,c),0),times=jobs.filter(j=>Number(j.actualMin)>0),avg=times.length?times.reduce((a,j)=>a+Number(j.actualMin),0)/times.length:0;return `<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div class="cust-avatar" style="width:32px;height:32px;font-size:15px">${esc(initials(c))}</div><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${esc(custFullName(c))}</div><div style="font-size:11px;color:var(--ink3)">${jobs.length} jobs${avg?' · '+Math.round(avg)+'m avg':''}</div>${(()=>{const hj=jobs.filter(j=>paymentStatus(j)!=='not_billable'&&Number(j.actualMin)>0&&jobAmount(j,c)>0),hm=hj.reduce((a,j)=>a+Number(j.actualMin||0),0),ha=hj.reduce((a,j)=>a+jobAmount(j,c),0);return hm?`<div style="margin-top:4px">${hourlyRateBadgeFromRate(ha/(hm/60))}</div>`:'';})()}</div><div style="font-weight:700;color:var(--green)">$${rev.toFixed(0)}</div></div>`;}).join('')}</div>`;
 }
 
 function openReportModal(){
@@ -3888,14 +3981,16 @@ window.addEventListener('load',()=>{
   </div>
   <div class="fr">
     <div class="f" style="flex:0 0 140px"><label>Date</label><input type="date" id="ej-date"></div>
-    <div class="f" style="flex:0 0 110px"><label>Amount ($)</label><input type="number" id="ej-amount" min="0" step="0.01" placeholder="0.00"></div>
+    <div class="f" style="flex:0 0 110px"><label>Actual time (min)</label><input type="number" id="ej-actual-min" min="0" max="1440" step="1" oninput="updateEditJobHourlyPreview()"></div>
+    <div class="f" style="flex:0 0 110px"><label>Amount ($)</label><input type="number" id="ej-amount" min="0" step="0.01" placeholder="0.00" oninput="updateEditJobHourlyPreview()"></div>
   </div>
+  <div id="ej-hourly-preview" style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:.65rem .75rem;margin-bottom:.875rem;display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:12px;font-weight:700;color:var(--ink2)">Hourly performance</span><span class="hr-badge hr-none">—</span></div>
   <div class="fr">
     <div class="f"><label>Services / description</label><input type="text" id="ej-desc" placeholder="Mow + Edge"></div>
   </div>
   <div class="fr">
     <div class="f" style="flex:0 0 140px"><label>Payment status</label>
-      <select id="ej-paid">
+      <select id="ej-paid" onchange="updateEditJobHourlyPreview()">
         <option value="unpaid">Unpaid — Invoice not sent</option>
         <option value="invoice">Invoice Sent — Awaiting Payment</option>
         <option value="not_billable">No Charge / Not Billable</option>
