@@ -520,7 +520,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
       <option value="all">All time</option>
     </select>
   </div>
+  <div id="report-snapshot-wrap">
   <div id="report-content"></div>
+  <div class="card" style="margin-top:.5rem">
+    <div class="card-title" id="report-work-title">All work completed</div>
+    <input type="text" class="search-box" id="report-work-search" placeholder="Search by customer or service..." oninput="reportWorkLimit=20;renderReportWork()">
+    <div id="report-work-list"></div>
+    <div id="report-work-more"></div>
+  </div>
+  </div>
 
   <!-- Job Types -->
   <div class="card" style="margin-top:.5rem">
@@ -746,7 +754,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   </div>
   <div style="display:flex;gap:8px">
     <button class="btn btng" onclick="saveCust()" style="flex:1"><i class="ti ti-check"></i> Save</button>
-    <button class="btn" onclick="closeModal('cust-modal')">Cancel</button>
+    <button class="btn" onclick="cancelCustModal()">Cancel</button>
   </div>
 </div>
 </div>
@@ -829,7 +837,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
   <p style="font-size:13px;color:var(--ink3);margin-bottom:.875rem;line-height:1.6">Record a job that wasn't on your route — a last-minute call, extra service, or anything outside your normal schedule.</p>
   <div class="fr">
     <div class="f"><label>Customer</label>
-      <select id="qj-cust">
+      <select id="qj-cust" onchange="handleQuickJobCustChange()">
         <option value="">— select customer —</option>
       </select>
     </div>
@@ -983,7 +991,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);min-
 const SUPABASE_URL = 'https://xltpnadijzbiigqmqmyx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wI6su8ryt_sN2w1v976zcg_RJRlbX5E';
 // App version — bump this string each deploy so you can confirm the new copy loaded.
-const APP_VERSION='2026.08.25-r14-hourly-rate-performance';
+const APP_VERSION='2026.08.26-r15-quickjob-autoplace-inline-cust-reports-search';
 const supabaseClient = window.supabase&&window.supabase.createClient?window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY):null;
 
 function isUuid(value){
@@ -3326,6 +3334,12 @@ function saveCust(){
   window._custSaveBusy=true;setTimeout(()=>{window._custSaveBusy=false;},350);
   const idx=DB.customers.findIndex(x=>x.id===id);if(idx>=0)DB.customers[idx]=c;else DB.customers.push(c);
   saveDB();closeModal('cust-modal');renderCustomers();renderDash();
+  if(_pendingQuickJobReturn){
+    const p=_pendingQuickJobReturn;_pendingQuickJobReturn=null;
+    openQuickJobModal();
+    document.getElementById('qj-cust').value=id;
+    document.getElementById('qj-type').value=p.type||'mow';document.getElementById('qj-date').value=p.date||todayStr();document.getElementById('qj-mins').value=p.mins||45;document.getElementById('qj-price').value=p.price||'';document.getElementById('qj-paid').value=p.paid||'unpaid';document.getElementById('qj-notes').value=p.notes||'';
+  }
 }
 
 async function deleteCust(id){
@@ -3450,18 +3464,51 @@ function openHistPhoto(encodedSrc){
 }
 
 // ══ QUICK-ADD JOB ════════════════════════════════════════════════
+let _pendingQuickJobReturn=null;
+
 function openQuickJobModal(){
   const sel=document.getElementById('qj-cust');
-  sel.innerHTML='<option value="">— select customer —</option>'+DB.customers.filter(c=>c.sched!=='inactive').map(c=>`<option value="${attr(c.id)}">${esc(custFullName(c))}</option>`).join('');
+  sel.innerHTML='<option value="">— select customer —</option><option value="__new__">+ Add new customer…</option>'+DB.customers.filter(c=>c.sched!=='inactive').map(c=>`<option value="${attr(c.id)}">${esc(custFullName(c))}</option>`).join('');
   populateJobTypeSelect('qj-type','mow');
   document.getElementById('qj-date').value=todayStr();document.getElementById('qj-mins').value=45;document.getElementById('qj-price').value='';document.getElementById('qj-paid').value='unpaid';document.getElementById('qj-notes').value='';
   document.getElementById('quickjob-modal').classList.add('open');
 }
 
+function handleQuickJobCustChange(){
+  const sel=document.getElementById('qj-cust');
+  if(sel.value!=='__new__')return;
+  _pendingQuickJobReturn={type:document.getElementById('qj-type').value,date:document.getElementById('qj-date').value,mins:document.getElementById('qj-mins').value,price:document.getElementById('qj-price').value,paid:document.getElementById('qj-paid').value,notes:document.getElementById('qj-notes').value};
+  sel.value='';
+  closeModal('quickjob-modal');
+  openCustModal();
+}
+
+function cancelCustModal(){
+  closeModal('cust-modal');
+  if(_pendingQuickJobReturn){
+    const p=_pendingQuickJobReturn;_pendingQuickJobReturn=null;
+    document.getElementById('quickjob-modal').classList.add('open');
+    document.getElementById('qj-type').value=p.type||'mow';document.getElementById('qj-date').value=p.date||todayStr();document.getElementById('qj-mins').value=p.mins||45;document.getElementById('qj-price').value=p.price||'';document.getElementById('qj-paid').value=p.paid||'unpaid';document.getElementById('qj-notes').value=p.notes||'';
+  }
+}
+
 function saveQuickJob(){
   if(window._quickJobBusy)return;const custId=document.getElementById('qj-cust').value,c=DB.customers.find(x=>x.id===custId);if(!c){alert('Select a customer.');return;}const date=document.getElementById('qj-date').value;if(!validDateString(date)){alert('Choose a valid job date.');return;}const jobTypeId=document.getElementById('qj-type').value||'mow',type=jobType(jobTypeId),mins=clampNum(document.getElementById('qj-mins').value,1,600,type.defaultMin||45),rawPrice=document.getElementById('qj-price').value,amount=rawPrice===''?clampNum(type.defaultPrice||c.price,0,100000,0):clampNum(rawPrice,0,100000,0),paidVal=document.getElementById('qj-paid').value;
   const rec={id:uid(),custId,date,jobType:jobTypeId,actualMin:mins,estMin:mins,chargedAmount:amount,price:amount,paid:false,paidMethod:null,beforePhotos:[],afterPhotos:[],extraPhotos:[],beforePhotoUrls:[],afterPhotoUrls:[],extraPhotoUrls:[],beforePhotoPaths:[],afterPhotoPaths:[],extraPhotoPaths:[],notes:document.getElementById('qj-notes').value.trim(),isOneOff:true};
-  applyPaymentState(rec,paidVal,paidVal,amount);window._quickJobBusy=true;setTimeout(()=>window._quickJobBusy=false,350);DB.jobHistory.push(rec);saveDB();closeModal('quickjob-modal');renderDash();renderReports();renderCalendar();refreshInvoicePageIfOpen();alert(`Job logged for ${custFullName(c)} on ${fmtDate(date)}.`);
+  applyPaymentState(rec,paidVal,paidVal,amount);window._quickJobBusy=true;setTimeout(()=>window._quickJobBusy=false,350);DB.jobHistory.push(rec);
+  let placedOnRoute=false;
+  if(trackerRoute&&trackerRoute.date===date&&custAddr(c)){
+    const idx=trackerRoute.jobs.length;
+    trackerRoute.jobs.push({id:custId,custId,jobId:rec.id,schedId:null,jobType:jobTypeId,name:custFullName(c),addr:custAddr(c),size:c.size||'md',notes:rec.notes,estMin:mins,price:amount,arr:0,done:0,plannedDrive:null,miles:0,serviceType:c.serviceType||'mow'});
+    trackerStates[idx]={status:'done',startMs:null,elapsed:mins*60,interval:null,beforePhotos:[],afterPhotos:[],extraPhotos:[],beforePhotoUrls:[],afterPhotoUrls:[],extraPhotoUrls:[],beforePhotoPaths:[],afterPhotoPaths:[],extraPhotoPaths:[],notes:rec.notes,actualMin:mins,expanded:false,collapsed:false,arrivedAt:null,departedAt:null,preSentAt:null,postSentAt:null,skippedAt:null,skipReason:'',skipOccurrenceDate:null};
+    try{localStorage.setItem('ros_track_route',JSON.stringify(trackerRoute));}catch(e){}
+    saveTrackerStates();
+    const miles=trackerRoute.totalMiles?` · ${Number(trackerRoute.totalMiles).toFixed(1)} mi`:'';
+    const sub=document.getElementById('track-sub');if(sub)sub.textContent=trackerRoute.jobs.length+' stops · '+fmtDate(trackerRoute.date||todayStr())+miles;
+    if(document.getElementById('pg-track')?.classList.contains('active'))renderTracker();
+    placedOnRoute=true;
+  }
+  saveDB();closeModal('quickjob-modal');renderDash();renderReports();renderCalendar();refreshInvoicePageIfOpen();alert(`Job logged for ${custFullName(c)} on ${fmtDate(date)}.${placedOnRoute?' Added to today’s active route.':''}`);
 }
 
 function loadServicesUI(){
@@ -3715,16 +3762,34 @@ function renderReports(){
   const totalJobs=workJobs.length,revenue=paidJobs.reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0),unpaidRevenue=outstandingJobs.reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0),timed=workJobs.filter(j=>Number(j.actualMin)>0),avgActual=timed.length?timed.reduce((a,j)=>a+Number(j.actualMin||0),0)/timed.length:0,hourlyJobs=workJobs.filter(j=>paymentStatus(j)!=='not_billable'&&Number(j.actualMin)>0&&jobAmount(j,DB.customers.find(c=>c.id===j.custId))>0),hourlyRevenue=hourlyJobs.reduce((a,j)=>a+jobAmount(j,DB.customers.find(c=>c.id===j.custId)),0),hourlyMinutes=hourlyJobs.reduce((a,j)=>a+Number(j.actualMin||0),0),avgHourly=hourlyMinutes>0?hourlyRevenue/(hourlyMinutes/60):null,mileageLog=getMileageLog().filter(e=>e&&inPeriodDate(e.date)),totalMiles=mileageLog.reduce((a,e)=>a+(Number(e.miles)||0),0),catMap={};
   paidJobs.forEach(j=>{const c=DB.customers.find(x=>x.id===j.custId),amt=jobAmount(j,c),items=Array.isArray(j.lineItems)?j.lineItems.filter(x=>x&&x.name):[];if(items.length){const listed=items.reduce((a,x)=>a+Math.max(0,Number(x.price)||0),0),factor=listed>0?amt/listed:1/items.length;items.forEach(x=>{const key=String(x.name).trim()||'Service';if(!catMap[key])catMap[key]={count:0,revenue:0};catMap[key].count++;catMap[key].revenue+=listed>0?Math.max(0,Number(x.price)||0)*factor:amt*factor;});return;}const desc=String(j.serviceDesc||'').trim(),parts=desc?desc.split(/\s*\+\s*/).filter(Boolean):[jobTypeLabel(j.jobType||'mow')||svcShort(c&&c.serviceType)];parts.forEach(x=>{const key=String(x).trim()||'Service';if(!catMap[key])catMap[key]={count:0,revenue:0};catMap[key].count++;catMap[key].revenue+=amt/Math.max(1,parts.length);});});
   const cats=Object.entries(catMap).sort((a,b)=>b[1].revenue-a[1].revenue),sorted=[...workJobs].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  _reportWorkSorted=sorted;
   el.innerHTML=`<div class="dash-grid"><div class="dash-card"><div class="dash-val">${totalJobs}</div><div class="dash-lbl">Jobs completed</div></div><div class="dash-card"><div class="dash-val" style="color:var(--green)">$${revenue.toFixed(0)}</div><div class="dash-lbl">Payments collected</div></div><div class="dash-card"><div class="dash-val" style="color:var(--red)">$${unpaidRevenue.toFixed(0)}</div><div class="dash-lbl">Outstanding from work period</div></div><div class="dash-card"><div class="dash-val">${avgActual?Math.round(avgActual)+'m':'—'}</div><div class="dash-lbl">Avg job time</div></div><div class="dash-card"><div style="margin-bottom:4px">${hourlyRateBadgeFromRate(avgHourly,true)}</div><div class="dash-lbl">Avg hourly rate</div></div></div>
   <div style="font-size:11px;color:var(--ink3);margin:-.25rem 0 1rem;line-height:1.6"><strong>Hourly guide:</strong> <span style="color:var(--red);font-weight:700">LOW &lt;$70</span> · <span style="color:var(--amb);font-weight:700">GOOD $70–94</span> · <span style="color:var(--green);font-weight:700">STRONG $95–119</span> · <span style="color:#174d23;font-weight:700">EXCELLENT $120+</span></div>
   ${cats.length?`<div class="card"><div class="card-title">Collected revenue by service</div>${cats.map(([name,d])=>`<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--s3)"><div><div style="font-weight:600;font-size:13px">${esc(name)}</div><div style="font-size:11px;color:var(--ink3)">${d.count} item${d.count!==1?'s':''}</div></div><div style="font-weight:700;color:var(--green)">$${d.revenue.toFixed(0)}</div></div>`).join('')}</div>`:''}
-  <div class="card"><div class="card-title">All work completed (${sorted.length})</div>${sorted.length?sorted.map(j=>{const c=DB.customers.find(x=>x.id===j.custId),amt=jobAmount(j,c),desc=j.serviceDesc||jobTypeLabel(j.jobType||'mow'),ps=paymentStatus(j);return `<div style="display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):'Deleted customer'}</div><div style="font-size:11px;color:var(--ink3)">${esc(fmtDate(j.date))} · ${esc(desc)}</div><div style="margin-top:5px">${hourlyRateBadge(j,c)}</div>${j.notes?`<div style="font-size:11px;color:var(--ink3);margin-top:4px">${esc(j.notes)}</div>`:''}</div><div style="text-align:right;flex-shrink:0"><div style="font-weight:700;font-size:13px;color:${j.paid?'var(--green)':ps==='not_billable'?'var(--ink3)':'var(--red)'}">${ps==='not_billable'?'—':'$'+amt.toFixed(2)}</div><span class="tag ${j.paid?'tag-green':ps==='not_billable'?'tag-gray':'tag-red'}" style="font-size:9px">${esc(paymentStatusDetail(j))}</span><div><button class="btn bxsm fin-action" onclick="openEditJobModal('${jsStr(j.id)}')" style="margin-top:4px"><i class="ti ti-edit"></i></button></div></div></div>`;}).join(''):'<div class="empty-state" style="padding:1rem"><small>No jobs recorded yet</small></div>'}</div>
   <div class="card"><div class="card-title">Mileage log</div><div class="mile-badge"><i class="ti ti-car"></i> ${totalMiles.toFixed(1)} miles in selected period</div>${mileageLog.length?mileageLog.slice(-10).reverse().map(e=>`<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--s3);font-size:13px"><span>${esc(fmtDate(e.date))}</span><span style="font-weight:600;color:var(--blue)">${(Number(e.miles)||0).toFixed(1)} mi · ${Number(e.stops)||0} stops</span></div>`).join(''):'<div style="font-size:13px;color:var(--ink3)">No mileage logged in this period.</div>'}</div>
   <div class="card"><div class="card-title">Customer breakdown</div>${DB.customers.filter(c=>c.sched!=='inactive').map(c=>{const jobs=workJobs.filter(j=>j.custId===c.id),rev=paidJobs.filter(j=>j.custId===c.id).reduce((a,j)=>a+jobAmount(j,c),0),times=jobs.filter(j=>Number(j.actualMin)>0),avg=times.length?times.reduce((a,j)=>a+Number(j.actualMin),0)/times.length:0;return `<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div class="cust-avatar" style="width:32px;height:32px;font-size:15px">${esc(initials(c))}</div><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${esc(custFullName(c))}</div><div style="font-size:11px;color:var(--ink3)">${jobs.length} jobs${avg?' · '+Math.round(avg)+'m avg':''}</div>${(()=>{const hj=jobs.filter(j=>paymentStatus(j)!=='not_billable'&&Number(j.actualMin)>0&&jobAmount(j,c)>0),hm=hj.reduce((a,j)=>a+Number(j.actualMin||0),0),ha=hj.reduce((a,j)=>a+jobAmount(j,c),0);return hm?`<div style="margin-top:4px">${hourlyRateBadgeFromRate(ha/(hm/60))}</div>`:'';})()}</div><div style="font-weight:700;color:var(--green)">$${rev.toFixed(0)}</div></div>`;}).join('')}</div>`;
+  reportWorkLimit=20;renderReportWork();
+}
+
+let _reportWorkSorted=[], reportWorkLimit=20;
+function renderReportWork(){
+  const listEl=document.getElementById('report-work-list'),moreEl=document.getElementById('report-work-more'),titleEl=document.getElementById('report-work-title');
+  if(!listEl)return;
+  const q=(document.getElementById('report-work-search')?.value||'').trim().toLowerCase();
+  const filtered=q?_reportWorkSorted.filter(j=>{
+    const c=DB.customers.find(x=>x.id===j.custId),desc=j.serviceDesc||jobTypeLabel(j.jobType||'mow');
+    return (c?custFullName(c):'Deleted customer').toLowerCase().includes(q)||String(desc).toLowerCase().includes(q)||String(jobTypeLabel(j.jobType||'mow')).toLowerCase().includes(q)||String(fmtDate(j.date)).toLowerCase().includes(q);
+  }):_reportWorkSorted;
+  if(titleEl)titleEl.textContent=`All work completed (${filtered.length})`;
+  const shown=filtered.slice(0,reportWorkLimit);
+  listEl.innerHTML=shown.length?shown.map(j=>{const c=DB.customers.find(x=>x.id===j.custId),amt=jobAmount(j,c),desc=j.serviceDesc||jobTypeLabel(j.jobType||'mow'),ps=paymentStatus(j);return `<div style="display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--s3)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${c?esc(custFullName(c)):'Deleted customer'}</div><div style="font-size:11px;color:var(--ink3)">${esc(fmtDate(j.date))} · ${esc(desc)}</div><div style="margin-top:5px">${hourlyRateBadge(j,c)}</div>${j.notes?`<div style="font-size:11px;color:var(--ink3);margin-top:4px">${esc(j.notes)}</div>`:''}</div><div style="text-align:right;flex-shrink:0"><div style="font-weight:700;font-size:13px;color:${j.paid?'var(--green)':ps==='not_billable'?'var(--ink3)':'var(--red)'}">${ps==='not_billable'?'—':'$'+amt.toFixed(2)}</div><span class="tag ${j.paid?'tag-green':ps==='not_billable'?'tag-gray':'tag-red'}" style="font-size:9px">${esc(paymentStatusDetail(j))}</span><div><button class="btn bxsm fin-action" onclick="openEditJobModal('${jsStr(j.id)}')" style="margin-top:4px"><i class="ti ti-edit"></i></button></div></div></div>`;}).join(''):'<div class="empty-state" style="padding:1rem"><small>No jobs found</small></div>';
+  const remaining=filtered.length-shown.length;
+  moreEl.innerHTML=remaining>0?`<button class="btn" style="width:100%;margin-top:.5rem" onclick="reportWorkLimit+=20;renderReportWork()">Show more (${remaining} remaining)</button>`:'';
 }
 
 function openReportModal(){
-  document.getElementById('report-modal-content').innerHTML=document.getElementById('report-content').innerHTML||'<p style="color:var(--ink3)">No data yet.</p>';
+  renderReports();
+  document.getElementById('report-modal-content').innerHTML=document.getElementById('report-snapshot-wrap').innerHTML||'<p style="color:var(--ink3)">No data yet.</p>';
   document.getElementById('report-modal').classList.add('open');
 }
 
